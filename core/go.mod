@@ -5,9 +5,10 @@ go 1.23.0
 require (
 	github.com/ReneKroon/ttlcache v1.7.0
 	github.com/apex/log v1.9.0
-	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/crawlab-team/crawlab-db v0.6.0-beta.20220417.1300.0.20221226064900-5a357ee73484
+	github.com/cenkalti/backoff/v4 v4.1.0
+	github.com/crawlab-team/crawlab/db v0.0.0
 	github.com/crawlab-team/crawlab-fs v0.6.3-2
+	github.com/crawlab-team/crawlab/grpc v0.0.0
 	github.com/crawlab-team/crawlab-vcs v0.6.2-0.20230629045457-afe0be0e2185
 	github.com/crawlab-team/crawlab/grpc v0.0.0-20241009023509-0485310def8b
 	github.com/crawlab-team/go-trace v0.1.1
