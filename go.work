@@ -5,4 +5,8 @@ use (
 	./core
 	./grpc
 	。/db
+	。/template-parser
+	。/trace
+	。/vcs
+	。/fs
 )
