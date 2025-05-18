@@ -1,8 +1,8 @@
 <script setup lang="tsx">
-import { computed, ref } from 'vue';
+import { computed, CSSProperties, ref } from 'vue';
 import { CellStyle } from 'element-plus';
 import { ClTag } from '@/components';
-import { translate, getIconByItemType } from '@/utils';
+import { translate, getIconByItemType, getIconByPageElementType } from '@/utils';
 import { TAB_NAME_RESULTS, TAB_NAME_PREVIEW } from '@/constants';
 import useRequest from '@/services/request';
 
@@ -22,17 +22,15 @@ const emit = defineEmits<{
   (e: 'size-change', size: number): void;
 }>();
 
-const { post } = useRequest();
+const { get } = useRequest();
 
 // Refs
 const resultsContainerRef = ref<HTMLElement | null>(null);
-const iframeRef = ref<HTMLIFrameElement | null>(null);
 const iframeLoading = ref(true);
 const previewRef = ref<HTMLDivElement | null>(null);
 const previewLoading = ref(false);
-const pagePreview = ref<PagePreview>();
+const previewResult = ref<PagePreviewResult>();
 const overlayRef = ref<HTMLDivElement | null>(null);
-const scrollPosition = ref({ top: 0, left: 0 });
 
 // States
 const activeTabName = ref<string | undefined>(TAB_NAME_RESULTS);
@@ -114,13 +112,6 @@ const toggleResults = () => {
   }
 };
 
-const onIframeLoad = () => {
-  iframeLoading.value = false;
-  iframeRef.value?.addEventListener('focus', event => {
-    console.debug(event);
-  });
-};
-
 const getPreview = async () => {
   const { activeId } = props;
   const rect = previewRef.value?.getBoundingClientRect();
@@ -132,16 +123,32 @@ const getPreview = async () => {
     : undefined;
   previewLoading.value = true;
   try {
-    const res = await post<any, ResponseWithData<PagePreview>>(
+    const res = await get<any, ResponseWithData<PagePreviewResult>>(
       `/ai/autoprobes/${activeId}/preview`,
       {
         viewport,
       }
     );
-    pagePreview.value = res.data;
+    previewResult.value = res.data;
   } finally {
     previewLoading.value = false;
   }
+};
+
+const overlayScale = computed(() => {
+  const rect = overlayRef.value?.getBoundingClientRect();
+  if (!rect) return 1;
+  return rect.width / 1280; // TODO: Adjust based on the actual viewport size
+});
+
+const getElementMaskStyle = (el: PageElement): CSSProperties => {
+  return {
+    position: 'absolute',
+    left: el.coordinates.left * overlayScale.value + 'px',
+    top: el.coordinates.top * overlayScale.value + 'px',
+    width: el.coordinates.width * overlayScale.value + 'px',
+    height: el.coordinates.height * overlayScale.value + 'px',
+  };
 };
 
 // Resize handler
@@ -205,29 +212,20 @@ defineOptions({ name: 'ClAutoProbeResultsContainer' });
     >
       <!--      <el-skeleton :rows="15" animated v-if="iframeLoading && url" />-->
       <div v-loading="previewLoading" class="preview-container">
-        <div v-if="pagePreview" ref="overlayRef" class="preview-overlay">
-          <img class="screenshot" :src="pagePreview.screenshot_base64" />
+        <div v-if="previewResult" ref="overlayRef" class="preview-overlay">
+          <img class="screenshot" :src="previewResult.screenshot_base64" />
           <div
-            v-for="coord in pagePreview.page_items_coordinates"
-            :key="coord.id"
+            v-for="(el, index) in previewResult.page_elements"
+            :key="index"
             class="element-mask"
-            :style="{
-              position: 'absolute',
-              left: coord.coordinates?.left + 'px',
-              top: coord.coordinates?.top + 'px',
-              width: coord.coordinates?.width + 'px',
-              height: coord.coordinates?.height + 'px',
-            }"
+            :style="getElementMaskStyle(el)"
           >
-            <el-badge
-              type="primary"
-              :badge-style="{opacity: 0.5}"
-            >
+            <el-badge type="primary" :badge-style="{ opacity: 0.8 }">
               <template #content>
                 <span style="margin-right: 5px">
-                  <cl-icon :icon="getIconByItemType('field')" />
+                  <cl-icon :icon="getIconByPageElementType(el.type)" />
                 </span>
-                {{ coord.id }}
+                {{ el.name }}
               </template>
             </el-badge>
           </div>
@@ -308,19 +306,20 @@ defineOptions({ name: 'ClAutoProbeResultsContainer' });
         top: 0;
         left: 0;
         width: 100%;
+        z-index: 1;
 
         img.screenshot {
           width: 100%;
         }
 
         .element-mask {
-          border: 1px solid var(--el-color-primary);
+          border: 1px solid var(--el-color-primary-light-5);
           border-radius: 4px;
-          pointer-events: none;
+          z-index: 1;
 
           &:hover {
-            background-color: var(--cl-primary-color);
-            opacity: 0.8;
+            background: rgba(64, 156, 255, 0.2);
+            cursor: pointer;
           }
         }
       }

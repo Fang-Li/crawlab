@@ -190,12 +190,17 @@ const useAutoProbeList = () => {
       ] as TableColumns<AutoProbe>
   );
 
+  const rowKey = (row: AutoProbe) => {
+    return JSON.stringify([row._id, row.url, row.last_task?.status, row.page_pattern]);
+  }
+
   setupAutoUpdate(getList);
 
   return {
     ...useList<AutoProbe>(ns, store),
     navActions,
     tableColumns,
+    rowKey,
   };
 };
 

@@ -66,7 +66,7 @@ export declare global {
     html?: string;
     page_pattern?: PagePattern;
     page_data?: PageData;
-    page_elements?: PageItemCoordinates[];
+    page_elements?: PageElement[];
     provider_id?: string;
     model?: string;
     usage?: LLMResponseUsage;
@@ -77,7 +77,7 @@ export declare global {
     screenshot_base64?: string;
     page_pattern?: PagePattern;
     page_data?: PageData;
-    page_elements?: PageItemCoordinates[];
+    page_elements?: PageElement[];
   }
 
   type AutoProbeItemType = 'page_pattern' | 'list' | 'field' | 'pagination';
@@ -111,14 +111,14 @@ export declare global {
 
   type PageElementType = 'list' | 'list-item' | 'field' | 'pagination';
 
-  interface PageItemCoordinates {
+  interface PageElement {
     name: string;
     type: PageElementType;
     coordinates: ElementCoordinates;
   }
 
-  interface PagePreview {
+  interface PagePreviewResult {
     screenshot_base64: string;
-    page_items_coordinates: PageItemCoordinates[];
+    page_elements: PageElement[];
   }
 }

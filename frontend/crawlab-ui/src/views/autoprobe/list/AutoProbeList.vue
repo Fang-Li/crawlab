@@ -8,6 +8,7 @@ const {
   tableTotal,
   tablePagination,
   actionFunctions,
+  rowKey,
 } = useAutoProbeList();
 
 defineOptions({ name: 'ClAutoProbeList' });
@@ -22,6 +23,7 @@ defineOptions({ name: 'ClAutoProbeList' });
     :table-columns="tableColumns"
     :table-data="tableData"
     :table-total="tableTotal"
+    :row-key="rowKey"
   >
     <template #extra>
       <!-- Dialogs (handled by store) -->

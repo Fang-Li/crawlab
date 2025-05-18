@@ -36,3 +36,18 @@ export const getIconByItemType = (itemType?: AutoProbeItemType): Icon => {
       return ['fa', 'question'];
   }
 };
+
+export const getIconByPageElementType = (itemType?: PageElementType): Icon => {
+  switch (itemType) {
+    case 'field':
+      return ['fa', 'tag'];
+    case 'list':
+      return ['fa', 'list'];
+    case 'list-item':
+      return ['fa', 'list-alt'];
+    case 'pagination':
+      return ['fa', 'ellipsis-h'];
+    default:
+      return ['fa', 'question'];
+  }
+}
