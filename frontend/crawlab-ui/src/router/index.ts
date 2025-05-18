@@ -134,7 +134,7 @@ export function getDefaultSidebarMenuItems(): MenuItem[] {
       path: '/autoprobes',
       title: 'router.menuItems.autoprobe',
       icon: getIconByRouteConcept('autoprobe'),
-      badge: t('common.mode.preview'),
+      badge: 'common.mode.preview',
       badgeType: 'primary',
     },
     {

@@ -27,7 +27,11 @@ defineOptions({ name: 'ClSidebarItem' });
     <cl-menu-item-icon :item="item" size="normal" />
     <template #title>
       <span class="menu-item-title">
-        <el-badge :value="item.badge" :type="item.badgeType" :offset="[12, 0]">
+        <el-badge
+          :value="item.badge ? t(item.badge) : ''"
+          :type="item.badgeType"
+          :offset="[12, 0]"
+        >
           {{ t(item.title) }}
         </el-badge>
       </span>

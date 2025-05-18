@@ -7,7 +7,7 @@ export declare global {
     last_task?: AutoProbeTask;
     default_task_id?: string;
     page_pattern?: PagePattern;
-    page_data?: PageDataRow;
+    page_data?: PageData;
   }
 
   type AutoProbeTaskStatus =
@@ -63,11 +63,21 @@ export declare global {
     query?: string;
     status: AutoProbeTaskStatus;
     error?: string;
+    html?: string;
     page_pattern?: PagePattern;
     page_data?: PageData;
+    page_elements?: PageItemCoordinates[];
     provider_id?: string;
     model?: string;
     usage?: LLMResponseUsage;
+  }
+
+  interface AutoProbeTaskResult {
+    html?: string;
+    screenshot_base64?: string;
+    page_pattern?: PagePattern;
+    page_data?: PageData;
+    page_elements?: PageItemCoordinates[];
   }
 
   type AutoProbeItemType = 'page_pattern' | 'list' | 'field' | 'pagination';
@@ -99,9 +109,11 @@ export declare global {
     height: number;
   }
 
+  type PageElementType = 'list' | 'list-item' | 'field' | 'pagination';
+
   interface PageItemCoordinates {
-    id: string;
     name: string;
+    type: PageElementType;
     coordinates: ElementCoordinates;
   }
 
