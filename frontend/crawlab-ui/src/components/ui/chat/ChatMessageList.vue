@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { defineProps, ref, nextTick } from 'vue';
+import { ref, nextTick } from 'vue';
 import { ElScrollbar } from 'element-plus';
 import { debounce } from 'lodash';
 
-const props = defineProps<{
+defineProps<{
   messages: ChatMessage[];
   isLoading: boolean;
   error?: string;
