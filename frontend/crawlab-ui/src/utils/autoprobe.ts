@@ -48,7 +48,7 @@ export const getIconByPageElementType = (itemType?: PageElementType): Icon => {
     case 'list':
       return ['fa', 'list'];
     case 'list-item':
-      return ['fa', 'list-alt'];
+      return ['fa', 'bars'];
     case 'pagination':
       return ['fa', 'ellipsis-h'];
     default:

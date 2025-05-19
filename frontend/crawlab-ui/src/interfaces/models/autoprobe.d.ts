@@ -117,6 +117,7 @@ export declare global {
     name: string;
     type: PageElementType;
     coordinates: ElementCoordinates;
+    children?: PageElement[];
   }
 
   interface PagePreviewResult {

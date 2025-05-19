@@ -3,6 +3,7 @@ import {
   type CSSProperties,
   onMounted,
   ref,
+  computed,
   watch,
   onBeforeUnmount,
 } from 'vue';
@@ -12,6 +13,7 @@ import { debounce } from 'lodash';
 
 const props = defineProps<{
   activeId: string;
+  activeNavItem?: AutoProbeNavItem;
   viewport?: PageViewPort;
 }>();
 
@@ -108,6 +110,37 @@ const getElementMaskStyle = (el: PageElement): CSSProperties => {
   };
 };
 
+const pageElements = computed<PageElement[]>(() => {
+  const { activeNavItem } = props;
+  if (!activeNavItem) {
+    return previewResult.value?.page_elements ?? [];
+  }
+  if (!previewResult.value?.page_elements) {
+    return [];
+  }
+  if (activeNavItem.type === 'page_pattern') {
+    return previewResult.value.page_elements;
+  } else if (activeNavItem.type === 'list') {
+    const listElement = previewResult.value.page_elements.find(
+      el => el.name === activeNavItem.name
+    );
+    if (!listElement) {
+      return [];
+    }
+    const itemElements = listElement.children ?? [];
+    const fieldElements = itemElements.flatMap(el => el.children ?? []);
+    return [...itemElements, ...fieldElements];
+  } else if (activeNavItem.type === 'field') {
+    return (
+      previewResult.value.page_elements.filter(
+        el => el.name === activeNavItem.name
+      ) ?? []
+    );
+  } else {
+    return [];
+  }
+});
+
 defineExpose({
   updateOverlayScale,
 });
@@ -121,7 +154,7 @@ defineOptions({ name: 'ClAutoProbeResultsPreview' });
       <div v-if="previewResult" ref="overlayRef" class="preview-overlay">
         <img class="screenshot" :src="previewResult.screenshot_base64" />
         <div
-          v-for="(el, index) in previewResult.page_elements"
+          v-for="(el, index) in pageElements"
           :key="index"
           class="element-mask"
           :style="getElementMaskStyle(el)"

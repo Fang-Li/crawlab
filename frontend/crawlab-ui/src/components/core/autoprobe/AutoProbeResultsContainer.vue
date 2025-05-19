@@ -12,6 +12,7 @@ const props = defineProps<{
   data?: PageData | PageData[];
   fields?: AutoProbeNavItem[];
   activeFieldName?: string;
+  activeNavItem?: AutoProbeNavItem;
   url?: string;
   viewport?: PageViewPort;
   activeId?: string;
@@ -162,6 +163,7 @@ defineOptions({ name: 'ClAutoProbeResultsContainer' });
         v-if="activeId"
         ref="previewRef"
         :active-id="activeId"
+        :active-nav-item="activeNavItem"
         :viewport="viewport"
       />
     </template>
