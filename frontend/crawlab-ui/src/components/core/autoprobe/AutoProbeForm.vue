@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { computed, onBeforeMount, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useAutoProbe } from '@/components';
-import { translate } from '@/utils';
+import { getViewPortOptions, translate } from '@/utils';
 
 // i18n
 const t = translate;
@@ -10,6 +11,33 @@ const t = translate;
 const store = useStore();
 const { form, formRef, formRules, isSelectiveForm, isFormItemDisabled } =
   useAutoProbe(store);
+
+const viewportOptions = computed<ViewPortSelectOption[]>(() => {
+  return getViewPortOptions();
+});
+const viewportValue = ref<ViewPortValue>('pc-normal');
+const onViewportChange = (value: ViewPortValue) => {
+  if (!form.value) return;
+  const selectedOption = viewportOptions.value.find(
+    option => option.value === value
+  );
+  if (selectedOption) {
+    form.value.viewport = selectedOption.viewport;
+  }
+};
+const updateViewPortValue = () => {
+  const selectedOption = viewportOptions.value.find(
+    op =>
+      op.viewport.width === form.value?.viewport?.width &&
+      op.viewport.height === form.value?.viewport?.height
+  );
+  if (selectedOption) {
+    viewportValue.value = selectedOption.value!;
+  }
+};
+watch(() => JSON.stringify(form.value?.viewport), updateViewPortValue);
+onBeforeMount(updateViewPortValue);
+
 defineOptions({ name: 'ClAutoProbeForm' });
 </script>
 
@@ -45,8 +73,11 @@ defineOptions({ name: 'ClAutoProbeForm' });
         v-model="form.url"
         :disabled="isFormItemDisabled('url')"
         :placeholder="t('components.autoprobe.form.url')"
-        type="textarea"
-      />
+      >
+        <template #prefix>
+          <cl-icon :icon="['fa', 'at']" />
+        </template>
+      </el-input>
     </cl-form-item>
     <cl-form-item
       :span="4"
@@ -56,8 +87,61 @@ defineOptions({ name: 'ClAutoProbeForm' });
       <el-input
         v-model="form.query"
         :disabled="isFormItemDisabled('query')"
-        :placeholder="t('components.autoprobe.form.query')"
+        :placeholder="t('components.autoprobe.form.queryPlaceholder')"
         type="textarea"
+      />
+    </cl-form-item>
+    <cl-form-item
+      :span="2"
+      :label="t('components.autoprobe.form.viewport')"
+      prop="viewport"
+    >
+      <el-select
+        v-model="viewportValue"
+        :disabled="isFormItemDisabled('viewport')"
+        :placeholder="t('components.autoprobe.form.viewport')"
+        @change="onViewportChange"
+      >
+        <el-option
+          v-for="op in viewportOptions"
+          :key="op.value"
+          :label="op.label"
+          :value="op.value"
+        />
+      </el-select>
+      <cl-tag
+        v-if="form.viewport"
+        size="large"
+        :icon="['fa', 'desktop']"
+        :label="`${form.viewport?.width}x${form.viewport?.height}`"
+      >
+        <template #tooltip>
+          <div>
+            <label>{{ t('components.autoprobe.form.viewportWidth') }}: </label>
+            <span
+              >{{ form.viewport?.width }}
+              {{ t('components.autoprobe.form.viewportPx') }}</span
+            >
+          </div>
+          <div>
+            <label>{{ t('components.autoprobe.form.viewportHeight') }}: </label>
+            <span
+              >{{ form.viewport?.height }}
+              {{ t('components.autoprobe.form.viewportPx') }}</span
+            >
+          </div>
+        </template>
+      </cl-tag>
+    </cl-form-item>
+    <cl-form-item
+      :span="2"
+      :label="t('components.autoprobe.form.runOnCreate')"
+      prop="query"
+    >
+      <cl-switch
+        v-model="form.run_on_create"
+        :disabled="isFormItemDisabled('run_on_create')"
+        :placeholder="t('components.autoprobe.form.runOnCreate')"
       />
     </cl-form-item>
   </cl-form>

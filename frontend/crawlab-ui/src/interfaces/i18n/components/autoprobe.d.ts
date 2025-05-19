@@ -3,6 +3,19 @@ interface LComponentsAutoProbe {
     name: string;
     url: string;
     query: string;
+    queryPlaceholder: string;
+    runOnCreate: string;
+    viewport: string;
+    viewports: {
+      pc: {
+        normal: string;
+        wide: string;
+        small: string;
+      };
+    };
+    viewportWidth: string;
+    viewportHeight: string;
+    viewportPx: string;
   };
   task: {
     status: {

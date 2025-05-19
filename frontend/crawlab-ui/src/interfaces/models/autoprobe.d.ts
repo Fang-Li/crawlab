@@ -6,8 +6,10 @@ export declare global {
     last_task_id?: string;
     last_task?: AutoProbeTask;
     default_task_id?: string;
+    run_on_create?: boolean;
     page_pattern?: PagePattern;
     page_data?: PageData;
+    viewport?: PageViewPort;
   }
 
   type AutoProbeTaskStatus =
@@ -120,5 +122,11 @@ export declare global {
   interface PagePreviewResult {
     screenshot_base64: string;
     page_elements: PageElement[];
+  }
+
+  type ViewPortValue = 'pc-normal' | 'pc-wide' | 'pc-small';
+
+  interface ViewPortSelectOption extends SelectOption<ViewPortValue> {
+    viewport: PageViewPort;
   }
 }

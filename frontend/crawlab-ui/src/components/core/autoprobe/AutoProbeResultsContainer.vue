@@ -1,10 +1,9 @@
 <script setup lang="tsx">
-import { computed, CSSProperties, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { CellStyle } from 'element-plus';
-import { ClTag } from '@/components';
-import { translate, getIconByItemType, getIconByPageElementType } from '@/utils';
+import { ClTag, ClAutoProbeResultsPreview } from '@/components';
+import { translate, getIconByItemType } from '@/utils';
 import { TAB_NAME_RESULTS, TAB_NAME_PREVIEW } from '@/constants';
-import useRequest from '@/services/request';
 
 const t = translate;
 
@@ -14,6 +13,7 @@ const props = defineProps<{
   fields?: AutoProbeNavItem[];
   activeFieldName?: string;
   url?: string;
+  viewport?: PageViewPort;
   activeId?: string;
 }>();
 
@@ -22,15 +22,9 @@ const emit = defineEmits<{
   (e: 'size-change', size: number): void;
 }>();
 
-const { get } = useRequest();
-
 // Refs
 const resultsContainerRef = ref<HTMLElement | null>(null);
-const iframeLoading = ref(true);
-const previewRef = ref<HTMLDivElement | null>(null);
-const previewLoading = ref(false);
-const previewResult = ref<PagePreviewResult>();
-const overlayRef = ref<HTMLDivElement | null>(null);
+const previewRef = ref<typeof ClAutoProbeResultsPreview | null>(null);
 
 // States
 const activeTabName = ref<string | undefined>(TAB_NAME_RESULTS);
@@ -97,12 +91,6 @@ const onTabSelect = async (id: string) => {
   if (!resultsVisible.value) {
     resultsVisible.value = true;
   }
-
-  // Reset iframe loading state when switching to preview tab
-  if (id === TAB_NAME_PREVIEW) {
-    iframeLoading.value = true;
-    setTimeout(getPreview, 10);
-  }
 };
 
 const toggleResults = () => {
@@ -110,45 +98,6 @@ const toggleResults = () => {
   if (!activeTabName.value && resultsVisible.value) {
     activeTabName.value = TAB_NAME_RESULTS;
   }
-};
-
-const getPreview = async () => {
-  const { activeId } = props;
-  const rect = previewRef.value?.getBoundingClientRect();
-  const viewport: PageViewPort | undefined = rect
-    ? {
-        width: rect.width,
-        height: rect.height,
-      }
-    : undefined;
-  previewLoading.value = true;
-  try {
-    const res = await get<any, ResponseWithData<PagePreviewResult>>(
-      `/ai/autoprobes/${activeId}/preview`,
-      {
-        viewport,
-      }
-    );
-    previewResult.value = res.data;
-  } finally {
-    previewLoading.value = false;
-  }
-};
-
-const overlayScale = computed(() => {
-  const rect = overlayRef.value?.getBoundingClientRect();
-  if (!rect) return 1;
-  return rect.width / 1280; // TODO: Adjust based on the actual viewport size
-});
-
-const getElementMaskStyle = (el: PageElement): CSSProperties => {
-  return {
-    position: 'absolute',
-    left: el.coordinates.left * overlayScale.value + 'px',
-    top: el.coordinates.top * overlayScale.value + 'px',
-    width: el.coordinates.width * overlayScale.value + 'px',
-    height: el.coordinates.height * overlayScale.value + 'px',
-  };
 };
 
 // Resize handler
@@ -194,44 +143,28 @@ defineOptions({ name: 'ClAutoProbeResultsContainer' });
         </div>
       </template>
     </cl-nav-tabs>
-    <div class="results" v-if="activeTabName === TAB_NAME_RESULTS">
-      <cl-table
-        :key="JSON.stringify(tableColumns)"
-        :columns="tableColumns"
-        :data="tableData"
-        :header-cell-style="tableCellStyle"
-        :cell-style="tableCellStyle"
-        embedded
-        hide-footer
-      />
-    </div>
-    <div
-      v-else-if="activeTabName === TAB_NAME_PREVIEW"
-      ref="previewRef"
-      class="preview"
-    >
-      <!--      <el-skeleton :rows="15" animated v-if="iframeLoading && url" />-->
-      <div v-loading="previewLoading" class="preview-container">
-        <div v-if="previewResult" ref="overlayRef" class="preview-overlay">
-          <img class="screenshot" :src="previewResult.screenshot_base64" />
-          <div
-            v-for="(el, index) in previewResult.page_elements"
-            :key="index"
-            class="element-mask"
-            :style="getElementMaskStyle(el)"
-          >
-            <el-badge type="primary" :badge-style="{ opacity: 0.8 }">
-              <template #content>
-                <span style="margin-right: 5px">
-                  <cl-icon :icon="getIconByPageElementType(el.type)" />
-                </span>
-                {{ el.name }}
-              </template>
-            </el-badge>
-          </div>
-        </div>
+
+    <template v-if="activeTabName === TAB_NAME_RESULTS">
+      <div class="results">
+        <cl-table
+          :key="JSON.stringify(tableColumns)"
+          :columns="tableColumns"
+          :data="tableData"
+          :header-cell-style="tableCellStyle"
+          :cell-style="tableCellStyle"
+          embedded
+          hide-footer
+        />
       </div>
-    </div>
+    </template>
+    <template v-else-if="activeTabName === TAB_NAME_PREVIEW">
+      <cl-auto-probe-results-preview
+        v-if="activeId"
+        ref="previewRef"
+        :active-id="activeId"
+        :viewport="viewport"
+      />
+    </template>
   </div>
 </template>
 
@@ -287,42 +220,6 @@ defineOptions({ name: 'ClAutoProbeResultsContainer' });
     &:deep(.table .el-table__header-wrapper) {
       position: sticky;
       top: 0;
-    }
-  }
-
-  .preview {
-    overflow: hidden;
-    height: calc(100% - 41px);
-
-    .preview-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      scrollbar-width: none;
-
-      .preview-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        z-index: 1;
-
-        img.screenshot {
-          width: 100%;
-        }
-
-        .element-mask {
-          border: 1px solid var(--el-color-primary-light-5);
-          border-radius: 4px;
-          z-index: 1;
-
-          &:hover {
-            background: rgba(64, 156, 255, 0.2);
-            cursor: pointer;
-          }
-        }
-      }
     }
   }
 }

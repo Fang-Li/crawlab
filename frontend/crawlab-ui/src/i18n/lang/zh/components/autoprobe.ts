@@ -3,6 +3,19 @@ const autoprobe: LComponentsAutoProbe = {
     name: '名称',
     url: 'URL',
     query: '查询',
+    queryPlaceholder: '用户指令查询以提取数据 (默认为系统提示)',
+    runOnCreate: '创建时运行',
+    viewport: '视窗大小',
+    viewports: {
+      pc: {
+        normal: 'PC (正常)',
+        wide: 'PC (宽)',
+        small: 'PC (小)',
+      },
+    },
+    viewportWidth: '视窗宽度',
+    viewportHeight: '视窗高度',
+    viewportPx: '像素',
   },
   task: {
     status: {

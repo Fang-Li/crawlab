@@ -13,7 +13,12 @@ const useAutoProbe = (store: Store<RootStoreState>) => {
   const state = store.state[ns];
 
   // form rules
-  const formRules: FormRules = {};
+  const formRules: FormRules = {
+    url: {
+      pattern: /^https?:\/\/.+/,
+      message: 'URL is not valid (must start with http:// or https://)',
+    },
+  };
 
   // all autoprobe select options
   const allAutoProbeSelectOptions = computed<SelectOption[]>(() =>

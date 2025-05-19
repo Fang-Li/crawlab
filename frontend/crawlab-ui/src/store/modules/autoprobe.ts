@@ -11,6 +11,7 @@ import {
 } from '@/constants/tab';
 import { translate } from '@/utils/i18n';
 import useRequest from '@/services/request';
+import { getViewPortOptions } from '@/utils';
 
 // i18n
 const t = translate;
@@ -19,6 +20,13 @@ const { post } = useRequest();
 
 const state = {
   ...getDefaultStoreState<AutoProbe>('autoprobe'),
+  newFormFn: () => {
+    return {
+      run_on_create: true,
+      viewport: getViewPortOptions().find(v => v.value === 'pc-normal')
+        ?.viewport,
+    };
+  },
   tabs: [
     { id: TAB_NAME_OVERVIEW, title: t('common.tabs.overview') },
     { id: TAB_NAME_TASKS, title: t('common.tabs.tasks') },

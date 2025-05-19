@@ -3,6 +3,20 @@ const autoprobe: LComponentsAutoProbe = {
     name: 'Name',
     url: 'URL',
     query: 'Query',
+    queryPlaceholder:
+      'User instruction query to extract data (default to system prompt only)',
+    runOnCreate: 'Run on Create',
+    viewport: 'Viewport',
+    viewports: {
+      pc: {
+        normal: 'PC (Normal)',
+        wide: 'PC (Wide)',
+        small: 'PC (Small)',
+      },
+    },
+    viewportWidth: 'Viewport Width',
+    viewportHeight: 'Viewport Height',
+    viewportPx: 'px',
   },
   task: {
     status: {

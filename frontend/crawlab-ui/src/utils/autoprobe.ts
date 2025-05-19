@@ -1,3 +1,7 @@
+import { translate } from '@/utils';
+
+const t = translate;
+
 export const getIconBySelectorType = (selectorType: SelectorType): Icon => {
   switch (selectorType) {
     case 'css':
@@ -50,4 +54,24 @@ export const getIconByPageElementType = (itemType?: PageElementType): Icon => {
     default:
       return ['fa', 'question'];
   }
-}
+};
+
+export const getViewPortOptions = () => {
+  return [
+    {
+      label: t('components.autoprobe.form.viewports.pc.normal'),
+      value: 'pc-normal',
+      viewport: { width: 1280, height: 800 },
+    },
+    {
+      label: t('components.autoprobe.form.viewports.pc.wide'),
+      value: 'pc-wide',
+      viewport: { width: 1920, height: 1080 },
+    },
+    {
+      label: t('components.autoprobe.form.viewports.pc.small'),
+      value: 'pc-small',
+      viewport: { width: 1024, height: 768 },
+    },
+  ] as ViewPortSelectOption[];
+};

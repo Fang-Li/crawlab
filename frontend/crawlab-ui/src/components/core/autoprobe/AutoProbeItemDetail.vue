@@ -85,7 +85,7 @@ const tableColumns = computed<TableColumns<AutoProbeNavItem>>(() => {
           case 'list':
             const list = row.rule as ListRule;
             const selectorType = list.item_selector_type;
-            const selector = [list.item_selector, list.list_selector]
+            const selector = [list.list_selector, list.item_selector]
               .filter(item => item)
               .join(' > ');
             return (

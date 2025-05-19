@@ -24,6 +24,7 @@ import AutoProbeItemDetail from './core/autoprobe/AutoProbeItemDetail.vue';
 import AutoProbePagePatternsSidebar from './core/autoprobe/AutoProbePagePatternsSidebar.vue';
 import AutoProbePatternStats from './core/autoprobe/AutoProbePatternStats.vue';
 import AutoProbeResultsContainer from './core/autoprobe/AutoProbeResultsContainer.vue';
+import AutoProbeResultsPreview from './core/autoprobe/AutoProbeResultsPreview.vue';
 import AutoProbeSelector from './core/autoprobe/AutoProbeSelector.vue';
 import AutoProbeTaskStatus from './core/autoprobe/AutoProbeTaskStatus.vue';
 import BlockOptionsDropdownList from './ui/lexical/components/BlockOptionsDropdownList.vue';
@@ -279,6 +280,7 @@ export {
   AutoProbePagePatternsSidebar as ClAutoProbePagePatternsSidebar,
   AutoProbePatternStats as ClAutoProbePatternStats,
   AutoProbeResultsContainer as ClAutoProbeResultsContainer,
+  AutoProbeResultsPreview as ClAutoProbeResultsPreview,
   AutoProbeSelector as ClAutoProbeSelector,
   AutoProbeTaskStatus as ClAutoProbeTaskStatus,
   BlockOptionsDropdownList as ClBlockOptionsDropdownList,
