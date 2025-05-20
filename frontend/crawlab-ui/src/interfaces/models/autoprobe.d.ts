@@ -4,7 +4,8 @@ export declare global {
     url?: string;
     query?: string;
     last_task_id?: string;
-    last_task?: AutoProbeTask;
+    last_task_status?: AutoProbeTaskStatus;
+    last_task_error?: string;
     default_task_id?: string;
     run_on_create?: boolean;
     page_pattern?: PagePattern;
@@ -118,6 +119,7 @@ export declare global {
     type: PageElementType;
     coordinates: ElementCoordinates;
     children?: PageElement[];
+    active?: boolean;
   }
 
   interface PagePreviewResult {

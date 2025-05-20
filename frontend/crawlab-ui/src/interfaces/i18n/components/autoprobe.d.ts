@@ -114,5 +114,16 @@ interface LComponentsAutoProbe {
       html: string;
     };
     attribute: string;
+    elementType: string;
+    elementTypes: {
+      list: string;
+      listItem: string;
+      field: string;
+      pagination: string;
+    };
+    displayConfig: {
+      showLabel: string;
+      focusMode: string;
+    };
   };
 }

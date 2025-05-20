@@ -115,6 +115,17 @@ const autoprobe: LComponentsAutoProbe = {
       html: 'HTML',
     },
     attribute: 'Attribute',
+    elementType: 'Element Type',
+    elementTypes: {
+      list: 'List',
+      listItem: 'List Item',
+      field: 'Field',
+      pagination: 'Pagination',
+    },
+    displayConfig: {
+      showLabel: 'Show Label',
+      focusMode: 'Focus Mode',
+    }
   },
 };
 

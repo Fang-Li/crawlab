@@ -114,6 +114,17 @@ const autoprobe: LComponentsAutoProbe = {
       attribute: '属性',
     },
     attribute: '属性',
+    elementType: '元素类型',
+    elementTypes: {
+      list: '列表',
+      listItem: '列表项',
+      field: '字段',
+      pagination: '分页',
+    },
+    displayConfig: {
+      showLabel: '显示标签',
+      focusMode: '聚焦模式',
+    },
   },
 };
 

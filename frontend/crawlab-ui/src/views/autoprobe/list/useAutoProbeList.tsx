@@ -113,7 +113,8 @@ const useAutoProbeList = () => {
           icon: ['fa', 'heartbeat'],
           width: '120',
           value: (row: AutoProbe) => {
-            const { status, error } = row.last_task || {};
+            const status = row.last_task_status;
+            const error = row.last_task_error;
             if (!status) return;
             return (
               <ClAutoProbeTaskStatus
@@ -191,8 +192,13 @@ const useAutoProbeList = () => {
   );
 
   const rowKey = (row: AutoProbe) => {
-    return JSON.stringify([row._id, row.url, row.last_task?.status, row.page_pattern]);
-  }
+    return JSON.stringify([
+      row._id,
+      row.url,
+      row.last_task?.status,
+      row.page_pattern,
+    ]);
+  };
 
   setupAutoUpdate(getList);
 

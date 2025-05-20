@@ -8,14 +8,17 @@ import {
   onBeforeUnmount,
 } from 'vue';
 import useRequest from '@/services/request';
-import { getIconByPageElementType } from '@/utils';
+import { getIconByPageElementType, translate } from '@/utils';
 import { debounce } from 'lodash';
+import type { Property } from 'csstype';
 
 const props = defineProps<{
   activeId: string;
   activeNavItem?: AutoProbeNavItem;
   viewport?: PageViewPort;
 }>();
+
+const t = translate;
 
 const { get } = useRequest();
 
@@ -31,6 +34,11 @@ const updateOverlayScale = () => {
   if (!rect) return 1;
   screenshotScale.value = rect.width / (viewport?.width ?? 1280);
 };
+
+const displayConfig = ref({
+  showLabel: true,
+  focusMode: true,
+});
 
 let resizeObserver: ResizeObserver | null = null;
 
@@ -105,33 +113,98 @@ const getElementMaskStyle = (el: PageElement): CSSProperties => {
 
 const pageElements = computed<PageElement[]>(() => {
   const { activeNavItem } = props;
-  if (!activeNavItem) {
-    return previewResult.value?.page_elements ?? [];
-  }
+  const { focusMode } = displayConfig.value;
   if (!previewResult.value?.page_elements) {
     return [];
   }
-  if (activeNavItem.type === 'page_pattern') {
-    return previewResult.value.page_elements;
-  } else if (activeNavItem.type === 'list') {
-    const listElement = previewResult.value.page_elements.find(
-      el => el.name === activeNavItem.name
+  const fieldElements = previewResult.value.page_elements.filter(
+    el => el.type === 'field'
+  );
+  const listElements = previewResult.value.page_elements.filter(
+    el => el.type === 'list'
+  );
+
+  // If focus mode is not enabled, return all elements
+  if (!focusMode) {
+    const allListItemElements = listElements.flatMap(el => el.children || []);
+    const allListFieldElements = allListItemElements.flatMap(
+      el => el.children || []
     );
-    if (!listElement) {
-      return [];
-    }
-    const itemElements = listElement.children ?? [];
-    const fieldElements = itemElements.flatMap(el => el.children ?? []);
-    return [...itemElements, ...fieldElements];
-  } else if (activeNavItem.type === 'field') {
-    return (
-      previewResult.value.page_elements.filter(
-        el => el.name === activeNavItem.name
-      ) ?? []
-    );
-  } else {
+    return [
+      ...fieldElements,
+      ...listElements,
+      ...allListItemElements,
+      ...allListFieldElements,
+    ];
+  }
+
+  // If focus mode is enabled, filter elements based on the active navigation item
+  if (!activeNavItem) {
     return [];
   }
+  switch (activeNavItem.type) {
+    case 'page_pattern':
+      return [...fieldElements, ...listElements];
+    case 'list':
+      const listElement = listElements.find(
+        el => el.name === activeNavItem.name
+      );
+      if (!listElement) {
+        return [];
+      }
+      const listItemElements = listElements.flatMap(el => el.children || []);
+      const listFieldElements = listItemElements.flatMap(
+        el => el.children || []
+      );
+      return [
+        { ...listElement, active: true },
+        ...listItemElements,
+        ...listFieldElements,
+      ];
+    case 'field':
+      // Non-list field
+      if (activeNavItem.parent?.type === 'page_pattern') {
+        const fieldElement = fieldElements.find(
+          el => el.name === activeNavItem.name
+        );
+        if (!fieldElement) {
+          return [];
+        }
+        return [{ ...fieldElement, active: true }];
+      }
+      // List item field
+      if (activeNavItem.parent?.type === 'list') {
+        const listElement = listElements.find(
+          el => el.name === activeNavItem.parent!.name
+        );
+        if (!listElement) {
+          return [];
+        }
+        const listItemElements = listElements.flatMap(el => el.children || []);
+        const listFieldElements = listItemElements
+          .flatMap(el => el.children || [])
+          .filter(el => el.name === activeNavItem.name)
+          .map(el => ({ ...el, active: true }));
+        return [...listItemElements, ...listFieldElements];
+      }
+      return [];
+    case 'pagination':
+      const paginationElement = previewResult.value.page_elements.find(
+        el => el.type === 'pagination' && el.name === activeNavItem.name
+      );
+      if (!paginationElement) {
+        return [];
+      }
+      return [{ ...paginationElement, active: true }];
+    default:
+      return [];
+  }
+});
+
+const viewportDisplay = computed(() => {
+  const { viewport } = props;
+  if (!viewport) return '';
+  return `${viewport.width}x${viewport.height}`;
 });
 
 defineExpose({
@@ -143,16 +216,38 @@ defineOptions({ name: 'ClAutoProbeResultsPreview' });
 
 <template>
   <div ref="previewRef" class="preview">
+    <div class="preview-control">
+      <cl-tag :icon="['fa', 'desktop']" :label="viewportDisplay" />
+      <el-checkbox
+        v-model="displayConfig.showLabel"
+        :label="t('components.autoprobe.pagePattern.displayConfig.showLabel')"
+      />
+      <el-checkbox
+        v-model="displayConfig.focusMode"
+        :label="t('components.autoprobe.pagePattern.displayConfig.focusMode')"
+      />
+    </div>
     <div v-loading="previewLoading" class="preview-container">
       <div v-if="previewResult" class="preview-overlay">
-        <img ref="screenshotRef" class="screenshot" :src="previewResult.screenshot_base64" />
+        <img
+          ref="screenshotRef"
+          class="screenshot"
+          :src="previewResult.screenshot_base64"
+        />
         <div
           v-for="(el, index) in pageElements"
           :key="index"
           class="element-mask"
+          :class="el.active ? 'active' : ''"
           :style="getElementMaskStyle(el)"
         >
-          <el-badge type="primary" :badge-style="{ opacity: 0.8 }">
+          <el-badge
+            :type="el.active ? 'danger' : 'primary'"
+            :hidden="!displayConfig.showLabel"
+            :badge-style="{
+              opacity: el.active ? 1 : 0.5,
+            }"
+          >
             <template #content>
               <span style="margin-right: 5px">
                 <cl-icon :icon="getIconByPageElementType(el.type)" />
@@ -171,10 +266,23 @@ defineOptions({ name: 'ClAutoProbeResultsPreview' });
   overflow: hidden;
   height: calc(100% - 41px);
 
+  .preview-control {
+    height: 40px;
+    border-bottom: 1px solid var(--el-border-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px;
+
+    .el-checkbox {
+      margin: 0;
+    }
+  }
+
   .preview-container {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 40px);
     overflow: auto;
     scrollbar-width: none;
 
@@ -194,10 +302,16 @@ defineOptions({ name: 'ClAutoProbeResultsPreview' });
         border: 1px solid var(--el-color-primary-light-5);
         border-radius: 4px;
         z-index: 1;
+        cursor: pointer;
 
         &:hover {
           background: rgba(64, 156, 255, 0.2);
-          cursor: pointer;
+        }
+
+        &.active {
+          z-index: 2;
+          pointer-events: none;
+          border: 3px solid var(--el-color-danger);
         }
       }
     }
