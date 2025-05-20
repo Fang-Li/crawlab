@@ -23,38 +23,38 @@ const previewRef = ref<HTMLDivElement | null>(null);
 const previewLoading = ref(false);
 const previewResult = ref<PagePreviewResult>();
 
-const overlayRef = ref<HTMLDivElement | null>(null);
-const overlayScale = ref(1);
+const screenshotRef = ref<HTMLDivElement | null>(null);
+const screenshotScale = ref(1);
 const updateOverlayScale = () => {
   const { viewport } = props;
-  const rect = overlayRef.value?.getBoundingClientRect();
+  const rect = screenshotRef.value?.getBoundingClientRect();
   if (!rect) return 1;
-  overlayScale.value = rect.width / (viewport?.width ?? 1280);
+  screenshotScale.value = rect.width / (viewport?.width ?? 1280);
 };
 
 let resizeObserver: ResizeObserver | null = null;
 
 onMounted(() => {
   // Initial calculation if reference is already available
-  if (overlayRef.value) {
+  if (screenshotRef.value) {
     setupResizeObserver();
   }
 
   // Watch for when the reference becomes available
-  watch(overlayRef, newRef => {
+  watch(screenshotRef, newRef => {
     if (newRef) {
       setupResizeObserver();
     }
   });
 
   const handle = setInterval(() => {
-    if (!overlayRef.value) return;
-    overlayRef.value.addEventListener('resize', updateOverlayScale);
+    if (!screenshotRef.value) return;
+    screenshotRef.value.addEventListener('resize', updateOverlayScale);
     updateOverlayScale();
     clearInterval(handle);
   }, 10);
   return () => {
-    overlayRef.value?.removeEventListener('resize', updateOverlayScale);
+    screenshotRef.value?.removeEventListener('resize', updateOverlayScale);
   };
 });
 
@@ -68,7 +68,7 @@ const setupResizeObserver = () => {
     updateOverlayScale();
   });
 
-  resizeObserver.observe(overlayRef.value!);
+  resizeObserver.observe(screenshotRef.value!);
   updateOverlayScale();
 };
 
@@ -81,13 +81,6 @@ onBeforeUnmount(() => {
 
 const getPreview = debounce(async () => {
   const { activeId } = props;
-  const rect = previewRef.value?.getBoundingClientRect();
-  const viewport: PageViewPort | undefined = rect
-    ? {
-        width: rect.width,
-        height: rect.height,
-      }
-    : undefined;
   previewLoading.value = true;
   try {
     const res = await get<any, ResponseWithData<PagePreviewResult>>(
@@ -103,10 +96,10 @@ onMounted(getPreview);
 const getElementMaskStyle = (el: PageElement): CSSProperties => {
   return {
     position: 'absolute',
-    left: el.coordinates.left * overlayScale.value + 'px',
-    top: el.coordinates.top * overlayScale.value + 'px',
-    width: el.coordinates.width * overlayScale.value + 'px',
-    height: el.coordinates.height * overlayScale.value + 'px',
+    left: el.coordinates.left * screenshotScale.value + 'px',
+    top: el.coordinates.top * screenshotScale.value + 'px',
+    width: el.coordinates.width * screenshotScale.value + 'px',
+    height: el.coordinates.height * screenshotScale.value + 'px',
   };
 };
 
@@ -151,8 +144,8 @@ defineOptions({ name: 'ClAutoProbeResultsPreview' });
 <template>
   <div ref="previewRef" class="preview">
     <div v-loading="previewLoading" class="preview-container">
-      <div v-if="previewResult" ref="overlayRef" class="preview-overlay">
-        <img class="screenshot" :src="previewResult.screenshot_base64" />
+      <div v-if="previewResult" class="preview-overlay">
+        <img ref="screenshotRef" class="screenshot" :src="previewResult.screenshot_base64" />
         <div
           v-for="(el, index) in pageElements"
           :key="index"
