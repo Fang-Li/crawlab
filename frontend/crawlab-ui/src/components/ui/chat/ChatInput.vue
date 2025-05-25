@@ -10,7 +10,7 @@ import {
 import { useI18n } from 'vue-i18n';
 import {
   getLLMProviderItems,
-} from '@/utils/ai';
+} from '@/utils/llm';
 
 // Add TypeScript interface for tree node
 interface TreeNode {

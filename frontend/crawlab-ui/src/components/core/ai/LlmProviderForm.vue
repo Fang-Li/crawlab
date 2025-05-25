@@ -2,7 +2,7 @@
 import { computed, onBeforeMount, ref, watch } from 'vue';
 import { translate } from '@/utils';
 import { ElMessage } from 'element-plus';
-import { getLLMProviderItems } from '@/utils/ai';
+import { getLLMProviderItems } from '@/utils/llm';
 
 const props = defineProps<{
   loading?: boolean;

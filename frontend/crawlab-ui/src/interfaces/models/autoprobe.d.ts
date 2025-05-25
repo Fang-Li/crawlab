@@ -13,6 +13,25 @@ export declare global {
     viewport?: PageViewPort;
   }
 
+  // Hierarchical pattern structure for V2
+  interface PatternV2 {
+    name: string;
+    type: PatternTypeV2;
+    selector_type?: SelectorType;
+    selector?: string;
+    is_absolute_selector?: boolean;
+    extraction_type?: ExtractType;
+    attribute_name?: string;
+    children?: PatternV2[];
+  }
+
+  interface PagePatternV2 {
+    name: string;
+    children?: PatternV2[];
+  }
+
+  type PatternTypeV2 = 'field' | 'list' | 'list-item' | 'action' | 'content';
+
   type AutoProbeTaskStatus =
     | 'pending'
     | 'running'
@@ -67,20 +86,13 @@ export declare global {
     status: AutoProbeTaskStatus;
     error?: string;
     html?: string;
-    page_pattern?: PagePattern;
+    // page_pattern?: PagePattern;
+    page_pattern?: PagePatternV2;
     page_data?: PageData;
     page_elements?: PageElement[];
     provider_id?: string;
     model?: string;
     usage?: LLMResponseUsage;
-  }
-
-  interface AutoProbeTaskResult {
-    html?: string;
-    screenshot_base64?: string;
-    page_pattern?: PagePattern;
-    page_data?: PageData;
-    page_elements?: PageElement[];
   }
 
   type AutoProbeItemType = 'page_pattern' | 'list' | 'field' | 'pagination';

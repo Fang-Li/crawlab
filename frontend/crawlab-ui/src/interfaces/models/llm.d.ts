@@ -14,6 +14,7 @@ export declare global {
     | 'qwen'
     | 'deepseek'
     | 'mistral'
+    | 'openrouter'
     | 'openai-compatible';
 
   interface LLMProvider extends BaseModel {

@@ -14,7 +14,7 @@ import {
   ACTION_EDIT,
   TABLE_COLUMN_NAME_ACTIONS,
 } from '@/constants';
-import { getLLMProviderItems } from '@/utils/ai';
+import { getLLMProviderItems } from '@/utils/llm';
 
 const t = translate;
 

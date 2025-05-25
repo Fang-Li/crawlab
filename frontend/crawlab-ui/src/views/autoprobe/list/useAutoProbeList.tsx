@@ -128,23 +128,23 @@ const useAutoProbeList = () => {
           hasFilter: true,
           allowFilterSearch: true,
         },
-        {
-          key: 'patterns',
-          label: t('views.autoprobe.table.columns.patterns'),
-          icon: ['fa', 'network-wired'],
-          width: '200',
-          value: (row: AutoProbe) => {
-            return (
-              <ClAutoProbePatternStats
-                autoprobe={row}
-                clickable
-                onClick={() => router.push(`/autoprobes/${row._id}/patterns`)}
-              />
-            );
-          },
-          hasFilter: true,
-          allowFilterSearch: true,
-        },
+        // {
+        //   key: 'patterns',
+        //   label: t('views.autoprobe.table.columns.patterns'),
+        //   icon: ['fa', 'network-wired'],
+        //   width: '200',
+        //   value: (row: AutoProbe) => {
+        //     return (
+        //       <ClAutoProbePatternStats
+        //         autoprobe={row}
+        //         clickable
+        //         onClick={() => router.push(`/autoprobes/${row._id}/patterns`)}
+        //       />
+        //     );
+        //   },
+        //   hasFilter: true,
+        //   allowFilterSearch: true,
+        // },
         {
           key: TABLE_COLUMN_NAME_ACTIONS,
           label: t('components.table.columns.actions'),

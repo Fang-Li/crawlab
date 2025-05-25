@@ -93,6 +93,19 @@ export const getLLMProviderItems = (): LLMProviderItem[] => {
       defaultModels: ['deepseek-chat', 'deepseek-reasoner'],
     },
     {
+      type: 'openrouter',
+      name: 'OpenRouter',
+      icon: ['svg', 'openrouter'],
+      defaultModels: [
+        'anthropic/claude-sonnet-4',
+        'anthropic/claude-3.7-sonnet',
+        'google/gemini-2.5-pro-preview',
+        'google/gemini-2.5-flash-preview',
+        'openai/gpt-4.1',
+        'openai/gpt-4o-mini',
+      ],
+    },
+    {
       type: 'openai-compatible',
       name: 'OpenAI Compatible',
       icon: ['svg', 'openai'],
