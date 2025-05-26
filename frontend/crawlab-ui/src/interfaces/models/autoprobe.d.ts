@@ -14,7 +14,7 @@ export declare global {
   }
 
   // Hierarchical pattern structure for V2
-  interface PatternV2 {
+  interface PatternV2 extends BaseModel {
     name: string;
     type: PatternTypeV2;
     selector_type?: SelectorType;
@@ -23,6 +23,15 @@ export declare global {
     extraction_type?: ExtractType;
     attribute_name?: string;
     children?: PatternV2[];
+    parent_id?: string;
+  }
+
+  type PatternTypeV2 = 'field' | 'list' | 'list-item' | 'action' | 'content';
+
+  interface PatternDataV2 extends BaseModel {
+    task_id: string;
+    pattern_id: string;
+    data?: any;
   }
 
   interface PagePatternV2 {
@@ -30,7 +39,12 @@ export declare global {
     children?: PatternV2[];
   }
 
-  type PatternTypeV2 = 'field' | 'list' | 'list-item' | 'action' | 'content';
+  interface AutoProbeNavItemV2<T = any> extends NavItem<T> {
+    name?: string;
+    type?: PatternTypeV2;
+    children?: AutoProbeNavItemV2[];
+    parent?: AutoProbeNavItemV2;
+  }
 
   type AutoProbeTaskStatus =
     | 'pending'

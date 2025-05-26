@@ -32,6 +32,8 @@ const state = {
     { id: TAB_NAME_TASKS, title: t('common.tabs.tasks') },
     { id: TAB_NAME_PATTERNS, title: t('common.tabs.patterns') },
   ],
+  pagePattern: undefined,
+  pagePatternData: [],
 } as AutoProbeStoreState;
 
 const getters = {
@@ -40,21 +42,52 @@ const getters = {
 
 const mutations = {
   ...getDefaultStoreMutations<AutoProbe>(),
+  setPagePattern(state: AutoProbeStoreState, pagePattern: PagePatternV2) {
+    state.pagePattern = pagePattern;
+  },
+  resetPagePattern(state: AutoProbeStoreState) {
+    state.pagePattern = undefined;
+  },
+  setPagePatternData(
+    state: AutoProbeStoreState,
+    pagePatternData: PatternDataV2[]
+  ) {
+    state.pagePatternData = pagePatternData;
+  },
+  resetPagePatternData(state: AutoProbeStoreState) {
+    state.pagePatternData = [];
+  },
 } as AutoProbeStoreMutations;
 
+const endpoint = '/ai/autoprobes';
+
 const actions = {
-  ...getDefaultStoreActions<AutoProbe>('/ai/autoprobes'),
+  ...getDefaultStoreActions<AutoProbe>(endpoint),
   runTask: async (
     _: StoreActionContext<AutoProbeStoreState>,
     { id }: { id: string }
   ) => {
-    await post(`/ai/autoprobes/${id}/tasks`);
+    await post(`${endpoint}/${id}/tasks`);
   },
   cancelTask: async (
     _: StoreActionContext<AutoProbeStoreState>,
     { id }: { id: string }
   ) => {
-    await post(`/ai/autoprobes/tasks/${id}/cancel`);
+    await post(`${endpoint}/tasks/${id}/cancel`);
+  },
+  getPagePattern: async (
+    { commit }: StoreActionContext<AutoProbeStoreState>,
+    { id }: { id: string }
+  ) => {
+    const res = await post(`${endpoint}/${id}/pattern`);
+    commit('setPagePattern', res.data);
+  },
+  getPagePatternData: async (
+    { commit }: StoreActionContext<AutoProbeStoreState>,
+    { id }: { id: string }
+  ) => {
+    const res = await post(`${endpoint}/${id}/pattern/data`);
+    commit('setPagePatternData', res.data);
   },
 } as AutoProbeStoreActions;
 
