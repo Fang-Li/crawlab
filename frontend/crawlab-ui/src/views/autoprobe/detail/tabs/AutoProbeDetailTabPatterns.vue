@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeMount, ref, watch } from 'vue';
 import { useStore } from 'vuex';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, debounce } from 'lodash';
 import { getIconByExtractType, getIconByItemType, translate } from '@/utils';
 import { useAutoProbeDetail } from '@/views';
 
@@ -9,6 +9,7 @@ import { useAutoProbeDetail } from '@/views';
 const t = translate;
 
 // store
+const ns: ListStoreNamespace = 'autoprobe';
 const store = useStore();
 const { autoprobe: state } = store.state as RootStoreState;
 
@@ -231,6 +232,15 @@ const onSizeChange = (size: number) => {
   detailContainerRef.value.style.flex = `0 0 calc(100% - ${size}px)`;
   detailContainerRef.value.style.height = `calc(100% - ${size}px)`;
 };
+
+const getData = debounce(async () => {
+  await Promise.all([
+    store.dispatch(`${ns}/getPagePattern`),
+    store.dispatch(`${ns}/getPagePatternData`),
+  ]);
+});
+watch(activeId, getData);
+onBeforeMount(getData);
 
 defineOptions({ name: 'ClAutoProbeDetailTabPatterns' });
 </script>

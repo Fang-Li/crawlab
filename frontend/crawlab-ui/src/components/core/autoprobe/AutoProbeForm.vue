@@ -12,6 +12,9 @@ const store = useStore();
 const { form, formRef, formRules, isSelectiveForm, isFormItemDisabled } =
   useAutoProbe(store);
 
+const isCreate = computed(() => !!form.value?._id);
+const isNameModified = ref(false);
+
 const viewportOptions = computed<ViewPortSelectOption[]>(() => {
   return getViewPortOptions();
 });
@@ -37,6 +40,24 @@ const updateViewPortValue = () => {
 };
 watch(() => JSON.stringify(form.value?.viewport), updateViewPortValue);
 onBeforeMount(updateViewPortValue);
+
+// Auto naming handling
+const onNameChange = (_: string) => {
+  isNameModified.value = true;
+};
+const getNameByURL = (url: string) => {
+  if (!url) return '';
+  const urlObj = new URL(url);
+  const pathname = urlObj.pathname.replace(/\/$/, '');
+  const segments = pathname.split('/');
+  return segments[segments.length - 1] || 'New AutoProbe';
+};
+const onURLChange = (url: string) => {
+  if (!form.value) return;
+  if (!isNameModified.value) {
+    form.value.name = getNameByURL(url);
+  }
+};
 
 defineOptions({ name: 'ClAutoProbeForm' });
 </script>
@@ -73,6 +94,7 @@ defineOptions({ name: 'ClAutoProbeForm' });
         v-model="form.url"
         :disabled="isFormItemDisabled('url')"
         :placeholder="t('components.autoprobe.form.url')"
+        @input="onURLChange"
       >
         <template #prefix>
           <cl-icon :icon="['fa', 'at']" />
