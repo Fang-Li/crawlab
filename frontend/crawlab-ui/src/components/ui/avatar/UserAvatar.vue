@@ -35,18 +35,6 @@ const userLabel = computed<string>(() => {
   return '';
 });
 
-const labelClass = computed(() => {
-  const length = userLabel.value.length;
-  const isChineseName = /[\u4e00-\u9fa5]/.test(userLabel.value);
-
-  return {
-    label: true,
-    'label--small': length === 3 || (isChineseName && length === 2),
-    'label--smaller': length === 4 || (isChineseName && length === 3),
-    'label--smallest': isChineseName && length === 4,
-  };
-});
-
 defineOptions({ name: 'ClUserAvatar' });
 </script>
 
@@ -60,7 +48,7 @@ defineOptions({ name: 'ClUserAvatar' });
       >
         <slot v-if="slots.default" name="default" />
         <template v-else-if="user">
-          <span :class="labelClass">
+          <span class="label">
             {{ userLabel }}
           </span>
         </template>
@@ -93,21 +81,8 @@ defineOptions({ name: 'ClUserAvatar' });
       text-overflow: ellipsis;
       max-width: 100%;
       min-height: 100%;
-      font-size: 0.85em;
       line-height: 1.5;
       padding: 0 2px;
-    }
-
-    .label--small {
-      font-size: 0.8em;
-    }
-
-    .label--smaller {
-      font-size: 0.75em;
-    }
-
-    .label--smallest {
-      font-size: 0.7em;
     }
   }
 }

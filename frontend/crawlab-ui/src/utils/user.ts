@@ -1,7 +1,9 @@
+export const isChinese = (text: string) => {
+  return /[\u4e00-\u9fa5]/.test(text);
+};
+
 export const isChineseName = (user: User) => {
-  return /[\u4e00-\u9fa5]/.test(
-    (user.first_name || '') + (user.last_name || '')
-  );
+  return isChinese((user.first_name || '') + (user.last_name || ''));
 };
 
 export const getUserFullName = (user: User) => {
@@ -21,7 +23,14 @@ export const getUserShortName = (user: User) => {
 
   // Fallback to username if no name provided
   if (!firstName && !lastName) {
-    return user.username || '';
+    if (!user.username) {
+      return 'User'; // Default fallback if no username or name
+    }
+    if (isChinese(user.username)) {
+      return user.username.substring(0, 2);
+    } else {
+      return user.username.substring(0, 2).toUpperCase();
+    }
   }
 
   // If Chinese name, return at most 4 characters

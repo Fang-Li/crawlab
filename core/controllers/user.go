@@ -86,25 +86,27 @@ func GetUserList(_ *gin.Context, params *GetListParams) (response *ListResponse[
 }
 
 type PostUserParams struct {
-	Username string `json:"username" description:"Username" validate:"required"`
-	Password string `json:"password" description:"Password" validate:"required"`
-	Role     string `json:"role" description:"Role"`
-	RoleId   string `json:"role_id" description:"Role ID" format:"objectid" pattern:"^[0-9a-fA-F]{24}$"`
-	Email    string `json:"email" description:"Email"`
+	Data struct {
+		Username string `json:"username" description:"Username" validate:"required"`
+		Password string `json:"password" description:"Password" validate:"required"`
+		Role     string `json:"role" description:"Role"`
+		RoleId   string `json:"role_id" description:"Role ID" format:"objectid" pattern:"^[0-9a-fA-F]{24}$"`
+		Email    string `json:"email" description:"Email"`
+	} `json:"data" validate:"required"`
 }
 
 func PostUser(c *gin.Context, params *PostUserParams) (response *Response[models.User], err error) {
 	// Validate email format
-	if params.Email != "" {
+	if params.Data.Email != "" {
 		emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-		if !emailRegex.MatchString(params.Email) {
+		if !emailRegex.MatchString(params.Data.Email) {
 			return GetErrorResponse[models.User](errors.BadRequestf("invalid email format"))
 		}
 	}
 
 	var roleId primitive.ObjectID
-	if params.RoleId != "" {
-		roleId, err = primitive.ObjectIDFromHex(params.RoleId)
+	if params.Data.RoleId != "" {
+		roleId, err = primitive.ObjectIDFromHex(params.Data.RoleId)
 		if err != nil {
 			return GetErrorResponse[models.User](errors.BadRequestf("invalid role id: %v", err))
 		}
@@ -115,11 +117,11 @@ func PostUser(c *gin.Context, params *PostUserParams) (response *Response[models
 	}
 	u := GetUserFromContext(c)
 	model := models.User{
-		Username: params.Username,
-		Password: utils.EncryptMd5(params.Password),
-		Role:     params.Role,
+		Username: params.Data.Username,
+		Password: utils.EncryptMd5(params.Data.Password),
+		Role:     params.Data.Role,
 		RoleId:   roleId,
-		Email:    params.Email,
+		Email:    params.Data.Email,
 	}
 	model.SetCreated(u.Id)
 	model.SetUpdated(u.Id)

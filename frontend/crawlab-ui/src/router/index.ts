@@ -136,6 +136,7 @@ export function getDefaultSidebarMenuItems(): MenuItem[] {
       icon: getIconByRouteConcept('autoprobe'),
       badge: 'common.mode.preview',
       badgeType: 'primary',
+      hidden: true,
     },
     {
       path: '/users',
