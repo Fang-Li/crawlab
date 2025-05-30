@@ -12,6 +12,7 @@ import {
   isAllowedRoutePath,
 } from '@/utils';
 import { getUserFullName } from '@/utils/user';
+import ClIconButton from '@/components/ui/button/IconButton.vue';
 
 // i18n
 const { t, locale } = useI18n();
@@ -153,6 +154,13 @@ defineOptions({ name: 'ClHeader' });
             </template>
           </el-dropdown>
         </div>
+        <div class="item action" @click="toggleChatbotSidebar">
+          <el-tooltip :content="t('components.ai.chatbot.button')">
+            <div class="chat-toggle">
+              <cl-icon :icon="getIconByRouteConcept('ai')" size="normal" />
+            </div>
+          </el-tooltip>
+        </div>
         <div v-if="me" class="item action">
           <el-dropdown trigger="click" popper-class="me-dropdown">
             <div class="me">
@@ -205,19 +213,6 @@ defineOptions({ name: 'ClHeader' });
             </template>
           </el-dropdown>
         </div>
-        <div class="item action" v-if="!sidebarVisible">
-          <el-button
-            type="primary"
-            @click="toggleChatbotSidebar"
-            class="chat-toggle-btn"
-          >
-            <cl-icon :icon="['fa', 'comment-dots']" />
-            <span class="button-text">{{
-              t('components.ai.chatbot.button')
-            }}</span>
-            <cl-icon :icon="['fa', 'angles-left']" class="toggle-indicator" />
-          </el-button>
-        </div>
       </div>
     </el-header>
   </div>
@@ -252,9 +247,9 @@ defineOptions({ name: 'ClHeader' });
     .right {
       display: flex;
       align-items: center;
+      gap: 12px;
 
       .item {
-        margin-left: 20px;
         display: flex;
         align-items: center;
 
@@ -269,6 +264,7 @@ defineOptions({ name: 'ClHeader' });
         .lang {
           display: flex;
           align-items: center;
+          margin-left: 16px;
 
           &:hover {
             color: var(--cl-primary-color);
@@ -279,27 +275,19 @@ defineOptions({ name: 'ClHeader' });
           }
         }
 
-        .chat-toggle-btn {
-          display: flex;
+        .chat-toggle {
+          display: inline-flex;
           align-items: center;
-          border-radius: 20px;
-          padding: 8px 16px;
-          animation: fadeIn 0.3s ease-in-out;
-          background-color: var(--el-color-primary-dark-2);
+          justify-content: center;
+          transition: all 0.3s ease;
+          border-radius: 50%;
+          height: 36px;
+          width: 36px;
+          margin: 0 5px;
 
-          .button-text {
-            margin: 0 8px;
-            display: inline-block;
-          }
-
-          .toggle-indicator {
-            margin-left: 4px;
-            transition: transform 0.3s;
-          }
-
-          .robot-icon-badge {
-            display: flex;
-            align-items: center;
+          &:hover {
+            background-color: var(--el-color-primary-dark-2);
+            color: white;
           }
         }
       }

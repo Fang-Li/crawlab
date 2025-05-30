@@ -44,9 +44,9 @@ const updateIconSvgSrc = async () => {
   if (isSvg.value) {
     const { icon } = props;
     if (!Array.isArray(icon) || !icon[1]) return;
-    const res = await import(`@/assets/svg/icons/${icon[1]}.svg?url`);
+    const res = await import(`@/assets/svg/icons/${icon[1]}.svg`);
     if (res) {
-      iconSvgSrc.value = res.default;
+      iconSvgSrc.value = decodeURIComponent(res.default).replace('data:image/svg+xml,', '');
     }
   }
 };
@@ -72,13 +72,7 @@ defineOptions({ name: 'ClIcon' });
       />
     </template>
     <template v-else-if="isSvg">
-      <img
-        :class="[icon, ...cls]"
-        class="icon"
-        :src="iconSvgSrc"
-        :alt="alt"
-        @click="event => emit('click', event)"
-      />
+      <div :class="[icon, ...cls]" class="icon" v-html="iconSvgSrc"/>
     </template>
     <template v-else>
       <i
@@ -92,9 +86,14 @@ defineOptions({ name: 'ClIcon' });
 </template>
 
 <style scoped>
-img {
+.icon {
   display: inline-block;
   height: 1em;
   vertical-align: -0.125em;
+
+  &:deep(svg) {
+    height: 100%;
+    width: 100%;
+  }
 }
 </style>
