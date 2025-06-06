@@ -258,6 +258,8 @@ export const getLabelByRouteConcept = (concept: RouteConcept): string => {
       return t('router.menuItems.misc.children.pat');
     case 'disclaimer':
       return t('router.menuItems.misc.children.disclaimer');
+    case 'autoprobe':
+      return t('router.menuItems.autoprobe');
     default:
       return '';
   }
