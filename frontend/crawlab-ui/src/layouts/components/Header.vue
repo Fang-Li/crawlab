@@ -255,6 +255,7 @@ defineOptions({ name: 'ClHeader' });
 
         &.action {
           cursor: pointer;
+          color: var(--el-text-color-regular);
         }
 
         &:focus-visible {

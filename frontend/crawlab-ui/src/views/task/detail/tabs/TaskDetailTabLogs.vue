@@ -40,9 +40,6 @@ const size = computed<number>(() => state.logPagination.size);
 // total
 const total = computed<number>(() => state.logTotal);
 
-// id
-const id = computed<string>(() => activeId.value);
-
 const resizeObserver = new ResizeObserver(() => {
   setTimeout(() => {
     logEditor?.layout();
@@ -56,30 +53,36 @@ watch(content, () => {
 // page sizes
 const pageSizes = ref<number[]>([1000, 2000, 5000, 10000, 20000, 50000]);
 
-const updateLogs = async () => {
-  // skip if active id is empty
-  if (!activeId.value) return;
+const updateLogsFn = (isEnd: boolean) => {
+  return async () => {
+    // skip if active id is empty
+    if (!activeId.value) return;
 
-  // update logs
-  await store.dispatch(`${ns}/getLogs`, activeId.value);
+    // update logs
+    await store.dispatch(`${ns}/getLogs`, activeId.value);
 
-  // update pagination
-  const { logPagination, logTotal } = state;
-  const { page, size } = logPagination;
-  if (logTotal > size * page) {
-    const maxPage = Math.ceil(logTotal / size);
-    store.commit(`${ns}/setLogPagination`, {
-      page: maxPage,
-      size,
-    });
-  }
+    // update pagination if auto update is enabled
+    if (isEnd) {
+      const { logPagination, logTotal } = state;
+      const { page, size } = logPagination;
+      if (logTotal > size * page) {
+        const maxPage = Math.ceil(logTotal / size);
+        store.commit(`${ns}/setLogPagination`, {
+          page: maxPage,
+          size,
+        });
+      }
+    }
 
-  // scroll to bottom
-  setTimeout(() => {
-    const model = logEditor?.getModel();
-    logEditor?.revealLine(model?.getLineCount() || 0);
-  }, 100);
+    // scroll to bottom
+    setTimeout(() => {
+      const model = logEditor?.getModel();
+      logEditor?.revealLine(model?.getLineCount() || 0);
+    }, 100);
+  };
 };
+const updateLogs = updateLogsFn(false);
+const updateLogsEnd = updateLogsFn(true);
 
 // pagination change
 const onPageChange = (page: number) => {
@@ -91,7 +94,7 @@ const onSizeChange = (size: number) => {
 watch(() => state.logPagination, updateLogs);
 
 // active id change
-watch(activeId, updateLogs);
+watch(activeId, updateLogsEnd);
 
 // auto update
 let autoUpdateHandle: any;
@@ -109,7 +112,7 @@ const setupDetail = async () => {
 
       // Update logs if auto update is enabled
       if (state.logAutoUpdate) {
-        await updateLogs();
+        await updateLogsEnd();
       }
 
       // Dispose auto update if status is not cancellable
@@ -138,7 +141,7 @@ onMounted(async () => {
 
 onBeforeMount(async () => {
   // logs
-  await updateLogs();
+  await updateLogsEnd();
 
   // initialize logs auto update
   setTimeout(() => {
@@ -148,7 +151,7 @@ onBeforeMount(async () => {
   }, 500);
 
   // setup
-  setupDetail();
+  await setupDetail();
 });
 onBeforeUnmount(() => clearInterval(autoUpdateHandle));
 

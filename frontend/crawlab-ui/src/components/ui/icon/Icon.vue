@@ -44,7 +44,7 @@ const updateIconSvgSrc = async () => {
   if (isSvg.value) {
     const { icon } = props;
     if (!Array.isArray(icon) || !icon[1]) return;
-    const res = await import(`@/assets/svg/icons/${icon[1]}.svg`);
+    const res = await import(`@/assets/svg/icons/${icon[1]}.svg?raw`);
     if (res) {
       iconSvgSrc.value = decodeURIComponent(res.default).replace('data:image/svg+xml,', '');
     }
@@ -87,7 +87,8 @@ defineOptions({ name: 'ClIcon' });
 
 <style scoped>
 .icon {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   height: 1em;
   vertical-align: -0.125em;
 

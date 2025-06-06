@@ -103,7 +103,7 @@ func (svc *Service) Cancel(id, by primitive.ObjectID, force bool) (err error) {
 
 func (svc *Service) cancelOnMaster(t *models.Task, by primitive.ObjectID, force bool) (err error) {
 	if err := svc.handlerSvc.Cancel(t.Id, force); err != nil {
-		svc.Errorf("failed to cancel task on master: %s", t.Id.Hex())
+		svc.Errorf("failed to cancel task (%s) on master: %v", t.Id.Hex(), err)
 		return err
 	}
 
@@ -116,7 +116,7 @@ func (svc *Service) cancelOnWorker(t *models.Task, by primitive.ObjectID, force 
 	// get subscribe stream
 	stream, ok := svc.svr.TaskSvr.GetSubscribeStream(t.Id)
 	if !ok {
-		err := fmt.Errorf("stream not found for task: %s", t.Id.Hex())
+		err := fmt.Errorf("stream not found for task (%s)", t.Id.Hex())
 		svc.Errorf(err.Error())
 		t.Status = constants.TaskStatusAbnormal
 		t.Error = err.Error()
@@ -130,7 +130,7 @@ func (svc *Service) cancelOnWorker(t *models.Task, by primitive.ObjectID, force 
 		Force:  force,
 	})
 	if err != nil {
-		svc.Errorf("failed to send cancel request to worker: %s", t.Id.Hex())
+		svc.Errorf("failed to send cancel task (%s) request to worker: %v", t.Id.Hex(), err)
 		return err
 	}
 
