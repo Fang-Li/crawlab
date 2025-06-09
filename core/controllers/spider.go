@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"math"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -81,39 +80,14 @@ func GetSpiderById(_ *gin.Context, params *GetByIdParams) (response *Response[mo
 }
 
 // GetSpiderList handles getting a list of spiders with optional stats
-func GetSpiderList(c *gin.Context, params *GetListParams) (response *ListResponse[models.Spider], err error) {
-	// get list
-	withStats := c.Query("stats")
-	if withStats == "" {
-		return getSpiderList(params)
-	}
-
-	// get list with stats
-	return getSpiderListWithStats(params)
-}
-
-func getSpiderList(params *GetListParams) (response *ListResponse[models.Spider], err error) {
+func GetSpiderList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Spider], err error) {
+	// query parameters
 	query := ConvertToBsonMFromListParams(params)
-
 	sort, err := GetSortOptionFromString(params.Sort)
 	if err != nil {
 		return GetErrorListResponse[models.Spider](errors.BadRequestf("invalid request parameters: %v", err))
 	}
-
-	spiders, err := service.NewModelService[models.Spider]().GetMany(query, &mongo2.FindOptions{
-		Sort:  sort,
-		Skip:  params.Size * (params.Page - 1),
-		Limit: params.Size,
-	})
-	if err != nil {
-		if !errors.Is(err, mongo.ErrNoDocuments) {
-			return GetErrorListResponse[models.Spider](err)
-		}
-		return GetListResponse[models.Spider]([]models.Spider{}, 0)
-	}
-	if len(spiders) == 0 {
-		return GetListResponse[models.Spider]([]models.Spider{}, 0)
-	}
+	skip, limit := GetSkipLimitFromListParams(params)
 
 	// total count
 	total, err := service.NewModelService[models.Spider]().Count(query)
@@ -121,161 +95,29 @@ func getSpiderList(params *GetListParams) (response *ListResponse[models.Spider]
 		return GetErrorListResponse[models.Spider](err)
 	}
 
-	// ids
-	var ids []primitive.ObjectID
-	var gitIds []primitive.ObjectID
-	var projectIds []primitive.ObjectID
-	for _, s := range spiders {
-		ids = append(ids, s.Id)
-		if !s.GitId.IsZero() {
-			gitIds = append(gitIds, s.GitId)
-		}
-		if !s.ProjectId.IsZero() {
-			projectIds = append(projectIds, s.ProjectId)
-		}
+	// check total
+	if total == 0 {
+		return GetEmptyListResponse[models.Spider]()
 	}
 
-	// project dict cache
-	var projects []models.Project
-	if len(projectIds) > 0 {
-		projects, err = service.NewModelService[models.Project]().GetMany(bson.M{"_id": bson.M{"$in": projectIds}}, nil)
-		if err != nil {
-			return GetErrorListResponse[models.Spider](err)
-		}
-	}
-	dictProject := map[primitive.ObjectID]models.Project{}
-	for _, p := range projects {
-		dictProject[p.Id] = p
+	// aggregation pipelines
+	pipelines := service.GetPaginationPipeline(query, sort, skip, limit)
+	pipelines = append(pipelines, service.GetJoinPipeline[models.SpiderStat]("_id", "_id", "_stat")...)
+	pipelines = append(pipelines, service.GetJoinPipeline[models.Task]("_stat.last_task_id", "_id", "_last_task")...)
+	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_last_task._id", "_id", "_last_task._stat")...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Project]()...)
+	if utils.IsPro() {
+		pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Git]()...)
 	}
 
-	// git dict cache
-	var gits []models.Git
-	if len(gitIds) > 0 && utils.IsPro() {
-		gits, err = service.NewModelService[models.Git]().GetMany(bson.M{"_id": bson.M{"$in": gitIds}}, nil)
-		if err != nil {
-			return GetErrorListResponse[models.Spider](err)
-		}
-	}
-	dictGit := map[primitive.ObjectID]models.Git{}
-	for _, g := range gits {
-		dictGit[g.Id] = g
-	}
-
-	// iterate list again
-	var data []models.Spider
-	for _, s := range spiders {
-		// project
-		if !s.ProjectId.IsZero() {
-			p, ok := dictProject[s.ProjectId]
-			if ok {
-				s.Project = &p
-			}
-		}
-
-		// git
-		if !s.GitId.IsZero() && utils.IsPro() {
-			g, ok := dictGit[s.GitId]
-			if ok {
-				s.Git = &g
-			}
-		}
-
-		// add to list
-		data = append(data, s)
-	}
-
-	// response
-	return GetListResponse(data, total)
-}
-
-func getSpiderListWithStats(params *GetListParams) (response *ListResponse[models.Spider], err error) {
-	response, err = getSpiderList(params)
+	// perform query
+	var spiders []models.Spider
+	err = service.GetCollection[models.Spider]().Aggregate(pipelines, nil).All(&spiders)
 	if err != nil {
 		return GetErrorListResponse[models.Spider](err)
 	}
 
-	// spider ids
-	var ids []primitive.ObjectID
-	for _, s := range response.Data {
-		ids = append(ids, s.Id)
-	}
-
-	// spider stat dict
-	spiderStats, err := service.NewModelService[models.SpiderStat]().GetMany(bson.M{"_id": bson.M{"$in": ids}}, nil)
-	if err != nil {
-		return GetErrorListResponse[models.Spider](err)
-	}
-	dictSpiderStat := map[primitive.ObjectID]models.SpiderStat{}
-
-	// task dict and task stat dict
-	var lastTasks []models.Task
-	var lastTaskIds []primitive.ObjectID
-	for _, st := range spiderStats {
-		if st.Tasks > 0 {
-			taskCount := int64(st.Tasks)
-			st.AverageWaitDuration = int64(math.Round(float64(st.WaitDuration) / float64(taskCount)))
-			st.AverageRuntimeDuration = int64(math.Round(float64(st.RuntimeDuration) / float64(taskCount)))
-			st.AverageTotalDuration = int64(math.Round(float64(st.TotalDuration) / float64(taskCount)))
-		}
-		dictSpiderStat[st.Id] = st
-
-		if !st.LastTaskId.IsZero() {
-			lastTaskIds = append(lastTaskIds, st.LastTaskId)
-		}
-	}
-	dictLastTask := map[primitive.ObjectID]models.Task{}
-	dictLastTaskStat := map[primitive.ObjectID]models.TaskStat{}
-	if len(lastTaskIds) > 0 {
-		// task list
-		queryTask := bson.M{
-			"_id": bson.M{
-				"$in": lastTaskIds,
-			},
-		}
-		lastTasks, err = service.NewModelService[models.Task]().GetMany(queryTask, nil)
-		if err != nil {
-			return GetErrorListResponse[models.Spider](err)
-		}
-
-		// task stats list
-		taskStats, err := service.NewModelService[models.TaskStat]().GetMany(queryTask, nil)
-		if err != nil {
-			return GetErrorListResponse[models.Spider](err)
-		}
-
-		for _, st := range taskStats {
-			dictLastTaskStat[st.Id] = st
-		}
-
-		for _, t := range lastTasks {
-			st, ok := dictLastTaskStat[t.Id]
-			if ok {
-				t.Stat = &st
-			}
-			dictLastTask[t.SpiderId] = t
-		}
-	}
-
-	// iterate list again
-	for i, s := range response.Data {
-		// spider stat
-		st, ok := dictSpiderStat[s.Id]
-		if ok {
-			s.Stat = &st
-		}
-
-		// last task and stat
-		if !s.Stat.LastTaskId.IsZero() {
-			t, ok := dictLastTask[s.Stat.LastTaskId]
-			if ok {
-				s.Stat.LastTask = &t
-			}
-		}
-
-		response.Data[i] = s
-	}
-
-	return response, nil
+	return GetListResponse(spiders, total)
 }
 
 // PostSpider handles creating a new spider

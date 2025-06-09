@@ -281,6 +281,10 @@ func SortsToOption(sorts []entity.Sort) (sort bson.D, err error) {
 	return sort, nil
 }
 
+func GetSkipLimitFromListParams(params *GetListParams) (skip int, limit int) {
+	return params.Size * (params.Page - 1), params.Size
+}
+
 type BaseResponse interface {
 	GetData() interface{}
 	GetDataString() string

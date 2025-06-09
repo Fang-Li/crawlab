@@ -18,20 +18,22 @@ export declare global {
     description?: string;
     update_ts?: string;
     create_ts?: string;
-    last_task?: Task;
-    stat?: SpiderStat;
     incremental_sync?: boolean;
     auto_install?: boolean;
     git_id?: string;
     git_root_path?: string;
-    git?: Git;
     template?: SpiderTemplateName;
     template_params?: SpiderTemplateParams;
+
+    // associated data
+    stat?: SpiderStat;
+    last_task?: Task;
+    project?: Project;
+    git?: Git;
   }
 
   interface SpiderStat {
     _id: number;
-    last_task?: Task;
     tasks: number;
     results: number;
     wait_duration: number;

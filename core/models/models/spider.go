@@ -21,18 +21,15 @@ type Spider struct {
 	Template       string                `json:"template,omitempty" bson:"template,omitempty" description:"Spider template"`
 	TemplateParams *SpiderTemplateParams `json:"template_params,omitempty" bson:"template_params,omitempty" description:"Spider template params"`
 
-	// stats
-	Stat *SpiderStat `json:"stat,omitempty" bson:"-"`
-
 	// execution
 	Cmd      string `json:"cmd" bson:"cmd" description:"Execute command"`
 	Param    string `json:"param" bson:"param" description:"Default task param"`
 	Priority int    `json:"priority" bson:"priority" description:"Priority" default:"5" minimum:"1" maximum:"10"`
 
-	// associated data
-	Project    *Project  `json:"project,omitempty" bson:"-"`
-	Git        *Git      `json:"git,omitempty" bson:"-"`
-	DataSource *Database `json:"data_source,omitempty" bson:"-"`
+	Stat     *SpiderStat `json:"stat,omitempty" bson:"_stat,omitempty"`
+	LastTask *Task       `json:"last_task,omitempty" bson:"_last_task,omitempty"`
+	Project  *Project    `json:"project,omitempty" bson:"_project,omitempty"`
+	Git      *Git        `json:"git,omitempty" bson:"_git,omitempty"`
 }
 
 type SpiderTemplateParams struct {

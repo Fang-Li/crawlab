@@ -52,12 +52,6 @@ const useSpiderList = () => {
 
   const { allListSelectOptions: allProjectListSelectOptions } =
     useProject(store);
-  // const allProjectList = computed<Project[]>(() => store.state.project.allList);
-
-  // all project dict
-  const allProjectDict = computed<Map<string, Project>>(
-    () => store.getters['project/allDict']
-  );
 
   // nav actions
   const navActions = computed<ListActionGroup[]>(() => [
@@ -138,10 +132,12 @@ const useSpiderList = () => {
           icon: ['fa', 'project-diagram'],
           width: '120',
           value: (row: Spider) => {
-            if (!row.project_id) return;
-            const p = allProjectDict.value.get(row.project_id);
+            if (!row.project?._id) return;
             return (
-              <ClNavLink label={p?.name} path={`/projects/${row.project_id}`} />
+              <ClNavLink
+                label={row.project.name}
+                path={`/projects/${row.project._id}`}
+              />
             );
           },
           hasFilter: true,
@@ -176,7 +172,7 @@ const useSpiderList = () => {
           icon: ['fa', 'heartbeat'],
           width: '120',
           value: (row: Spider) => {
-            const { _id, status, error } = row.stat?.last_task || {};
+            const { _id, status, error } = row.last_task || {};
             if (!status) return;
             return (
               <ClTaskStatus
@@ -195,7 +191,7 @@ const useSpiderList = () => {
           icon: ['fa', 'clock'],
           width: '160',
           value: (row: Spider) => {
-            const time = row.stat?.last_task?.stat?.started_at;
+            const time = row.last_task?.stat?.started_at;
             if (!time) return;
             return <ClTime time={time} />;
           },
@@ -338,7 +334,7 @@ const useSpiderList = () => {
   } as UseListOptions<Spider>;
 
   // init
-  setupListComponent(ns, store, ['node', 'project']);
+  setupListComponent(ns, store);
 
   return {
     ...useList<Spider>(ns, store, opts),

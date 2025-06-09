@@ -73,21 +73,6 @@ const useTaskList = () => {
     }
   };
 
-  // all node dict
-  const allNodeDict = computed<Map<string, CNode>>(
-    () => store.getters['node/allDict']
-  );
-
-  // all spider dict
-  const allSpiderDict = computed<Map<string, Spider>>(
-    () => store.getters['spider/allDict']
-  );
-
-  // all schedule dict
-  const allScheduleDict = computed<Map<string, Schedule>>(
-    () => store.getters['schedule/allDict']
-  );
-
   // nav actions
   const navActions = computed<ListActionGroup[]>(() => [
     {
@@ -183,15 +168,14 @@ const useTaskList = () => {
           icon: ['fa', 'server'],
           width: '160',
           value: (row: Task) => {
-            if (!row.node_id) return;
-            const node = allNodeDict.value.get(row.node_id);
+            const { node } = row;
             if (!node) return;
             return (
               <ClNodeTag
                 node={node}
                 clickable
                 onClick={async () => {
-                  await router.push(`/nodes/${node?._id}`);
+                  await router.push(`/nodes/${node._id}`);
                 }}
               />
             );
@@ -203,13 +187,10 @@ const useTaskList = () => {
           icon: ['fa', 'spider'],
           width: '160',
           value: (row: Task) => {
-            if (!row.spider_id) return;
-            const spider = row.spider || allSpiderDict.value.get(row.spider_id);
+            const { spider } = row;
+            if (!spider) return;
             return (
-              <ClNavLink
-                label={spider?.name}
-                path={`/spiders/${spider?._id}`}
-              />
+              <ClNavLink label={spider.name} path={`/spiders/${spider._id}`} />
             );
           },
         },
@@ -219,12 +200,12 @@ const useTaskList = () => {
           icon: ['fa', 'clock'],
           width: '160',
           value: (row: Task) => {
-            if (!row.schedule_id) return;
-            const schedule = allScheduleDict.value.get(row.schedule_id);
+            const { schedule } = row;
+            if (!schedule) return;
             return (
               <ClNavLink
-                label={schedule?.name}
-                path={`/schedules/${schedule?._id}`}
+                label={schedule.name}
+                path={`/schedules/${schedule._id}`}
               />
             );
           },
@@ -244,13 +225,9 @@ const useTaskList = () => {
           icon: ['fa', 'terminal'],
           width: '160',
           value: (row: Task) => {
-            return (
-              <ClTaskCommand
-                task={row}
-                spider={allSpiderDict.value?.get(row.spider_id as string)}
-                size="small"
-              />
-            );
+            const { spider } = row;
+            if (!spider) return;
+            return <ClTaskCommand task={row} spider={spider} size="small" />;
           },
         },
         {
@@ -290,7 +267,10 @@ const useTaskList = () => {
           icon: ['fa', 'clock'],
           width: '120',
           value: (row: Task) => {
-            if (!row.stat?.started_at || row.stat?.started_at.startsWith('000')) {
+            if (
+              !row.stat?.started_at ||
+              row.stat?.started_at.startsWith('000')
+            ) {
               return;
             }
             return <ClTime time={row.stat?.started_at} />;
@@ -477,7 +457,7 @@ const useTaskList = () => {
   } as UseListOptions<Task>;
 
   // init
-  setupListComponent(ns, store, ['node', 'project', 'spider', 'schedule']);
+  setupListComponent(ns, store);
 
   return {
     ...useList<Task>(ns, store, opts),

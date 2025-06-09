@@ -20,8 +20,8 @@ type Task struct {
 	NodeIds    []primitive.ObjectID `json:"node_ids,omitempty" bson:"-"`
 
 	// associated data
-	Stat     *TaskStat `json:"stat,omitempty" bson:"-"`
-	Spider   *Spider   `json:"spider,omitempty" bson:"-"`
-	Schedule *Schedule `json:"schedule,omitempty" bson:"-"`
-	Node     *Node     `json:"node,omitempty" bson:"-"`
+	Stat     *TaskStat `json:"stat,omitempty" bson:"_stat,omitempty"`
+	Node     *Node     `json:"node,omitempty" bson:"_node,omitempty"`
+	Spider   *Spider   `json:"spider,omitempty" bson:"_spider,omitempty"`
+	Schedule *Schedule `json:"schedule,omitempty" bson:"_schedule,omitempty"`
 }

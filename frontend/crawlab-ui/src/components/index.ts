@@ -187,6 +187,7 @@ import NotificationSettingTriggerSelect from './core/notification/setting/Notifi
 import Option from './ui/select/Option.vue';
 import ProjectForm from './core/project/ProjectForm.vue';
 import RangePicker from './ui/date/RangePicker.vue';
+import RemoteSelect from './ui/select/RemoteSelect.vue';
 import ResizeHandle from './ui/resize/ResizeHandle.vue';
 import ResultCell from './core/result/ResultCell.vue';
 import ResultCellDialog from './core/result/ResultCellDialog.vue';
@@ -196,7 +197,6 @@ import RunScheduleDialog from './core/schedule/RunScheduleDialog.vue';
 import RunSpiderDialog from './core/spider/RunSpiderDialog.vue';
 import ScheduleCron from './core/schedule/ScheduleCron.vue';
 import ScheduleForm from './core/schedule/ScheduleForm.vue';
-import Select from './ui/select/Select.vue';
 import SpiderForm from './core/spider/SpiderForm.vue';
 import SpiderResultDataWithDatabase from './core/spider/SpiderResultDataWithDatabase.vue';
 import SpiderStat from './core/spider/SpiderStat.vue';
@@ -443,6 +443,7 @@ export {
   Option as ClOption,
   ProjectForm as ClProjectForm,
   RangePicker as ClRangePicker,
+  RemoteSelect as ClRemoteSelect,
   ResizeHandle as ClResizeHandle,
   ResultCell as ClResultCell,
   ResultCellDialog as ClResultCellDialog,
@@ -452,7 +453,6 @@ export {
   RunSpiderDialog as ClRunSpiderDialog,
   ScheduleCron as ClScheduleCron,
   ScheduleForm as ClScheduleForm,
-  Select as ClSelect,
   SpiderForm as ClSpiderForm,
   SpiderResultDataWithDatabase as ClSpiderResultDataWithDatabase,
   SpiderStat as ClSpiderStat,

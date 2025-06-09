@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, onBeforeMount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -26,7 +26,7 @@ const t = translate;
 const store = useStore();
 
 // use node
-const { activeNodesSorted: activeNodes, allDict: allNodeDict } = useNode(store);
+const { activeNodesSorted: activeNodes } = useNode(store);
 
 const toRunNodes = computed(() => {
   const { mode, node_ids } = form.value;
@@ -38,18 +38,9 @@ const runNode = computed(() => {
   return activeNodes.value.find(n => n._id === node_id);
 });
 
-// use spider
-const { allListSelectOptions: allSpiderSelectOptions } = useSpider(store);
-
 // use task
-const {
-  form,
-  formRef,
-  allSpiderDict,
-  modeOptions,
-  modeOptionsDict,
-  isFormItemDisabled,
-} = useTask(store);
+const { form, formRef, modeOptions, modeOptionsDict, isFormItemDisabled } =
+  useTask(store);
 
 // use task detail
 const { activeId, getForm } = useTaskDetail();
@@ -71,11 +62,6 @@ watch(
     task.param = res.data.param;
   }
 );
-
-const getSpiderName = (id: string) => {
-  const spider = allSpiderDict.value.get(id) as Spider;
-  return spider?.name;
-};
 
 const getModeName = (id: string) => {
   const op = modeOptionsDict.value.get(id) as SelectOption;
@@ -101,6 +87,29 @@ const onCancel = async () => {
 const noScheduleId = computed<boolean>(() =>
   isZeroObjectId(form.value?.schedule_id)
 );
+
+const spiderLoading = ref(false);
+const spiderList = ref<Spider[]>([]);
+const getSpiders = async (query?: string) => {
+  try {
+    spiderLoading.value = true;
+    const res = await get<Spider[]>('/spiders', {
+      filter: JSON.stringify({ name: query }),
+    });
+    spiderList.value = res.data || [];
+  } catch (e) {
+    console.error('Error setting spider loading state:', e);
+  } finally {
+    spiderLoading.value = false;
+  }
+};
+const spiderSelectOptions = computed<SelectOption[]>(() =>
+  spiderList.value.map(spider => ({
+    label: spider.name,
+    value: spider._id,
+  }))
+);
+onBeforeMount(getSpiders);
 
 const validate = async () => {
   await formRef.value?.validate();
@@ -129,7 +138,7 @@ defineOptions({ name: 'ClTaskForm' });
         filterable
       >
         <el-option
-          v-for="op in allSpiderSelectOptions"
+          v-for="op in spiderSelectOptions"
           :key="op.value"
           :label="op.label"
           :value="op.value"
@@ -137,8 +146,8 @@ defineOptions({ name: 'ClTaskForm' });
       </el-select>
       <cl-nav-link
         v-else
-        :label="form.spider?.name || getSpiderName(form.spider_id!)"
-        :path="`/spiders/${form.spider_id}`"
+        :label="form.spider?.name"
+        :path="`/spiders/${form.spider?._id}`"
       />
     </cl-form-item>
     <!-- ./Row -->
@@ -152,7 +161,7 @@ defineOptions({ name: 'ClTaskForm' });
       prop="node_id"
     >
       <cl-node-tag
-        :node="allNodeDict.get(form.node_id!)"
+        :node="form.node"
         size="large"
         clickable
         @click="router.push(`/nodes/${form.node_id}`)"

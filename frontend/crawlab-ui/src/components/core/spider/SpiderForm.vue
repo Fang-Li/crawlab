@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeMount, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useSpider, useProject, useNode } from '@/components';
 import { TASK_MODE_RANDOM, TASK_MODE_SELECTED_NODES } from '@/constants/task';
@@ -9,6 +9,7 @@ import { useSpiderDetail } from '@/views';
 import { getToRunNodes, priorityOptions, translate } from '@/utils';
 import { getSpiderTemplateGroups, getSpiderTemplates } from '@/utils/spider';
 import useRequest from '@/services/request';
+import ClRemoteSelect from '@/components/ui/select/RemoteSelect.vue';
 
 // i18n
 const t = translate;
@@ -93,25 +94,6 @@ const activeTemplateOption = computed<SpiderTemplate | undefined>(() => {
   return getSpiderTemplates().find(d => d.name === form.value.template);
 });
 
-const projectLoading = ref(false);
-const projectList = ref<Project[]>([]);
-const getProjects = async (query?: string) => {
-  try {
-    projectLoading.value = true;
-    const res = await get<Project[]>('/projects', {
-      conditions: {
-        name: query,
-      },
-      limit: 1000,
-    });
-    projectList.value = res.data || [];
-  } catch (e) {
-    console.error('Error setting project loading state:', e);
-  } finally {
-    projectLoading.value = false;
-  }
-};
-
 const getActiveNodes = async () => {
   await store.dispatch('node/getActiveNodes');
 };
@@ -194,21 +176,7 @@ defineOptions({ name: 'ClSpiderForm' });
       :label="t('components.spider.form.project')"
       prop="project_id"
     >
-      <el-select
-        v-model="form.project_id"
-        :disabled="isFormItemDisabled('project_id')"
-        filterable
-        id="project"
-        class="project"
-        popper-class="spider-form-project"
-      >
-        <cl-option
-          v-for="op in allProjectSelectOptions"
-          :key="op.value"
-          :label="op.label"
-          :value="op.value"
-        />
-      </el-select>
+      <cl-remote-select v-model="form.project_id" endpoint="/projects" />
     </cl-form-item>
     <!-- ./Row -->
 

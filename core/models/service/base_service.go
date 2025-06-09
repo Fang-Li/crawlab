@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/crawlab-team/crawlab/core/mongo"
+	"github.com/crawlab-team/crawlab/core/utils"
 	"reflect"
 	"sync"
 
@@ -303,11 +304,15 @@ func GetCollectionNameByInstance(v any) string {
 	return field.Tag.Get("collection")
 }
 
-func getCollectionName[T any]() string {
+func GetCollectionName[T any]() string {
 	var instance T
 	t := reflect.TypeOf(instance)
 	field := t.Field(0)
 	return field.Tag.Get("collection")
+}
+
+func GetCollection[T any]() *mongo.Col {
+	return mongo.GetMongoCol(GetCollectionName[T]())
 }
 
 // NewModelService return singleton instance of ModelService
@@ -324,7 +329,7 @@ func NewModelService[T any]() *ModelService[T] {
 	var instance *ModelService[T]
 
 	onceMap[typeName].Do(func() {
-		collectionName := getCollectionName[T]()
+		collectionName := GetCollectionName[T]()
 		collection := mongo.GetMongoCol(collectionName)
 		instance = &ModelService[T]{col: collection}
 		instanceMap[typeName] = instance
@@ -350,4 +355,81 @@ func NewModelServiceWithColName[T any](colName string) *ModelService[T] {
 	})
 
 	return instanceMap[colName].(*ModelService[T])
+}
+
+func GetDefaultJoinPipeline[T any]() []bson.D {
+	return []bson.D{
+		GetDefaultLookupPipeline[T](),
+		GetDefaultUnwindPipeline[T](),
+	}
+}
+
+func GetJoinPipeline[T any](localField, foreignField, as string) []bson.D {
+	return []bson.D{
+		GetLookupPipeline[T](localField, foreignField, as),
+		GetUnwindPipeline(as),
+	}
+}
+
+func GetDefaultLookupPipeline[T any]() bson.D {
+	var model T
+	typ := reflect.TypeOf(model)
+	name := utils.ToSnakeCase(typ.Name())
+	return GetLookupByNamePipeline[T](name)
+}
+
+func GetLookupByNamePipeline[T any](name string) bson.D {
+	localField := fmt.Sprintf("%s_id", name)
+	foreignField := "_id"
+	as := fmt.Sprintf("_%s", name)
+	return GetLookupPipeline[T](localField, foreignField, as)
+}
+
+func GetLookupPipeline[T any](localField, foreignField, as string) bson.D {
+	return bson.D{{
+		Key: "$lookup",
+		Value: bson.M{
+			"from":         GetCollectionName[T](),
+			"localField":   localField,
+			"foreignField": foreignField,
+			"as":           as,
+		}},
+	}
+}
+
+func GetDefaultUnwindPipeline[T any]() bson.D {
+	var model T
+	typ := reflect.TypeOf(model)
+	name := utils.ToSnakeCase(typ.Name())
+	as := fmt.Sprintf("_%s", name)
+	return GetUnwindPipeline(as)
+}
+
+func GetUnwindPipeline(as string) bson.D {
+	return bson.D{{
+		Key: "$unwind",
+		Value: bson.M{
+			"path":                       fmt.Sprintf("$%s", as),
+			"preserveNullAndEmptyArrays": true,
+		}},
+	}
+}
+
+func GetPaginationPipeline(query bson.M, sort bson.D, skip, limit int) []bson.D {
+	if query == nil {
+		query = bson.M{}
+	}
+	return []bson.D{
+		{{Key: "$match", Value: query}},
+		{{Key: "$sort", Value: sort}},
+		{{Key: "$skip", Value: skip}},
+		{{Key: "$limit", Value: limit}},
+	}
+}
+
+func GetByIdPipeline(id primitive.ObjectID) []bson.D {
+	return []bson.D{
+		{{Key: "$match", Value: bson.M{"_id": id}}},
+		{{Key: "$limit", Value: 1}},
+	}
 }

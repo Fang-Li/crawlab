@@ -2,8 +2,6 @@ package controllers
 
 import (
 	errors2 "errors"
-	mongo2 "github.com/crawlab-team/crawlab/core/mongo"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/crawlab-team/crawlab/core/interfaces"
@@ -45,26 +43,11 @@ func GetScheduleById(_ *gin.Context, params *GetByIdParams) (response *Response[
 
 func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Schedule], err error) {
 	query := ConvertToBsonMFromListParams(params)
-
 	sort, err := GetSortOptionFromString(params.Sort)
 	if err != nil {
 		return GetErrorListResponse[models.Schedule](errors.BadRequestf("invalid request parameters: %v", err))
 	}
-
-	schedules, err := service.NewModelService[models.Schedule]().GetMany(query, &mongo2.FindOptions{
-		Sort:  sort,
-		Skip:  params.Size * (params.Page - 1),
-		Limit: params.Size,
-	})
-	if err != nil {
-		if !errors.Is(err, mongo.ErrNoDocuments) {
-			return GetErrorListResponse[models.Schedule](err)
-		}
-		return GetListResponse[models.Schedule]([]models.Schedule{}, 0)
-	}
-	if len(schedules) == 0 {
-		return GetListResponse[models.Schedule]([]models.Schedule{}, 0)
-	}
+	skip, limit := GetSkipLimitFromListParams(params)
 
 	// total count
 	total, err := service.NewModelService[models.Schedule]().Count(query)
@@ -72,46 +55,23 @@ func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListRespo
 		return GetErrorListResponse[models.Schedule](err)
 	}
 
-	// ids
-	var ids []primitive.ObjectID
-	var spiderIds []primitive.ObjectID
-	for _, s := range schedules {
-		ids = append(ids, s.Id)
-		if !s.SpiderId.IsZero() {
-			spiderIds = append(spiderIds, s.SpiderId)
-		}
+	// check total
+	if total == 0 {
+		return GetEmptyListResponse[models.Schedule]()
 	}
 
-	// spider dict cache
-	var spiders []models.Spider
-	if len(spiderIds) > 0 {
-		spiders, err = service.NewModelService[models.Spider]().GetMany(bson.M{"_id": bson.M{"$in": spiderIds}}, nil)
-		if err != nil {
-			return GetErrorListResponse[models.Schedule](err)
-		}
-	}
-	dictSpider := map[primitive.ObjectID]models.Spider{}
-	for _, p := range spiders {
-		dictSpider[p.Id] = p
+	// aggregation pipelines
+	pipelines := service.GetPaginationPipeline(query, sort, skip, limit)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
+
+	// perform query
+	var schedules []models.Schedule
+	err = service.GetCollection[models.Schedule]().Aggregate(pipelines, nil).All(&schedules)
+	if err != nil {
+		return GetErrorListResponse[models.Schedule](err)
 	}
 
-	// iterate list again
-	var data []models.Schedule
-	for _, s := range schedules {
-		// spider
-		if !s.SpiderId.IsZero() {
-			p, ok := dictSpider[s.SpiderId]
-			if ok {
-				s.Spider = &p
-			}
-		}
-
-		// add to list
-		data = append(data, s)
-	}
-
-	// response
-	return GetListResponse(data, total)
+	return GetListResponse(schedules, total)
 }
 
 type PostScheduleParams struct {

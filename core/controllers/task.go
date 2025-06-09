@@ -33,136 +33,60 @@ func GetTaskById(_ *gin.Context, params *GetTaskByIdParams) (response *Response[
 		return GetErrorResponse[models.Task](err)
 	}
 
-	// task
-	t, err := service.NewModelService[models.Task]().GetById(id)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return GetErrorResponse[models.Task](err)
-	}
+	// aggregation pipelines
+	pipelines := service.GetByIdPipeline(id)
+	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_id", "_id", "_stat")...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Node]()...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Schedule]()...)
+
+	// perform query
+	var tasks []models.Task
+	err = service.GetCollection[models.Task]().Aggregate(pipelines, nil).All(&tasks)
 	if err != nil {
 		return GetErrorResponse[models.Task](err)
 	}
 
-	// skip if task status is pending
-	if t.Status == constants.TaskStatusPending {
-		return GetDataResponse(*t)
-	}
-
-	// spider
-	if !t.SpiderId.IsZero() {
-		t.Spider, _ = service.NewModelService[models.Spider]().GetById(t.SpiderId)
-	}
-
-	// schedule
-	if !t.ScheduleId.IsZero() {
-		t.Schedule, _ = service.NewModelService[models.Schedule]().GetById(t.ScheduleId)
-	}
-
-	// node
-	if !t.NodeId.IsZero() {
-		t.Node, _ = service.NewModelService[models.Node]().GetById(t.NodeId)
-	}
-
-	// task stat
-	t.Stat, _ = service.NewModelService[models.TaskStat]().GetById(id)
-
-	return GetDataResponse(*t)
-}
-
-type GetTaskListParams struct {
-	*GetListParams
-	Stats bool `query:"stats"`
-}
-
-func GetTaskList(c *gin.Context, params *GetTaskListParams) (response *ListResponse[models.Task], err error) {
-	if params.Stats {
-		return NewController[models.Task]().GetList(c, params.GetListParams)
-	}
-
-	// get query
-	query := ConvertToBsonMFromListParams(params.GetListParams)
-
-	sort, err := GetSortOptionFromString(params.GetListParams.Sort)
-	if err != nil {
-		return GetErrorListResponse[models.Task](err)
-	}
-
-	// get tasks
-	tasks, err := service.NewModelService[models.Task]().GetMany(query, &mongo2.FindOptions{
-		Sort:  sort,
-		Skip:  params.Size * (params.Page - 1),
-		Limit: params.Size,
-	})
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return GetErrorListResponse[models.Task](err)
-		}
-		return GetErrorListResponse[models.Task](err)
-	}
-
-	// check empty list
+	// check results
 	if len(tasks) == 0 {
-		return GetListResponse[models.Task](nil, 0)
+		return nil, errors.NotFoundf("task %s not found", params.Id)
 	}
 
-	// ids
-	var taskIds []primitive.ObjectID
-	var spiderIds []primitive.ObjectID
-	for _, t := range tasks {
-		taskIds = append(taskIds, t.Id)
-		spiderIds = append(spiderIds, t.SpiderId)
-	}
+	return GetDataResponse(tasks[0])
+}
 
-	// total count
+func GetTaskList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Task], err error) {
+	// query parameters
+	query := ConvertToBsonMFromListParams(params)
+	sort, err := GetSortOptionFromString(params.Sort)
+	if err != nil {
+		return GetErrorListResponse[models.Task](err)
+	}
+	skip, limit := GetSkipLimitFromListParams(params)
+
+	// total
 	total, err := service.NewModelService[models.Task]().Count(query)
 	if err != nil {
 		return GetErrorListResponse[models.Task](err)
 	}
 
-	// stat list
-	stats, err := service.NewModelService[models.TaskStat]().GetMany(bson.M{
-		"_id": bson.M{
-			"$in": taskIds,
-		},
-	}, nil)
+	// check total
+	if total == 0 {
+		return GetEmptyListResponse[models.Task]()
+	}
+
+	// aggregation pipelines
+	pipelines := service.GetPaginationPipeline(query, sort, skip, limit)
+	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_id", "_id", "_stat")...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Node]()...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Schedule]()...)
+
+	// perform query
+	var tasks []models.Task
+	err = service.GetCollection[models.Task]().Aggregate(pipelines, nil).All(&tasks)
 	if err != nil {
 		return GetErrorListResponse[models.Task](err)
-	}
-
-	// cache stat list to dict
-	statsDict := map[primitive.ObjectID]models.TaskStat{}
-	for _, s := range stats {
-		statsDict[s.Id] = s
-	}
-
-	// spider list
-	spiders, err := service.NewModelService[models.Spider]().GetMany(bson.M{
-		"_id": bson.M{
-			"$in": spiderIds,
-		},
-	}, nil)
-	if err != nil {
-		return GetErrorListResponse[models.Task](err)
-	}
-
-	// cache spider list to dict
-	spiderDict := map[primitive.ObjectID]models.Spider{}
-	for _, s := range spiders {
-		spiderDict[s.Id] = s
-	}
-
-	// iterate list again
-	for i, t := range tasks {
-		// task stat
-		ts, ok := statsDict[t.Id]
-		if ok {
-			tasks[i].Stat = &ts
-		}
-
-		// spider
-		s, ok := spiderDict[t.SpiderId]
-		if ok {
-			tasks[i].Spider = &s
-		}
 	}
 
 	return GetListResponse(tasks, total)

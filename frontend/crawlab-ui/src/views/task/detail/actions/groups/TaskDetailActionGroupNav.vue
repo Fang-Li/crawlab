@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
-import { useNode, useTask } from '@/components';
+import { useTask } from '@/components';
 import { isZeroObjectId, translate } from '@/utils';
 
 const t = translate;
@@ -12,8 +12,6 @@ const store = useStore();
 
 const { form } = useTask(store);
 
-const { allDict: allNodeDict } = useNode(store);
-
 defineOptions({ name: 'ClTaskDetailActionGroupNav' });
 </script>
 
@@ -22,7 +20,7 @@ defineOptions({ name: 'ClTaskDetailActionGroupNav' });
     <cl-nav-action-fa-icon :icon="['fa', 'compass']" />
     <cl-nav-action-item v-if="!isZeroObjectId(form?.node_id)">
       <cl-node-tag
-        :node="allNodeDict.get(form.node_id!)"
+        :node="form.node"
         size="large"
         no-label
         clickable
