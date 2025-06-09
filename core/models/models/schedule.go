@@ -19,4 +19,7 @@ type Schedule struct {
 	NodeIds     []primitive.ObjectID `json:"node_ids" bson:"node_ids" description:"Node IDs"`
 	Priority    int                  `json:"priority" bson:"priority" description:"Priority"`
 	Enabled     bool                 `json:"enabled" bson:"enabled" description:"Enabled"`
+
+	// associated data
+	Spider *Spider `json:"spider" bson:"-" description:"Spider"`
 }

@@ -41,7 +41,6 @@ func createTestTask(t *testing.T) (task *models.Task, spiderId primitive.ObjectI
 		Mode:     constants.RunTypeAllNodes,
 		Param:    "test param",
 		Cmd:      "python main.py",
-		UserId:   TestUserId,
 	}
 
 	// Set timestamps

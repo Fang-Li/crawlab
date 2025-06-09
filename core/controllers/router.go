@@ -377,6 +377,20 @@ func InitRoutes(app *gin.Engine) (err error) {
 	}...))
 	RegisterController(groups.AuthGroup.Group("", "Schedules", "APIs for schedules management"), "/schedules", NewController[models.Schedule]([]Action{
 		{
+			Method:      http.MethodGet,
+			Path:        "/:id",
+			Name:        "Get Schedule by ID",
+			Description: "Get a single schedule by ID",
+			HandlerFunc: GetScheduleById,
+		},
+		{
+			Method:      http.MethodGet,
+			Path:        "",
+			Name:        "Get Schedule List",
+			Description: "Get a list of schedules",
+			HandlerFunc: GetScheduleList,
+		},
+		{
 			Method:      http.MethodPost,
 			Path:        "",
 			Name:        "Create Schedule",

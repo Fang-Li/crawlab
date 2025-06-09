@@ -12,14 +12,12 @@ type Spider struct {
 	ColName        string                `json:"col_name,omitempty" bson:"col_name" description:"Data collection name"`
 	DbName         string                `json:"db_name,omitempty" bson:"db_name" description:"Database name"`
 	DataSourceId   primitive.ObjectID    `json:"data_source_id" bson:"data_source_id" description:"Data source id"`
-	DataSource     *Database             `json:"data_source,omitempty" bson:"-"`
 	Description    string                `json:"description" bson:"description" description:"Description"`
 	ProjectId      primitive.ObjectID    `json:"project_id" bson:"project_id" description:"Project ID"`
 	Mode           string                `json:"mode" bson:"mode" description:"Default task mode" enum:"random,all,selected-nodes"`
 	NodeIds        []primitive.ObjectID  `json:"node_ids" bson:"node_ids" description:"Default node ids, used in selected-nodes mode"`
 	GitId          primitive.ObjectID    `json:"git_id" bson:"git_id" description:"Related Git ID"`
 	GitRootPath    string                `json:"git_root_path" bson:"git_root_path" description:"Git root path"`
-	Git            *Git                  `json:"git,omitempty" bson:"-"`
 	Template       string                `json:"template,omitempty" bson:"template,omitempty" description:"Spider template"`
 	TemplateParams *SpiderTemplateParams `json:"template_params,omitempty" bson:"template_params,omitempty" description:"Spider template params"`
 
@@ -30,6 +28,11 @@ type Spider struct {
 	Cmd      string `json:"cmd" bson:"cmd" description:"Execute command"`
 	Param    string `json:"param" bson:"param" description:"Default task param"`
 	Priority int    `json:"priority" bson:"priority" description:"Priority" default:"5" minimum:"1" maximum:"10"`
+
+	// associated data
+	Project    *Project  `json:"project,omitempty" bson:"-"`
+	Git        *Git      `json:"git,omitempty" bson:"-"`
+	DataSource *Database `json:"data_source,omitempty" bson:"-"`
 }
 
 type SpiderTemplateParams struct {

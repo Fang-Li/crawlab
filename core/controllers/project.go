@@ -11,11 +11,7 @@ import (
 	mongo2 "go.mongodb.org/mongo-driver/mongo"
 )
 
-func GetProjectList(c *gin.Context, params *GetListParams) (response *ListResponse[models.Project], err error) {
-	if params.All {
-		return NewController[models.Project]().GetAll(params)
-	}
-
+func GetProjectList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Project], err error) {
 	query := ConvertToBsonMFromListParams(params)
 
 	sort, err := GetSortOptionFromString(params.Sort)
@@ -31,20 +27,18 @@ func GetProjectList(c *gin.Context, params *GetListParams) (response *ListRespon
 	})
 	if err != nil {
 		if err.Error() != mongo2.ErrNoDocuments.Error() {
-			HandleErrorInternalServerError(c, err)
+			return GetErrorListResponse[models.Project](err)
 		}
 		return
 	}
 	if len(projects) == 0 {
-		HandleSuccessWithListData(c, []models.Project{}, 0)
-		return
+		return GetEmptyListResponse[models.Project]()
 	}
 
 	// total count
 	total, err := service.NewModelService[models.Project]().Count(query)
 	if err != nil {
-		HandleErrorInternalServerError(c, err)
-		return
+		return GetErrorListResponse[models.Project](err)
 	}
 
 	// project ids
@@ -64,16 +58,13 @@ func GetProjectList(c *gin.Context, params *GetListParams) (response *ListRespon
 		},
 	}, nil)
 	if err != nil {
-		HandleErrorInternalServerError(c, err)
-		return
+		return GetErrorListResponse[models.Project](err)
 	}
 	for _, s := range spiders {
 		_, ok := cache[s.ProjectId]
-		if !ok {
-			HandleErrorInternalServerError(c, errors.New("project id not found"))
-			return
+		if ok {
+			cache[s.ProjectId]++
 		}
-		cache[s.ProjectId]++
 	}
 
 	// assign

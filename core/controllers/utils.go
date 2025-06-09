@@ -376,6 +376,16 @@ func GetListResponse[T any](models []T, total int) (res *ListResponse[T], err er
 	}, nil
 }
 
+func GetEmptyListResponse[T any]() (res *ListResponse[T], err error) {
+	return &ListResponse[T]{
+		Status:  constants.HttpResponseStatusOk,
+		Message: constants.HttpResponseMessageSuccess,
+		Data:    []T{},
+		Total:   0,
+	}, nil
+
+}
+
 func GetVoidResponse() (res *VoidResponse, err error) {
 	return &VoidResponse{
 		Status:  constants.HttpResponseStatusOk,
@@ -422,31 +432,8 @@ func HandleError(statusCode int, c *gin.Context, err error) {
 	handleError(statusCode, c, err)
 }
 
-func HandleErrorBadRequest(c *gin.Context, err error) {
-	HandleError(http.StatusBadRequest, c, err)
-}
-
-func HandleErrorForbidden(c *gin.Context, err error) {
-	HandleError(http.StatusForbidden, c, err)
-}
-
-func HandleErrorUnauthorized(c *gin.Context, err error) {
-	HandleError(http.StatusUnauthorized, c, err)
-}
-
-func HandleErrorNotFound(c *gin.Context, err error) {
-	HandleError(http.StatusNotFound, c, err)
-}
-
 func HandleErrorInternalServerError(c *gin.Context, err error) {
 	HandleError(http.StatusInternalServerError, c, err)
-}
-
-func HandleSuccess(c *gin.Context) {
-	c.AbortWithStatusJSON(http.StatusOK, entity.Response{
-		Status:  constants.HttpResponseStatusOk,
-		Message: constants.HttpResponseMessageSuccess,
-	})
 }
 
 func HandleSuccessWithData(c *gin.Context, data interface{}) {
@@ -454,14 +441,5 @@ func HandleSuccessWithData(c *gin.Context, data interface{}) {
 		Status:  constants.HttpResponseStatusOk,
 		Message: constants.HttpResponseMessageSuccess,
 		Data:    data,
-	})
-}
-
-func HandleSuccessWithListData(c *gin.Context, data interface{}, total int) {
-	c.AbortWithStatusJSON(http.StatusOK, entity.ListResponse{
-		Status:  constants.HttpResponseStatusOk,
-		Message: constants.HttpResponseMessageSuccess,
-		Data:    data,
-		Total:   total,
 	})
 }

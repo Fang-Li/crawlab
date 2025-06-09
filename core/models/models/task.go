@@ -18,9 +18,10 @@ type Task struct {
 	Mode       string               `json:"mode" bson:"mode" description:"Mode"`
 	Priority   int                  `json:"priority" bson:"priority" description:"Priority"`
 	NodeIds    []primitive.ObjectID `json:"node_ids,omitempty" bson:"-"`
-	Stat       *TaskStat            `json:"stat,omitempty" bson:"-"`
-	Spider     *Spider              `json:"spider,omitempty" bson:"-"`
-	Schedule   *Schedule            `json:"schedule,omitempty" bson:"-"`
-	Node       *Node                `json:"node,omitempty" bson:"-"`
-	UserId     primitive.ObjectID   `json:"-" bson:"-"`
+
+	// associated data
+	Stat     *TaskStat `json:"stat,omitempty" bson:"-"`
+	Spider   *Spider   `json:"spider,omitempty" bson:"-"`
+	Schedule *Schedule `json:"schedule,omitempty" bson:"-"`
+	Node     *Node     `json:"node,omitempty" bson:"-"`
 }

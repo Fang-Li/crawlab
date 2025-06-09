@@ -67,15 +67,9 @@ type GetListParams struct {
 	Sort   string `query:"sort" default:"-_id" description:"Sort options"`
 	Page   int    `query:"page" default:"1" description:"Page number" minimum:"1"`
 	Size   int    `query:"size" default:"10" description:"Page size" minimum:"1"`
-	All    bool   `query:"all" default:"false" description:"Whether to get all items"`
 }
 
 func (ctr *BaseController[T]) GetList(_ *gin.Context, params *GetListParams) (response *ListResponse[T], err error) {
-	// get all if query field "all" is set true
-	if params.All {
-		return ctr.GetAll(params)
-	}
-
 	return ctr.GetWithPagination(params)
 }
 
@@ -281,35 +275,6 @@ func (ctr *BaseController[T]) DeleteList(_ *gin.Context, params *DeleteListParam
 
 	var emptyModel T
 	return GetDataResponse(emptyModel)
-}
-
-// GetAll retrieves all items based on filter and sort
-func (ctr *BaseController[T]) GetAll(params *GetListParams) (response *ListResponse[T], err error) {
-	// Get filter query
-	query := ConvertToBsonMFromListParams(params)
-
-	// Get sort options
-	sort, err := GetSortOptionFromString(params.Sort)
-	if err != nil {
-		return GetErrorListResponse[T](errors.BadRequestf("invalid sort format: %v", err))
-	}
-
-	// Get models
-	models, err := ctr.modelSvc.GetMany(query, &mongo.FindOptions{
-		Sort: sort,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Total count
-	total, err := ctr.modelSvc.Count(query)
-	if err != nil {
-		return nil, err
-	}
-
-	// Response
-	return GetListResponse(models, total)
 }
 
 // GetWithPagination retrieves items with pagination

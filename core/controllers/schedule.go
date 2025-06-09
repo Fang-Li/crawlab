@@ -2,6 +2,9 @@ package controllers
 
 import (
 	errors2 "errors"
+	mongo2 "github.com/crawlab-team/crawlab/core/mongo"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/crawlab-team/crawlab/core/interfaces"
 	"github.com/crawlab-team/crawlab/core/models/models"
@@ -12,6 +15,104 @@ import (
 	"github.com/juju/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// GetScheduleById handles getting a spider by ID
+func GetScheduleById(_ *gin.Context, params *GetByIdParams) (response *Response[models.Schedule], err error) {
+	id, err := primitive.ObjectIDFromHex(params.Id)
+	if err != nil {
+		return GetErrorResponse[models.Schedule](errors.BadRequestf("invalid id format"))
+	}
+	s, err := service.NewModelService[models.Schedule]().GetById(id)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return GetErrorResponse[models.Schedule](errors.NotFoundf("spider not found"))
+	}
+	if err != nil {
+		return GetErrorResponse[models.Schedule](err)
+	}
+
+	// spider
+	if !s.SpiderId.IsZero() {
+		s.Spider, err = service.NewModelService[models.Spider]().GetById(s.SpiderId)
+		if err != nil {
+			if !errors.Is(err, mongo.ErrNoDocuments) {
+				return GetErrorResponse[models.Schedule](err)
+			}
+		}
+	}
+
+	return GetDataResponse(*s)
+}
+
+func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Schedule], err error) {
+	query := ConvertToBsonMFromListParams(params)
+
+	sort, err := GetSortOptionFromString(params.Sort)
+	if err != nil {
+		return GetErrorListResponse[models.Schedule](errors.BadRequestf("invalid request parameters: %v", err))
+	}
+
+	schedules, err := service.NewModelService[models.Schedule]().GetMany(query, &mongo2.FindOptions{
+		Sort:  sort,
+		Skip:  params.Size * (params.Page - 1),
+		Limit: params.Size,
+	})
+	if err != nil {
+		if !errors.Is(err, mongo.ErrNoDocuments) {
+			return GetErrorListResponse[models.Schedule](err)
+		}
+		return GetListResponse[models.Schedule]([]models.Schedule{}, 0)
+	}
+	if len(schedules) == 0 {
+		return GetListResponse[models.Schedule]([]models.Schedule{}, 0)
+	}
+
+	// total count
+	total, err := service.NewModelService[models.Schedule]().Count(query)
+	if err != nil {
+		return GetErrorListResponse[models.Schedule](err)
+	}
+
+	// ids
+	var ids []primitive.ObjectID
+	var spiderIds []primitive.ObjectID
+	for _, s := range schedules {
+		ids = append(ids, s.Id)
+		if !s.SpiderId.IsZero() {
+			spiderIds = append(spiderIds, s.SpiderId)
+		}
+	}
+
+	// spider dict cache
+	var spiders []models.Spider
+	if len(spiderIds) > 0 {
+		spiders, err = service.NewModelService[models.Spider]().GetMany(bson.M{"_id": bson.M{"$in": spiderIds}}, nil)
+		if err != nil {
+			return GetErrorListResponse[models.Schedule](err)
+		}
+	}
+	dictSpider := map[primitive.ObjectID]models.Spider{}
+	for _, p := range spiders {
+		dictSpider[p.Id] = p
+	}
+
+	// iterate list again
+	var data []models.Schedule
+	for _, s := range schedules {
+		// spider
+		if !s.SpiderId.IsZero() {
+			p, ok := dictSpider[s.SpiderId]
+			if ok {
+				s.Spider = &p
+			}
+		}
+
+		// add to list
+		data = append(data, s)
+	}
+
+	// response
+	return GetListResponse(data, total)
+}
 
 type PostScheduleParams struct {
 	Data models.Schedule `json:"data" description:"The data to create" validate:"required"`
