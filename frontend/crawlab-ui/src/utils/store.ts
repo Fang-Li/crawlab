@@ -46,7 +46,6 @@ export const getDefaultStoreState = <T = any>(
     tablePagination,
     tableListFilter: [],
     tableListSort: [],
-    allList: [],
     sidebarCollapsed: false,
     actionsCollapsed: false,
     tabs: [{ id: 'overview', title: t('common.tabs.overview') }],
@@ -67,21 +66,6 @@ export const getDefaultStoreGetters = <T = any>(
       state.activeDialogKey !== undefined,
     formListIds: (state: BaseStoreState<T>) =>
       state.formList.map(d => (d as BaseModel)._id as string),
-    allListSelectOptions: (state: BaseStoreState<T>) =>
-      state.allList.map(d => {
-        const _d = d as BaseModel;
-        return {
-          value: _d[opts?.selectOptionValueKey as string],
-          label: _d[opts?.selectOptionLabelKey as string],
-        };
-      }),
-    allDict: (state: BaseStoreState<T>) => {
-      const dict = new Map<string, T>();
-      state.allList.forEach(d =>
-        dict.set((d as BaseModel)._id as string, d as any)
-      );
-      return dict;
-    },
   };
 };
 
@@ -206,12 +190,6 @@ export const getDefaultStoreMutations = <T = any>(): BaseStoreMutations<T> => {
     resetTableListSortByKey: (state: BaseStoreState<T>, key) => {
       state.tableListSort = state.tableListSort.filter(d => d.key !== key);
     },
-    setAllList: (state: BaseStoreState<T>, value: T[]) => {
-      state.allList = value;
-    },
-    resetAllList: (state: BaseStoreState<T>) => {
-      state.allList = [];
-    },
     setTabs: (state: BaseStoreState<T>, tabs) => {
       state.tabs = tabs;
     },
@@ -234,9 +212,6 @@ export const getDefaultStoreActions = <T = any>(
     { commit }: StoreActionContext<BaseStoreState<T>>,
     ids: string[]
   ) => Promise<Response>;
-  getAllList: ({
-    commit,
-  }: StoreActionContext<BaseStoreState<T>>) => Promise<ResponseWithListData<T>>;
   createList: (
     { state, commit }: StoreActionContext<BaseStoreState<T>>,
     data: T[]
@@ -282,7 +257,6 @@ export const getDefaultStoreActions = <T = any>(
     updateById,
     deleteById,
     getList,
-    getAll,
     createList,
     updateList,
     deleteList,
@@ -345,11 +319,6 @@ export const getDefaultStoreActions = <T = any>(
       params?: ListRequestParams
     ) => {
       return await getList(params);
-    },
-    getAllList: async ({ commit }: StoreActionContext<BaseStoreState<T>>) => {
-      const res = await getAll();
-      commit('setAllList', res.data || []);
-      return res;
     },
     createList: async (_: StoreActionContext<BaseStoreState<T>>, data: T[]) => {
       return await createList(data);

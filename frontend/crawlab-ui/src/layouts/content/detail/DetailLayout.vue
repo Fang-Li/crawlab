@@ -37,23 +37,8 @@ const computedTabs = computed<NavItem[]>(() =>
   tabs.value.map((tab: NavItem) => ({ ...tab }))
 );
 
-const computedAllListSelectOptions = computed(() => {
-  if (props.allListSelectOptions) {
-    return props.allListSelectOptions;
-  }
-  return store.state[ns.value].allList.map((item: BaseModel) => ({
-    label: item[props.navItemNameKey],
-    value: item._id,
-  }));
-});
-
 // get form before mount
 onBeforeMount(getForm);
-
-// get all list before mount
-onBeforeMount(async () => {
-  await store.dispatch(`${ns.value}/getAllList`);
-});
 
 // reset form before unmount
 onBeforeUnmount(() => {

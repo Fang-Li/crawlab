@@ -49,16 +49,6 @@ const useSchedule = (store: Store<RootStoreState>) => {
     },
   };
 
-  // all schedule select options
-  const allScheduleSelectOptions = computed<SelectOption[]>(() =>
-    state.allList.map(d => {
-      return {
-        label: d.name,
-        value: d._id,
-      };
-    })
-  );
-
   const { activeId } = useScheduleDetail();
 
   watch(
@@ -87,7 +77,6 @@ const useSchedule = (store: Store<RootStoreState>) => {
     ),
     modeOptions,
     formRules,
-    allScheduleSelectOptions,
   };
 };
 

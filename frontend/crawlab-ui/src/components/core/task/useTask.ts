@@ -31,17 +31,6 @@ const useTask = (store: Store<RootStoreState>) => {
   // task id
   const id = computed(() => route.params.id);
 
-  const allListSelectOptions = computed<SelectOption[]>(() =>
-    state.allList.map(task => {
-      const spider = allSpiderDict.value.get(task.spider_id!);
-      const timeAgo = formatTimeAgo(task.created_at!);
-      return {
-        label: `${spider?.name} (${timeAgo})`,
-        value: task._id,
-      };
-    })
-  );
-
   return {
     ...useForm<Task>('task', store, useTaskService(store), formComponentData),
     allSpiderDict,
@@ -49,7 +38,6 @@ const useTask = (store: Store<RootStoreState>) => {
     modeOptions,
     modeOptionsDict,
     getPriorityLabel,
-    allListSelectOptions,
   };
 };
 

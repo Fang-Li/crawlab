@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, Fragment } from 'vue';
 import { useStore } from 'vuex';
 import { ElMessage } from 'element-plus';
 import { FILE_ROOT } from '@/constants';
@@ -37,7 +37,7 @@ const onConfirm = async () => {
     });
     const spiderId = res.data._id;
     ElMessage.success(
-      <>
+      <Fragment>
         <span class="el-message__content">
           {t('components.git.common.message.success.createSpider.title')}
         </span>
@@ -49,9 +49,8 @@ const onConfirm = async () => {
             )}
           />
         </span>
-      </>
+      </Fragment>
     );
-    await store.dispatch(`${nsSpider}/getAllList`, { id: activeId.value });
   } catch (e) {
     ElMessage.error((e as Error).message);
   } finally {

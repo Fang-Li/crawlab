@@ -23,10 +23,6 @@ const toRunNodes = computed(() => {
   return getToRunNodes(mode, node_ids, activeNodes.value);
 });
 
-// use project
-const { allListSelectOptionsWithEmpty: allProjectSelectOptions } =
-  useProject(store);
-
 // use spider
 const { form, formRef, isFormItemDisabled, modeOptions } = useSpider(store);
 

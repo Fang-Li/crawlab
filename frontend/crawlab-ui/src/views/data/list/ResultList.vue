@@ -109,9 +109,6 @@ const actionFunctions = {
       },
     });
   },
-  getAll: async () => {
-    console.warn('getAll is not implemented');
-  },
   deleteList: (ids: string[]) => {
     console.warn('deleteList is not implemented');
   },

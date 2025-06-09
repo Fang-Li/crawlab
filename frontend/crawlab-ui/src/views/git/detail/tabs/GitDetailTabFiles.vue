@@ -53,7 +53,6 @@ const onDeleteSpider = async (item: FileNavItem) => {
   );
   await store.dispatch(`${nsSpider}/deleteById`, spider._id);
   ElMessage.success(t('common.message.success.delete'));
-  await store.dispatch(`${nsSpider}/getAllList`, { id: activeId.value });
 };
 
 defineOptions({ name: 'ClGitDetailTabFiles' });

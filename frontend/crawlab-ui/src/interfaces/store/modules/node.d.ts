@@ -7,6 +7,7 @@ type NodeStoreModule = BaseModule<
 
 interface NodeStoreState extends BaseStoreState<CNode> {
   nodeMetricsMap: Record<string, Metric>;
+  activeNodes: CNode[];
 }
 
 type NodeStoreGetters = BaseStoreGetters<CNode>;
@@ -19,4 +20,5 @@ interface NodeStoreMutations extends BaseStoreMutations<CNode> {
 
 interface NodeStoreActions extends BaseStoreActions<CNode> {
   getNodeMetrics: StoreAction<NodeStoreState>;
+  getActiveNodes: StoreAction<NodeStoreState>;
 }

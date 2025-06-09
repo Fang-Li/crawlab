@@ -4,7 +4,6 @@ import { Store } from 'vuex';
 import useForm from '@/components/ui/form/useForm';
 import useNotificationSettingService from '@/services/notification/useNotificationSettingService';
 import { getDefaultFormComponentData } from '@/utils/form';
-import { setupGetAllList } from '@/utils';
 
 // form component data
 const formComponentData = getDefaultFormComponentData<NotificationSetting>();
@@ -19,8 +18,6 @@ const useNotificationSetting = (store: Store<RootStoreState>) => {
   const id = computed(() => route.params.id);
 
   const form = computed(() => state.form);
-
-  setupGetAllList(store, ['notificationAlert']);
 
   return {
     ...useForm<NotificationSetting>(

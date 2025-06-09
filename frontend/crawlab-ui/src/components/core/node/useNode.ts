@@ -18,7 +18,7 @@ const useNode = (store: Store<RootStoreState>) => {
   const formRules: FormRules = {};
 
   const activeNodesSorted = computed(() => {
-    return state.allList
+    return state.activeNodes
       .filter(n => n.active)
       .sort((a, b) => {
         if (a.is_master) return -1;

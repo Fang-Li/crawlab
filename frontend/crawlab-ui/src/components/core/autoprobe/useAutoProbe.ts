@@ -10,7 +10,6 @@ const formComponentData = getDefaultFormComponentData<AutoProbe>();
 const useAutoProbe = (store: Store<RootStoreState>) => {
   // store
   const ns = 'autoprobe';
-  const state = store.state[ns];
 
   // form rules
   const formRules: FormRules = {
@@ -20,16 +19,6 @@ const useAutoProbe = (store: Store<RootStoreState>) => {
     },
   };
 
-  // all autoprobe select options
-  const allAutoProbeSelectOptions = computed<SelectOption[]>(() =>
-    state.allList.map(d => {
-      return {
-        label: d.name,
-        value: d._id,
-      };
-    })
-  );
-
   return {
     ...useForm<AutoProbe>(
       'autoprobe',
@@ -38,7 +27,6 @@ const useAutoProbe = (store: Store<RootStoreState>) => {
       formComponentData
     ),
     formRules,
-    allAutoProbeSelectOptions,
   };
 };
 

@@ -36,16 +36,6 @@ const useUser = (store: Store<RootStoreState>) => {
     },
   };
 
-  // all user select options
-  const allUserSelectOptions = computed<SelectOption[]>(() =>
-    state.allList.map(d => {
-      return {
-        label: d.username,
-        value: d._id,
-      };
-    })
-  );
-
   // on change password
   const onChangePasswordFunc = async (id?: string) => {
     if (!id) return;
@@ -78,7 +68,6 @@ const useUser = (store: Store<RootStoreState>) => {
     ...useForm<User>('user', store, useUserService(store), formComponentData),
     modeOptions,
     formRules,
-    allUserSelectOptions,
     onChangePasswordFunc,
     rolesOptions,
   };

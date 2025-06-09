@@ -23,14 +23,10 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
 
   const showActionsToggleTooltip = ref<boolean>(false);
 
-  const navItems = computed<NavItem<T>[]>(() =>
-    state.allList.map((d: T) => {
-      return {
-        id: d._id,
-        title: d.name,
-      } as NavItem;
-    })
-  );
+  const navItems = computed<NavItem<T>[]>(() => {
+    // TODO: implement
+    return [];
+  });
 
   const activeId = computed<string>(() => {
     const { id } = route.params;
@@ -100,7 +96,6 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
       form: state.form,
     });
     ElMessage.success(t('common.message.success.save'));
-    await Promise.all([store.dispatch(`${ns}/getAllList`), getForm()]);
 
     // after save
     afterSave.value.map(fn => fn());

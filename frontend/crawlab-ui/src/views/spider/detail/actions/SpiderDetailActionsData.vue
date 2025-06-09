@@ -28,26 +28,25 @@ const form = computed(() => state.form);
 const { activeId } = useSpiderDetail();
 
 const { allDict: allDatabaseDict } = useDatabase(store);
-onBeforeMount(() => {
-  store.dispatch(`database/getAllList`);
-});
 
 const allDatabaseSelectOptions = computed<SelectOption[]>(() => {
-  return databaseState.allList.map(db => {
-    const value = db._id;
-    let dbName = db.name;
-    if (db._id === EMPTY_OBJECT_ID) {
-      dbName = t('components.database.default.name');
-    }
-    let label = dbName;
-    if (db.status === DATABASE_STATUS_OFFLINE) {
-      label = `${dbName} (${t('components.database.status.label.offline')})`;
-    }
-    return {
-      value,
-      label,
-    };
-  });
+  // TODO: implement
+  return [];
+  // return databaseState.allList.map(db => {
+  //   const value = db._id;
+  //   let dbName = db.name;
+  //   if (db._id === EMPTY_OBJECT_ID) {
+  //     dbName = t('components.database.default.name');
+  //   }
+  //   let label = dbName;
+  //   if (db.status === DATABASE_STATUS_OFFLINE) {
+  //     label = `${dbName} (${t('components.database.status.label.offline')})`;
+  //   }
+  //   return {
+  //     value,
+  //     label,
+  //   };
+  // });
 });
 
 const currentDatabase = computed(() => {

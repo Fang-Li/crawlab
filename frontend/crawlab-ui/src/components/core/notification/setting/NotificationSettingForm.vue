@@ -44,56 +44,60 @@ const onTemplateChange = () => {
   }
 };
 
-const alertSelectOptions = computed<SelectOption<string>[]>(() =>
-  notificationAlertState.allList.map((item: NotificationAlert) => ({
-    label: item.name,
-    value: item._id,
-  }))
-);
+const alertSelectOptions = computed<SelectOption<string>[]>(() => {
+  // TODO: implement
+  return [];
+  // notificationAlertState.allList.map((item: NotificationAlert) => ({
+  //   label: item.name,
+  //   value: item._id,
+  // }))
+});
 
 const createAlertVisible = ref(false);
 const alertFormRef = ref<typeof ClNotificationAlertForm>();
 const onCreateAlertClick = () => {
+  // TODO: implement
+  return [];
   // find existing alert
-  let alertForm = notificationAlertState.allList.find(
-    a => a.name === form.value.name
-  ) as NotificationAlert;
-
-  // create new alert if not found
-  if (!alertForm) {
-    if (form.value.template_key) {
-      // find alert template
-      alertForm = alertTemplates.find(
-        t => t.key === form.value.template_key
-      ) as NotificationAlert;
-
-      // handle alert template
-      if (alertForm) {
-        alertForm = {
-          ...alertForm,
-          name: t(alertForm.name as string),
-          description: t(alertForm.description as string),
-          enabled: true,
-          template_key: form.value.template_key,
-        };
-      }
-    }
-
-    // create new alert form if template not found
-    if (!alertForm) alertForm = notificationAlertState.newFormFn();
-
-    // set alert form
-    store.commit('notificationAlert/setForm', { ...alertForm });
-
-    // open alert form create dialog
-    createAlertVisible.value = true;
-  } else {
-    // set alert id if alert form exists
-    store.commit(`${ns}/setForm`, {
-      ...form.value,
-      alert_id: alertForm._id,
-    });
-  }
+  // let alertForm = notificationAlertState.allList.find(
+  //   a => a.name === form.value.name
+  // ) as NotificationAlert;
+  //
+  // // create new alert if not found
+  // if (!alertForm) {
+  //   if (form.value.template_key) {
+  //     // find alert template
+  //     alertForm = alertTemplates.find(
+  //       t => t.key === form.value.template_key
+  //     ) as NotificationAlert;
+  //
+  //     // handle alert template
+  //     if (alertForm) {
+  //       alertForm = {
+  //         ...alertForm,
+  //         name: t(alertForm.name as string),
+  //         description: t(alertForm.description as string),
+  //         enabled: true,
+  //         template_key: form.value.template_key,
+  //       };
+  //     }
+  //   }
+  //
+  //   // create new alert form if template not found
+  //   if (!alertForm) alertForm = notificationAlertState.newFormFn();
+  //
+  //   // set alert form
+  //   store.commit('notificationAlert/setForm', { ...alertForm });
+  //
+  //   // open alert form create dialog
+  //   createAlertVisible.value = true;
+  // } else {
+  //   // set alert id if alert form exists
+  //   store.commit(`${ns}/setForm`, {
+  //     ...form.value,
+  //     alert_id: alertForm._id,
+  //   });
+  // }
 };
 const onCreateAlertConfirm = async () => {
   // validate alert form
@@ -105,12 +109,6 @@ const onCreateAlertConfirm = async () => {
     notificationAlertState.form
   );
   ElMessage.success(t('views.notification.message.success.create.alert'));
-
-  // set alert all list
-  store.commit('notificationAlert/setAllList', [
-    ...notificationAlertState.allList,
-    newAlert,
-  ]);
 
   // set alert id
   store.commit(`${ns}/setForm`, {

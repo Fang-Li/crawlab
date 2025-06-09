@@ -5,7 +5,7 @@ import * as llmService from './llm';
 // Export the LLM service
 export { llmService };
 
-const { get, put, post, del, getList, getAll, putList, postList, delList } =
+const { get, put, post, del, getList, putList, postList, delList } =
   useRequest();
 
 export const useService = <T = any>(endpoint: string): Services<T> => {
@@ -28,9 +28,6 @@ export const useService = <T = any>(endpoint: string): Services<T> => {
     },
     getList: async (params?: ListRequestParams) => {
       return await getList<T>(`${endpoint}`, params);
-    },
-    getAll: async () => {
-      return await getAll<T>(`${endpoint}`);
     },
     createList: async (data: T[]) => {
       return await postList<T>(`${endpoint}/batch`, data);

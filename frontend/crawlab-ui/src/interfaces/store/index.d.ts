@@ -81,7 +81,6 @@ export declare global {
     tablePagination: TablePagination;
     tableListFilter: FilterConditionData[];
     tableListSort: SortData[];
-    allList: T[];
     sidebarCollapsed: boolean;
     actionsCollapsed: boolean;
     tabs: NavItem[];
@@ -93,8 +92,6 @@ export declare global {
     extends GetterTree<S, R> {
     dialogVisible: StoreGetter<BaseStoreState, boolean>;
     formListIds: StoreGetter<BaseStoreState, string[]>;
-    allListSelectOptions: StoreGetter<BaseStoreState, SelectOption[]>;
-    allDict: StoreGetter<BaseStoreState, Map<string, T>>;
   }
 
   interface BaseStoreMutations<T = any>
@@ -130,8 +127,6 @@ export declare global {
       { key: string; sort: SortData }
     >;
     resetTableListSortByKey: StoreMutation<BaseStoreState<T>, string>;
-    setAllList: StoreMutation<BaseStoreState<T>, T[]>;
-    resetAllList: StoreMutation<BaseStoreState<T>>;
     setTabs: StoreMutation<BaseStoreState, NavItem[]>;
     setDisabledTabKeys: StoreMutation<BaseStoreState, string[]>;
     resetDisabledTabKeys: StoreMutation<BaseStoreState, string[]>;
@@ -146,7 +141,6 @@ export declare global {
     deleteById: StoreAction<BaseStoreState<T>, string>;
     getList: StoreAction<BaseStoreState<T>>;
     getListWithParams: StoreAction<BaseStoreState<T>, ListRequestParams>;
-    getAllList: StoreAction<BaseStoreState<T>>;
     createList: StoreAction<BaseStoreState<T>, T[]>;
     updateList: StoreAction<BaseStoreState<T>, BatchRequestPayloadWithData<T>>;
     deleteList: StoreAction<BaseStoreState<T>, BatchRequestPayload>;

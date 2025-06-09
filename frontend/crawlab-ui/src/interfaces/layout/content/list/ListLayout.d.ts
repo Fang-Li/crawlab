@@ -58,7 +58,6 @@ export declare global {
   interface ListLayoutActionFunctions {
     setPagination: (pagination: TablePagination) => void;
     getList: () => Promise<void>;
-    getAll: () => Promise<void>;
     deleteList: (ids: string[]) => Promise<Response | void>;
     deleteByIdConfirm: (row: BaseModel) => Promise<void>;
     onHeaderChange?: (

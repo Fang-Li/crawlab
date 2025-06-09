@@ -19,7 +19,6 @@ export const getDefaultService = <T>(
         return dispatch(`${ns}/getList`);
       }
     },
-    getAll: () => dispatch(`${ns}/getAllList`),
     createList: (data: T[]) => dispatch(`${ns}/createList`, data),
     updateList: (ids: string[], data: T, fields: string[]) =>
       dispatch(`${ns}/updateList`, { ids, data, fields }),

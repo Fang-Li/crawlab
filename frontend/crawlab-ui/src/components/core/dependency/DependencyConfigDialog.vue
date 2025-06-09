@@ -10,14 +10,6 @@ const ns: ListStoreNamespace = 'dependency';
 const store = useStore();
 const { dependency: state, node: nodeState } = store.state as RootStoreState;
 
-const activeNodes = computed(() => nodeState.allList.filter(n => n.active));
-
-const toInstallNodes = computed(() => {
-  const { mode, node_ids } = state.installForm;
-  if (mode === 'all') return activeNodes.value;
-  return activeNodes.value.filter(n => node_ids?.includes(n._id!));
-});
-
 const visible = computed(() => state.activeDialogKey === 'config');
 
 const form = computed(() => state.config);

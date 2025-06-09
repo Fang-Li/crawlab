@@ -17,28 +17,11 @@ export const getDefaultUseListOptions = <T extends BaseModel>(
   };
 };
 
-export const setupGetAllList = (
-  store: Store<RootStoreState>,
-  allListNamespaces: ListStoreNamespace[]
-) => {
-  onBeforeMount(async () => {
-    await Promise.all(
-      allListNamespaces?.map(ns => store.dispatch(`${ns}/getAllList`)) || []
-    );
-  });
-};
-
 export const setupListComponent = (
   ns: ListStoreNamespace,
   store: Store<RootStoreState>,
-  allListNamespaces?: ListStoreNamespace[],
   autoUpdate: boolean = true
 ) => {
-  if (!allListNamespaces) allListNamespaces = [];
-
-  // get all list
-  setupGetAllList(store, allListNamespaces);
-
   // auto update
   if (autoUpdate) {
     setupAutoUpdate(async () => {

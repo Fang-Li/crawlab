@@ -175,10 +175,6 @@ const useRequest = () => {
     return res;
   };
 
-  const getAll = async <T = any>(url: string, opts?: AxiosRequestConfig) => {
-    return await getList(url, { all: true }, opts);
-  };
-
   const postList = async <T = any, R = ResponseWithListData, PM = any>(
     url: string,
     data?: T[],
@@ -250,7 +246,6 @@ const useRequest = () => {
     put,
     del,
     getList,
-    getAll,
     postList,
     putList,
     delList,

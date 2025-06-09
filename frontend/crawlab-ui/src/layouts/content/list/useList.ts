@@ -78,7 +78,6 @@ const useList = <T extends BaseModel>(
     setPagination: (pagination: TablePagination) =>
       store.commit(`${ns}/setTablePagination`, pagination),
     getList: () => store.dispatch(`${ns}/getList`),
-    getAll: () => store.dispatch(`${ns}/getAllList`),
     deleteList: async (ids: string[]) => {
       await store.dispatch(`${ns}/deleteList`, ids);
     },

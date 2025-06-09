@@ -47,10 +47,6 @@ const form = computed<User>(() => {
 
 const { allListSelectOptions: allRolesSelectOptions } = useRole(store);
 
-onBeforeMount(() => {
-  store.dispatch('role/getAllList');
-});
-
 defineOptions({ name: 'ClUserForm' });
 </script>
 

@@ -1,15 +1,10 @@
-import { useStore } from 'vuex';
 import { useDetail } from '@/layouts';
-import { setupGetAllList } from '@/utils/list';
 
 const useScheduleDetail = () => {
-  // store
-  const store = useStore();
-
-  setupGetAllList(store, ['node', 'spider']);
+  const ns: ListStoreNamespace = 'schedule';
 
   return {
-    ...useDetail<Schedule>('schedule'),
+    ...useDetail<Schedule>(ns),
   };
 };
 

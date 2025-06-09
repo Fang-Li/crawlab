@@ -218,12 +218,11 @@ func (r *Runner) Cancel(force bool) (err error) {
 	r.cancel()
 
 	// Kill process
+	r.Debugf("attempt to kill process[%d]", r.pid)
 	err = utils.KillProcess(r.cmd, force)
 	if err != nil {
-		r.Errorf("kill process error: %v", err)
-		return err
+		r.Warnf("kill process error: %v", err)
 	}
-	r.Debugf("attempt to kill process[%d]", r.pid)
 
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), r.svc.GetCancelTimeout())
@@ -1155,7 +1154,7 @@ func (r *Runner) logInternally(level string, message string) {
 
 	// Send to the same log system as task logs
 	if r.conn != nil {
-		r.writeLogLines([]string{internalLog})
+		go r.writeLogLines([]string{internalLog})
 	}
 
 	// Also log through the standard logger
