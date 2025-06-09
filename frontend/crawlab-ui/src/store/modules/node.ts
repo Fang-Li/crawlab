@@ -15,19 +15,13 @@ const { get } = useRequest();
 
 const state = {
   ...getDefaultStoreState<CNode>('node'),
-  newFormFn: () => {
-    return {
-      tags: [],
-      max_runners: 8,
-      enabled: true,
-    };
-  },
   tabs: [
     { id: TAB_NAME_OVERVIEW, title: 'common.tabs.overview' },
     { id: TAB_NAME_TASKS, title: 'common.tabs.tasks' },
     { id: TAB_NAME_MONITORING, title: 'common.tabs.monitoring' },
   ],
   nodeMetricsMap: {},
+  activeNodes: [],
 } as NodeStoreState;
 
 const getters = {
@@ -39,19 +33,27 @@ const mutations = {
   setNodeMetricsMap(state: NodeStoreState, metricsMap: Record<string, Metric>) {
     state.nodeMetricsMap = metricsMap;
   },
+  setActiveNodes: (state: NodeStoreState, activeNodes: CNode[]) => {
+    state.activeNodes = activeNodes;
+  },
 } as NodeStoreMutations;
 
 const actions = {
   ...getDefaultStoreActions<CNode>('/nodes'),
   async getNodeMetrics({ state, commit }: StoreActionContext<NodeStoreState>) {
     const { page, size } = state.tablePagination;
-    const res = await get<Record<string, Metric>>('nodes/metrics', {
+    const res = await get<Record<string, Metric>>('/nodes/metrics', {
       page,
       size,
       conditions: JSON.stringify(state.tableListFilter),
       // sort: JSON.stringify(state.tableListSort),
     } as ListRequestParams);
     commit('setNodeMetricsMap', res.data);
+    return res;
+  },
+  async getActiveNodes({ commit }: StoreActionContext<NodeStoreState>) {
+    const res = await get<CNode[]>('/nodes');
+    commit('setActiveNodes', res.data || []);
     return res;
   },
 } as NodeStoreActions;

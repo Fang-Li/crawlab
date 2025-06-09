@@ -13,9 +13,8 @@ interface NodeStoreState extends BaseStoreState<CNode> {
 type NodeStoreGetters = BaseStoreGetters<CNode>;
 
 interface NodeStoreMutations extends BaseStoreMutations<CNode> {
-  setAllNodeSelectOptions: StoreMutation<BaseStoreState<CNode>, SelectOption[]>;
-  setAllNodeTags: StoreMutation<BaseStoreState<CNode>, string[]>;
   setNodeMetricsMap: StoreMutation<NodeStoreState, Record<string, Metric>>;
+  setActiveNodes: StoreMutation<NodeStoreState, CNode[]>;
 }
 
 interface NodeStoreActions extends BaseStoreActions<CNode> {

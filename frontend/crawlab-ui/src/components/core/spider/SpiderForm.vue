@@ -8,9 +8,12 @@ import { isZeroObjectId } from '@/utils/mongo';
 import { useSpiderDetail } from '@/views';
 import { getToRunNodes, priorityOptions, translate } from '@/utils';
 import { getSpiderTemplateGroups, getSpiderTemplates } from '@/utils/spider';
+import useRequest from '@/services/request';
 
 // i18n
 const t = translate;
+
+const { get } = useRequest();
 
 // store
 const store = useStore();
@@ -89,6 +92,29 @@ const onTemplateChange = (value: string) => {
 const activeTemplateOption = computed<SpiderTemplate | undefined>(() => {
   return getSpiderTemplates().find(d => d.name === form.value.template);
 });
+
+const projectLoading = ref(false);
+const projectList = ref<Project[]>([]);
+const getProjects = async (query?: string) => {
+  try {
+    projectLoading.value = true;
+    const res = await get<Project[]>('/projects', {
+      conditions: {
+        name: query,
+      },
+      limit: 1000,
+    });
+    projectList.value = res.data || [];
+  } catch (e) {
+    console.error('Error setting project loading state:', e);
+  } finally {
+    projectLoading.value = false;
+  }
+};
+
+const getActiveNodes = async () => {
+  await store.dispatch('node/getActiveNodes');
+};
 
 defineExpose({
   validate,
