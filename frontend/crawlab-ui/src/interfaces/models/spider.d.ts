@@ -9,7 +9,7 @@ export declare global {
     col_id?: string;
     col_name?: string;
     db_name?: string;
-    data_source_id?: string;
+    database_id?: string;
     mode?: TaskMode;
     node_ids?: string[];
     node_tags?: string[];
@@ -30,6 +30,7 @@ export declare global {
     last_task?: Task;
     project?: Project;
     git?: Git;
+    database?: Database;
   }
 
   interface SpiderStat {

@@ -21,23 +21,19 @@ const dataRef = ref<typeof ClDatabaseTableDetailData | null>(null);
 
 // store
 const store = useStore();
+const { task: state } = store.state as RootStoreState;
 
 const { form } = useTask(store);
 
-const { allDict: allSpiderDict } = useSpider(store);
-
-const spider = computed<Spider | undefined>(
-  () =>
-    allSpiderDict.value.get(form.value?.spider_id || EMPTY_OBJECT_ID) as Spider
-);
+const spider = computed<Spider | undefined>(() => state.form.spider);
 
 const activeTable = ref<DatabaseTable>();
 const getActiveTable = debounce(async () => {
   if (!spider.value) return;
-  const { data_source_id, db_name, col_name } = spider.value;
-  if (!data_source_id || !col_name) return;
+  const { database_id, db_name, col_name } = spider.value;
+  if (!database_id || !col_name) return;
   const res = await post<any, Promise<ResponseWithData>>(
-    `/databases/${data_source_id}/tables/metadata/get`,
+    `/databases/${database_id}/tables/metadata/get`,
     {
       database: db_name,
       table: col_name,
@@ -107,7 +103,7 @@ defineOptions({ name: 'ClTaskResultDataWithDatabase' });
         v-if="activeTable"
         ref="dataRef"
         :active-table="activeTable"
-        :active-id="spider?.data_source_id || EMPTY_OBJECT_ID"
+        :active-id="spider?.database_id || EMPTY_OBJECT_ID"
         :database-name="spider?.db_name"
         :filter="dataFilter"
         :display-all-fields="displayAllFields"

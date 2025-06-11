@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { inject, ref, watch } from 'vue';
 import { useStore } from 'vuex';
-import { debounce, translate } from '@/utils';
+import { debounce } from 'lodash';
+import { translate } from '@/utils';
 import useGitService from '@/services/git/gitService';
 import { useGitDetail } from '@/views';
 import { ElMessage, ElMessageBox } from 'element-plus';

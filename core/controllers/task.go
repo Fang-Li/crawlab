@@ -35,10 +35,7 @@ func GetTaskById(_ *gin.Context, params *GetTaskByIdParams) (response *Response[
 
 	// aggregation pipelines
 	pipelines := service.GetByIdPipeline(id)
-	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_id", "_id", "_stat")...)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Node]()...)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Schedule]()...)
+	pipelines = addTaskPipelines(pipelines)
 
 	// perform query
 	var tasks []models.Task
@@ -64,6 +61,20 @@ func GetTaskList(_ *gin.Context, params *GetListParams) (response *ListResponse[
 	}
 	skip, limit := GetSkipLimitFromListParams(params)
 
+	// get spider ids if query is not nil
+	if query != nil {
+		spiders, err := service.NewModelService[models.Spider]().GetMany(query, &mongo2.FindOptions{Limit: 100})
+		if err != nil {
+			query = nil // reset query if error occurs
+		} else {
+			spiderIds := make([]primitive.ObjectID, 0, len(spiders))
+			for _, spider := range spiders {
+				spiderIds = append(spiderIds, spider.Id)
+			}
+			query = bson.M{"spider_id": bson.M{"$in": spiderIds}} // rewrite query to filter by spider ids
+		}
+	}
+
 	// total
 	total, err := service.NewModelService[models.Task]().Count(query)
 	if err != nil {
@@ -77,10 +88,7 @@ func GetTaskList(_ *gin.Context, params *GetListParams) (response *ListResponse[
 
 	// aggregation pipelines
 	pipelines := service.GetPaginationPipeline(query, sort, skip, limit)
-	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_id", "_id", "_stat")...)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Node]()...)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Schedule]()...)
+	pipelines = addTaskPipelines(pipelines)
 
 	// perform query
 	var tasks []models.Task
@@ -424,4 +432,12 @@ func GetTaskResults(c *gin.Context, params *GetSpiderResultsParams) (response *L
 	}
 
 	return GetListResponse(results, total)
+}
+
+func addTaskPipelines(pipelines []bson.D) []bson.D {
+	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_id", "_id", "_stat")...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Node]()...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Schedule]()...)
+	return pipelines
 }

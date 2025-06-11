@@ -20,8 +20,6 @@ const { form } = useNotificationSetting(store);
 
 const { activeId } = useNotificationSettingDetail();
 
-const { allListSelectOptions, allDict } = useNotificationChannel(store);
-
 const selectAll = ref(false);
 const selectIntermediate = ref(false);
 const updateSelectAll = () => {

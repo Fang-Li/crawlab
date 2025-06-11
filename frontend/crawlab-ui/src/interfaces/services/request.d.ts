@@ -2,8 +2,8 @@ export declare global {
   interface ListRequestParams {
     page?: number;
     size?: number;
-    conditions?: FilterConditionData[] | string;
-    all?: boolean | string | number;
+    filter?: string;
+    sort?: string;
 
     [key: string]: any;
   }

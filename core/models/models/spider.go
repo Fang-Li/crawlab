@@ -11,8 +11,8 @@ type Spider struct {
 	ColId          primitive.ObjectID    `json:"col_id" bson:"col_id" description:"Data collection id" deprecated:"true"`
 	ColName        string                `json:"col_name,omitempty" bson:"col_name" description:"Data collection name"`
 	DbName         string                `json:"db_name,omitempty" bson:"db_name" description:"Database name"`
-	DataSourceId   primitive.ObjectID    `json:"data_source_id" bson:"data_source_id" description:"Data source id"`
 	Description    string                `json:"description" bson:"description" description:"Description"`
+	DatabaseId     primitive.ObjectID    `json:"database_id" bson:"database_id" description:"Database Id"`
 	ProjectId      primitive.ObjectID    `json:"project_id" bson:"project_id" description:"Project ID"`
 	Mode           string                `json:"mode" bson:"mode" description:"Default task mode" enum:"random,all,selected-nodes"`
 	NodeIds        []primitive.ObjectID  `json:"node_ids" bson:"node_ids" description:"Default node ids, used in selected-nodes mode"`
@@ -30,6 +30,7 @@ type Spider struct {
 	LastTask *Task       `json:"last_task,omitempty" bson:"_last_task,omitempty"`
 	Project  *Project    `json:"project,omitempty" bson:"_project,omitempty"`
 	Git      *Git        `json:"git,omitempty" bson:"_git,omitempty"`
+	Database *Database   `json:"database,omitempty" bson:"_database,omitempty"`
 }
 
 type SpiderTemplateParams struct {

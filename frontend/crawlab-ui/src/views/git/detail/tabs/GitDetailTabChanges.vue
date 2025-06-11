@@ -2,12 +2,14 @@
 import { computed, h, ref, watch, onBeforeMount } from 'vue';
 import { useStore } from 'vuex';
 import { ElMessage } from 'element-plus';
+import { debounce } from 'lodash';
 import GitFileStatus from '@/components/core/git/GitFileStatus.vue';
 import Tag from '@/components/ui/tag/Tag.vue';
 import Table from '@/components/ui/table/Table.vue';
 import useGitDetail from '@/views/git/detail/useGitDetail';
-import { debounce, translate } from '@/utils';
+import { translate } from '@/utils';
 import { TABLE_COLUMN_NAME_ACTIONS } from '@/constants';
+import { TagProps } from '@/components/ui/tag/types';
 
 // i18n
 const t = translate;

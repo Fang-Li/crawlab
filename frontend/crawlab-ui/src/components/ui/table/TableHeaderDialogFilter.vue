@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { getDefaultFilterCondition } from '@/components/ui/filter/filter';
-
 import { computed, ref, watch } from 'vue';
-import { debounce } from '@/utils/debounce';
+import { debounce } from 'lodash';
 import { Search } from '@element-plus/icons-vue';
+import { getDefaultFilterCondition } from '@/components/ui/filter/filter';
 import { emptyArrayFunc, translate } from '@/utils';
 
 const props = withDefaults(

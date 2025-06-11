@@ -2,8 +2,6 @@ package controllers
 
 import (
 	errors2 "errors"
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/crawlab-team/crawlab/core/interfaces"
 	"github.com/crawlab-team/crawlab/core/models/models"
 	"github.com/crawlab-team/crawlab/core/models/service"
@@ -11,6 +9,7 @@ import (
 	"github.com/crawlab-team/crawlab/core/spider/admin"
 	"github.com/gin-gonic/gin"
 	"github.com/juju/errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -20,25 +19,24 @@ func GetScheduleById(_ *gin.Context, params *GetByIdParams) (response *Response[
 	if err != nil {
 		return GetErrorResponse[models.Schedule](errors.BadRequestf("invalid id format"))
 	}
-	s, err := service.NewModelService[models.Schedule]().GetById(id)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return GetErrorResponse[models.Schedule](errors.NotFoundf("spider not found"))
-	}
+
+	// aggregation pipelines
+	pipelines := service.GetByIdPipeline(id)
+	pipelines = addSchedulePipelines(pipelines)
+
+	// perform query
+	var schedules []models.Schedule
+	err = service.GetCollection[models.Schedule]().Aggregate(pipelines, nil).All(&schedules)
 	if err != nil {
 		return GetErrorResponse[models.Schedule](err)
 	}
 
-	// spider
-	if !s.SpiderId.IsZero() {
-		s.Spider, err = service.NewModelService[models.Spider]().GetById(s.SpiderId)
-		if err != nil {
-			if !errors.Is(err, mongo.ErrNoDocuments) {
-				return GetErrorResponse[models.Schedule](err)
-			}
-		}
+	// check results
+	if len(schedules) == 0 {
+		return nil, errors.NotFoundf("schedule %s not found", params.Id)
 	}
 
-	return GetDataResponse(*s)
+	return GetDataResponse(schedules[0])
 }
 
 func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Schedule], err error) {
@@ -62,7 +60,7 @@ func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListRespo
 
 	// aggregation pipelines
 	pipelines := service.GetPaginationPipeline(query, sort, skip, limit)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
+	pipelines = addSchedulePipelines(pipelines)
 
 	// perform query
 	var schedules []models.Schedule
@@ -239,4 +237,9 @@ func postScheduleRunFunc(params *PostScheduleRunParams, userId primitive.ObjectI
 	}
 
 	return GetDataResponse(taskIds)
+}
+
+func addSchedulePipelines(pipelines []bson.D) []bson.D {
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Spider]()...)
+	return pipelines
 }

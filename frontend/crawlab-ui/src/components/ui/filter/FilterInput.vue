@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue';
-import { debounce } from '@/utils';
+import { debounce } from 'lodash';
 
 const props = defineProps<{
   id?: string;

@@ -21,5 +21,5 @@ type Schedule struct {
 	Enabled     bool                 `json:"enabled" bson:"enabled" description:"Enabled"`
 
 	// associated data
-	Spider *Spider `json:"spider" bson:"-" description:"Spider"`
+	Spider *Spider `json:"spider" bson:"_spider" description:"Spider"`
 }

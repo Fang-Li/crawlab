@@ -180,7 +180,6 @@ defineOptions({ name: 'ClSpiderForm' });
       <cl-remote-select
         v-model="form.project_id"
         endpoint="/projects"
-        filterable
         :empty-option="{
           label: t('common.status.unassigned'),
           value: EMPTY_OBJECT_ID,

@@ -50,9 +50,6 @@ const useSpiderList = () => {
   // action functions
   const { deleteByIdConfirm } = actionFunctions;
 
-  const { allListSelectOptions: allProjectListSelectOptions } =
-    useProject(store);
-
   // nav actions
   const navActions = computed<ListActionGroup[]>(() => [
     {
@@ -140,10 +137,6 @@ const useSpiderList = () => {
               />
             );
           },
-          hasFilter: true,
-          allowFilterSearch: true,
-          allowFilterItems: true,
-          filterItems: allProjectListSelectOptions.value,
         },
         {
           key: 'git_id',

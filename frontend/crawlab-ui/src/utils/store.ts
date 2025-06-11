@@ -261,7 +261,7 @@ export const getDefaultStoreActions = <T = any>(
         const res = await getList({
           page,
           size,
-          conditions: JSON.stringify(state.tableListFilter),
+          filter: JSON.stringify(state.tableListFilter),
           sort: JSON.stringify(state.tableListSort),
         } as ListRequestParams);
 
@@ -306,7 +306,7 @@ export const getDefaultStoreActions = <T = any>(
     ) => {
       const res = await getList({
         size: 100,
-        conditions: query
+        filter: query
           ? JSON.stringify([
               { key: 'name', op: FILTER_OP_CONTAINS, value: query },
             ] as FilterConditionData[])

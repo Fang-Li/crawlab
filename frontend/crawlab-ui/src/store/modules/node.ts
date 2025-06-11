@@ -45,8 +45,7 @@ const actions = {
     const res = await get<Record<string, Metric>>('/nodes/metrics', {
       page,
       size,
-      conditions: JSON.stringify(state.tableListFilter),
-      // sort: JSON.stringify(state.tableListSort),
+      filter: JSON.stringify(state.tableListFilter),
     } as ListRequestParams);
     commit('setNodeMetricsMap', res.data);
     return res;

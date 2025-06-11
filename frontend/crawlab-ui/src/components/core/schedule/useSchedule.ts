@@ -5,7 +5,6 @@ import useScheduleService from '@/services/schedule/scheduleService';
 import { getDefaultFormComponentData } from '@/utils/form';
 import { parseExpression } from 'cron-parser';
 import { getModeOptions } from '@/utils/task';
-import useSpider from '@/components/core/spider/useSpider';
 import { translate } from '@/utils/i18n';
 import useScheduleDetail from '@/views/schedule/detail/useScheduleDetail';
 
@@ -19,8 +18,6 @@ const useSchedule = (store: Store<RootStoreState>) => {
   // store
   const ns = 'schedule';
   const state = store.state[ns];
-
-  const { allDict: allSpiderDict } = useSpider(store);
 
   // form
   const form = computed<Schedule>(() => state.form);
@@ -56,9 +53,9 @@ const useSchedule = (store: Store<RootStoreState>) => {
     () => {
       if (activeId.value) return;
       if (!form.value?.spider_id) return;
-      const spider = allSpiderDict.value.get(form.value?.spider_id);
-      if (!spider) return;
+      if (!form.value?.spider) return;
       const payload = { ...form.value } as Schedule;
+      const spider = form.value.spider;
       if (spider.cmd) payload.cmd = spider.cmd;
       if (spider.param) payload.param = spider.param;
       if (spider.mode) payload.mode = spider.mode;

@@ -1,10 +1,8 @@
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { computed, watch, provide, ref } from 'vue';
-import { getRoutePath, getTabName } from '@/utils/route';
 import { ElMessage } from 'element-plus';
-import { translate } from '@/utils/i18n';
-import { debounce, isPro } from '@/utils';
+import { getRoutePath, getTabName, isPro, translate } from '@/utils';
 
 // i18n
 const t = translate;
@@ -19,13 +17,11 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
   const state = rootState[ns] as BaseStoreState;
   const commonState = rootState.common;
 
-  const { form } = state;
-
   const showActionsToggleTooltip = ref<boolean>(false);
 
   const activeId = computed<string>(() => {
     const { id } = route.params;
-    return (id as string) || form._id || '';
+    return (id as string) || state.form._id || '';
   });
 
   const navItems = computed<NavItem<T>[]>(() => {
@@ -38,6 +34,7 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
     }) as NavItem<T>[];
     if (!items.some(item => item.id === activeId.value)) {
       // if activeId is not in navList, add it
+      const { form } = state;
       items.unshift({
         id: activeId.value,
         label: form.name || activeId.value,
@@ -87,10 +84,9 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
 
   const afterSave = computed<Function[]>(() => state.afterSave);
 
-  const getForm = debounce(async () => {
-    if (!activeId.value) return;
+  const getForm = async () => {
     return await store.dispatch(`${ns}/getById`, activeId.value);
-  });
+  };
 
   const onNavTabsSelect = async (tabName: string) => {
     await router.push(`${primaryRoutePath.value}/${activeId.value}/${tabName}`);
@@ -114,9 +110,6 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
     // after save
     afterSave.value.map(fn => fn());
   };
-
-  // get form when active id changes
-  watch(() => activeId.value, getForm);
 
   // store context
   provide<DetailStoreContext<T>>('store-context', {

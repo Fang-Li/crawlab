@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onBeforeMount, ref, watch } from 'vue';
 import useRequest from '@/services/request';
+import { Placement } from '@popperjs/core';
+import { FILTER_OP_CONTAINS } from '@/constants';
 
 const props = withDefaults(
   defineProps<{
     modelValue?: string;
     placeholder?: string;
     disabled?: boolean;
+    size?: BasicSize;
+    placement?: Placement;
     filterable?: boolean;
     clearable?: boolean;
     remoteShowSuffix?: boolean;
@@ -17,15 +21,17 @@ const props = withDefaults(
     emptyOption?: SelectOption;
   }>(),
   {
+    filterable: true,
     remoteShowSuffix: true,
     labelKey: 'name',
     valueKey: '_id',
-    limit: 1000,
+    limit: 100,
   }
 );
 
 const emit = defineEmits<{
   (e: 'change', value: string): void;
+  (e: 'select', value: string): void;
   (e: 'clear'): void;
   (e: 'update:model-value', value: string): void;
 }>();
@@ -44,7 +50,7 @@ watch(internalValue, () =>
 );
 
 const loading = ref(false);
-const list = ref([]);
+const list = ref<any[]>([]);
 const remoteMethod = async (query?: string) => {
   const { endpoint, labelKey, limit } = props;
   try {
@@ -52,7 +58,11 @@ const remoteMethod = async (query?: string) => {
     let filter: string | undefined = undefined;
     if (query) {
       filter = JSON.stringify([
-        { key: labelKey, op: 'contains', value: query } as FilterConditionData,
+        {
+          key: labelKey,
+          op: FILTER_OP_CONTAINS,
+          value: query,
+        } as FilterConditionData,
       ]);
     }
     const sort = labelKey;
@@ -81,16 +91,27 @@ const selectOptions = computed<SelectOption[]>(() => {
 });
 onBeforeMount(remoteMethod);
 
+const getSelectedItem = () => {
+  const { valueKey } = props;
+  return list.value.find(item => item[valueKey] === internalValue.value);
+};
+
+defineExpose({
+  getSelectedItem,
+});
+
 defineOptions({ name: 'ClRemoteSelect' });
 </script>
 
 <template>
   <el-select
     v-model="internalValue"
+    :size="size"
     :placeholder="placeholder"
     :filterable="filterable"
     :disabled="disabled"
     :clearable="clearable"
+    :placement="placement"
     remote
     :remote-method="remoteMethod"
     :remote-show-suffix="remoteShowSuffix"

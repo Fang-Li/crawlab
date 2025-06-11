@@ -14,14 +14,10 @@ const t = translate;
 // store
 const ns = 'task';
 const store = useStore();
-const { task: taskState } = store.state as RootStoreState;
-
-const { allDict: allSpiderDict } = useSpider(store);
+const { task: state } = store.state as RootStoreState;
 
 // spider
-const spider = computed(() =>
-  allSpiderDict.value.get(taskState.form.spider_id as string)
-);
+const spider = computed(() => state.form.spider);
 
 // spider collection name
 const colName = ref<string>();
@@ -34,16 +30,8 @@ watch(
   }
 );
 
-// target
-const target = () => colName.value;
-
-// conditions
-const conditions = () => [
-  { key: '_tid', op: FILTER_OP_EQUAL, value: taskState.form._id },
-];
-
 // display all fields
-const displayAllFields = ref<boolean>(taskState.dataDisplayAllFields);
+const displayAllFields = ref<boolean>(state.dataDisplayAllFields);
 const onDisplayAllFieldsChange = (val: boolean) => {
   store.commit(`${ns}/setDataDisplayAllFields`, val);
 };

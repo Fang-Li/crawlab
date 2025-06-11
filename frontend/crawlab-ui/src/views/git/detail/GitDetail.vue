@@ -9,13 +9,14 @@ import {
 } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import { debounce } from 'lodash';
 import {
   FILE_ROOT,
   GIT_STATUS_READY,
   TAB_NAME_CHANGES,
   TAB_NAME_FILES,
 } from '@/constants';
-import { debounce, translate } from '@/utils';
+import { translate } from '@/utils';
 import useGitDetail from '@/views/git/detail/useGitDetail';
 import useGit from '@/components/core/git/useGit';
 import type { TagProps } from '@/components/ui/tag/types';

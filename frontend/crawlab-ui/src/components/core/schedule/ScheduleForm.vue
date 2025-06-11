@@ -2,11 +2,9 @@
 import { useStore } from 'vuex';
 import { ElMessage } from 'element-plus';
 import { TASK_MODE_SELECTED_NODES } from '@/constants/task';
-import useSchedule from '@/components/core/schedule/useSchedule';
-import useSpider from '@/components/core/spider/useSpider';
-import useNode from '@/components/core/node/useNode';
-import useTask from '@/components/core/task/useTask';
+import { useSchedule, useNode, ClRemoteSelect } from '@/components';
 import { priorityOptions, translate } from '@/utils';
+import { ref } from 'vue';
 
 const t = translate;
 
@@ -24,10 +22,7 @@ const {
 } = useSchedule(store);
 
 // use node
-const { activeNodesSorted: activeNodes } = useNode(store);
-
-// use spider
-const { allListSelectOptions: allSpiderSelectOptions } = useSpider(store);
+const { allNodesSorted: allNodes } = useNode(store);
 
 // on enabled change
 const onEnabledChange = async (value: boolean) => {
@@ -40,6 +35,22 @@ const onEnabledChange = async (value: boolean) => {
   }
   await store.dispatch(`${ns}/getList`);
 };
+
+const spiderRef = ref<typeof ClRemoteSelect>();
+const onSpiderChange = (spiderId: string) => {
+  if (!spiderId) return;
+  const payload = { ...form.value } as Schedule;
+  if (!spiderRef.value) return;
+  const spider: Spider = spiderRef.value.getSelectedItem();
+  if (!spider) return;
+  if (spider.cmd) payload.cmd = spider.cmd;
+  if (spider.param) payload.param = spider.param;
+  if (spider.mode) payload.mode = spider.mode;
+  if (spider.node_ids?.length) payload.node_ids = spider.node_ids;
+  if (spider.node_tags?.length) payload.node_tags = spider.node_tags;
+  store.commit(`${ns}/setForm`, payload);
+};
+
 defineOptions({ name: 'ClScheduleForm' });
 </script>
 
@@ -71,18 +82,12 @@ defineOptions({ name: 'ClScheduleForm' });
       prop="spider_id"
       required
     >
-      <el-select
+      <cl-remote-select
+        ref="spiderRef"
         v-model="form.spider_id"
-        :disabled="isFormItemDisabled('spider_id')"
-        filterable
-      >
-        <el-option
-          v-for="op in allSpiderSelectOptions"
-          :key="op.value"
-          :label="op.label"
-          :value="op.value"
-        />
-      </el-select>
+        endpoint="/spiders"
+        @change="onSpiderChange"
+      />
     </cl-form-item>
     <!-- ./Row -->
 
@@ -196,7 +201,7 @@ defineOptions({ name: 'ClScheduleForm' });
         :placeholder="t('components.schedule.form.selectedNodes')"
       >
         <el-option
-          v-for="n in activeNodes"
+          v-for="n in allNodes"
           :key="n.key"
           :value="n._id"
           :label="n.name"

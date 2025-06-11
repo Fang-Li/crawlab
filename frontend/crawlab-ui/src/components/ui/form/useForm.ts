@@ -87,24 +87,6 @@ export const useForm = <T extends BaseModel>(
   };
   provide<(d: any) => boolean>('fn:isEmptyForm', isEmptyForm);
 
-  // all list select options
-  const allListSelectOptions = computed<SelectOption[]>(
-    () => store.getters[`${ns}/allListSelectOptions`]
-  );
-
-  // all list select options with empty
-  const allListSelectOptionsWithEmpty = computed<SelectOption[]>(() =>
-    allListSelectOptions.value.concat({
-      label: t('common.status.unassigned'),
-      value: EMPTY_OBJECT_ID,
-    })
-  );
-
-  // all dict
-  const allDict = computed<Map<string, T>>(
-    () => store.getters[`${ns}/allDict`]
-  );
-
   // services
   const { getList, create, updateById } = services;
 
@@ -228,9 +210,6 @@ export const useForm = <T extends BaseModel>(
     isFormItemDisabled,
     activeDialogKey,
     createEditDialogVisible,
-    allListSelectOptions,
-    allListSelectOptionsWithEmpty,
-    allDict,
     confirmDisabled,
     confirmLoading,
     setConfirmLoading,

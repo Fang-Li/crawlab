@@ -27,8 +27,6 @@ const form = computed(() => state.form);
 
 const { activeId } = useSpiderDetail();
 
-const { allDict: allDatabaseDict } = useDatabase(store);
-
 const allDatabaseSelectOptions = computed<SelectOption[]>(() => {
   // TODO: implement
   return [];
@@ -49,8 +47,10 @@ const allDatabaseSelectOptions = computed<SelectOption[]>(() => {
   // });
 });
 
-const currentDatabase = computed(() => {
-  return allDatabaseDict.value.get(dataSourceId.value) as Database | undefined;
+const currentDatabase = computed<Database | undefined>(() => {
+  // TODO: implement
+  return undefined;
+  // return allDatabaseDict.value.get(databaseId.value) as Database | undefined;
 });
 
 const isDatabaseOffline = computed(() => {
@@ -84,9 +84,9 @@ watch(isMultiDatabases, () => {
   }
 });
 
-const dataSourceId = ref<string>(form.value?.data_source_id || EMPTY_OBJECT_ID);
+const databaseId = ref<string>(form.value?.database_id || EMPTY_OBJECT_ID);
 const onDatabaseChange = async (value: string) => {
-  dataSourceId.value = form.value?.data_source_id || EMPTY_OBJECT_ID;
+  databaseId.value = form.value?.database_id || EMPTY_OBJECT_ID;
   await ElMessageBox.confirm(
     t('components.spider.messageBox.confirm.changeDatabase.message'),
     t('components.spider.messageBox.confirm.changeDatabase.title'),
@@ -96,7 +96,7 @@ const onDatabaseChange = async (value: string) => {
   );
   store.commit(`${ns}/setForm`, {
     ...form.value,
-    data_source_id: value,
+    database_id: value,
   });
   try {
     await store.dispatch(`${ns}/updateById`, {
@@ -109,15 +109,17 @@ const onDatabaseChange = async (value: string) => {
   }
 };
 watch(
-  () => form.value?.data_source_id,
+  () => form.value?.database_id,
   value => {
-    dataSourceId.value = value || EMPTY_OBJECT_ID;
+    databaseId.value = value || EMPTY_OBJECT_ID;
   }
 );
 const getDataSourceByDatabaseId = (id: string): DatabaseDataSource => {
-  const db = allDatabaseDict.value.get(id) as Database | undefined;
-  if (!db?.data_source) return 'mongo';
-  return db.data_source;
+  // TODO: implement
+  return 'mongo';
+  // const db = allDatabaseDict.value.get(id) as Database | undefined;
+  // if (!db?.data_source) return 'mongo';
+  // return db.data_source;
 };
 
 // database table options
@@ -190,20 +192,20 @@ defineOptions({ name: 'ClSpiderDetailActionsData' });
       <el-select
         class="database"
         :class="isDatabaseOffline ? 'offline' : ''"
-        v-model="dataSourceId"
+        v-model="databaseId"
         @change="onDatabaseChange"
       >
         <template #label="{ label }">
           <div>
             <cl-database-data-source
               :data-source="
-                getDataSourceByDatabaseId(form.data_source_id as string)
+                getDataSourceByDatabaseId(form.database_id as string)
               "
               icon-only
             />
             <span style="margin: 5px">{{ label }}</span>
             <cl-icon
-              v-if="form.data_source_id === EMPTY_OBJECT_ID"
+              v-if="form.database_id === EMPTY_OBJECT_ID"
               color="var(--cl-warning-color)"
               :icon="['fa', 'star']"
             />

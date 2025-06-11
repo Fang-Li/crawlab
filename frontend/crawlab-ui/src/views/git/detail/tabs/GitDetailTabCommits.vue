@@ -2,7 +2,8 @@
 import { computed, h, onBeforeMount, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { Column } from 'element-plus';
-import { debounce, translate } from '@/utils';
+import { debounce } from 'lodash';
+import { translate } from '@/utils';
 import { GIT_REF_TYPE_BRANCH } from '@/constants/git';
 import Time from '@/components/ui/time/Time.vue';
 import Tag from '@/components/ui/tag/Tag.vue';

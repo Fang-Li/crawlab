@@ -1,29 +1,22 @@
 import { useRoute } from 'vue-router';
 import { computed } from 'vue';
 import { Store } from 'vuex';
-import useForm from '@/components/ui/form/useForm';
+import { useForm } from '@/components';
 import useTaskService from '@/services/task/taskService';
-import { getDefaultFormComponentData } from '@/utils/form';
-import useSpider from '@/components/core/spider/useSpider';
 import {
+  getDefaultFormComponentData,
   getModeOptions,
   getModeOptionsDict,
   getPriorityLabel,
-} from '@/utils/task';
-import { formatTimeAgo } from '@/utils/time';
+} from '@/utils';
 
 // form component data
 const formComponentData = getDefaultFormComponentData<Task>();
 
 const useTask = (store: Store<RootStoreState>) => {
-  const ns = 'task' as ListStoreNamespace;
-  const { task: state } = store.state as RootStoreState;
-
   // options for default mode
   const modeOptions = getModeOptions();
   const modeOptionsDict = computed(() => getModeOptionsDict());
-
-  const { allDict: allSpiderDict } = useSpider(store);
 
   // route
   const route = useRoute();
@@ -33,7 +26,6 @@ const useTask = (store: Store<RootStoreState>) => {
 
   return {
     ...useForm<Task>('task', store, useTaskService(store), formComponentData),
-    allSpiderDict,
     id,
     modeOptions,
     modeOptionsDict,

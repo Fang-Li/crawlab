@@ -285,7 +285,7 @@ const actions = {
       const res = await getList(`${endpoint}/repos`, {
         page,
         size,
-        conditions: JSON.stringify(tableListFilter),
+        filter: JSON.stringify(tableListFilter),
         sort: JSON.stringify(tableListSort),
         lang,
       });

@@ -12,4 +12,7 @@ interface Schedule {
   node_ids?: string[];
   node_tags?: string[];
   enabled?: boolean;
+
+  // associated data
+  spider?: Spider;
 }

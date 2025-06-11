@@ -1,17 +1,23 @@
 import { computed, h } from 'vue';
 import { TABLE_COLUMN_NAME_ACTIONS } from '@/constants/table';
 import { useStore } from 'vuex';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import useList from '@/layouts/content/list/useList';
-import NavLink from '@/components/ui/nav/NavLink.vue';
+import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
-import { onListFilterChangeByKey, setupListComponent } from '@/utils/list';
-import TaskMode from '@/components/core/task/TaskMode.vue';
-import ScheduleCron from '@/components/core/schedule/ScheduleCron.vue';
-import Switch from '@/components/ui/switch/Switch.vue';
-import useSpider from '@/components/core/spider/useSpider';
-import useTask from '@/components/core/task/useTask';
-import { translate } from '@/utils/i18n';
+import {
+  ClNavLink,
+  ClTaskMode,
+  ClScheduleCron,
+  ClSwitch,
+  useTask,
+} from '@/components';
+import { useList } from '@/layouts';
+import {
+  translate,
+  onListFilterChangeByKey,
+  setupListComponent,
+  getIconByAction,
+  isAllowedAction,
+} from '@/utils';
 import {
   ACTION_ADD,
   ACTION_DELETE,
@@ -28,7 +34,6 @@ import {
   TASK_MODE_RANDOM,
   TASK_MODE_SELECTED_NODES,
 } from '@/constants';
-import { getIconByAction, isAllowedAction } from '@/utils';
 
 // i18n
 const t = translate;
@@ -41,20 +46,12 @@ const useScheduleList = () => {
   const ns = 'schedule';
   const store = useStore<RootStoreState>();
   const { commit } = store;
-  const { schedule: state } = store.state;
 
   // use list
   const { actionFunctions } = useList<Schedule>(ns, store);
 
   // action functions
   const { deleteByIdConfirm } = actionFunctions;
-
-  // all spider dict
-  const allSpiderDict = computed<Map<string, Spider>>(
-    () => store.getters['spider/allDict']
-  );
-
-  const { allListSelectOptions: allSpiderListSelectOptions } = useSpider(store);
 
   const { modeOptions } = useTask(store);
 
@@ -178,11 +175,9 @@ const useScheduleList = () => {
           label: t('views.schedules.table.columns.name'),
           icon: ['fa', 'font'],
           width: '150',
-          value: (row: Schedule) =>
-            h(NavLink, {
-              path: `/schedules/${row._id}`,
-              label: row.name,
-            }),
+          value: (row: Schedule) => (
+            <ClNavLink path={`/schedules/${row._id}`} label={row.name} />
+          ),
           hasSort: true,
           hasFilter: true,
           allowFilterSearch: true,
@@ -193,17 +188,12 @@ const useScheduleList = () => {
           icon: ['fa', 'spider'],
           width: '160',
           value: (row: Schedule) => {
-            if (!row.spider_id) return;
-            const spider = allSpiderDict.value.get(row.spider_id);
-            return h(NavLink, {
-              label: spider?.name,
-              path: `/spiders/${spider?._id}`,
-            });
+            const { spider } = row;
+            if (!spider) return;
+            return (
+              <ClNavLink path={`/spiders/${spider._id}`} label={spider.name} />
+            );
           },
-          hasFilter: true,
-          allowFilterSearch: true,
-          allowFilterItems: true,
-          filterItems: allSpiderListSelectOptions.value,
         },
         {
           key: 'mode',
@@ -211,7 +201,7 @@ const useScheduleList = () => {
           icon: ['fa', 'cog'],
           width: '160',
           value: (row: Schedule) => {
-            return h(TaskMode, { mode: row.mode });
+            return <ClTaskMode mode={row.mode} />;
           },
           hasFilter: true,
           allowFilterItems: true,
@@ -223,7 +213,7 @@ const useScheduleList = () => {
           icon: ['fa', 'clock'],
           width: '160',
           value: (row: Schedule) => {
-            return h(ScheduleCron, { cron: row.cron } as ScheduleCronProps);
+            return <ClScheduleCron cron={row.cron} />;
           },
           hasFilter: true,
           allowFilterSearch: true,
@@ -234,27 +224,31 @@ const useScheduleList = () => {
           icon: ['fa', 'toggle-on'],
           width: '120',
           value: (row: Schedule) => {
-            return h(Switch, {
-              modelValue: row.enabled,
-              disabled: !isAllowedAction(
-                router.currentRoute.value.path,
-                ACTION_ENABLE
-              ),
-              'onUpdate:modelValue': async (value: boolean) => {
-                if (value) {
-                  await store.dispatch(`${ns}/enable`, row._id);
-                  ElMessage.success(
-                    t('components.schedule.message.success.enable')
-                  );
-                } else {
-                  await store.dispatch(`${ns}/disable`, row._id);
-                  ElMessage.success(
-                    t('components.schedule.message.success.disable')
-                  );
+            return (
+              <ClSwitch
+                modelValue={row.enabled}
+                disabled={
+                  !isAllowedAction(
+                    router.currentRoute.value.path,
+                    ACTION_ENABLE
+                  )
                 }
-                await store.dispatch(`${ns}/getList`);
-              },
-            } as SwitchProps);
+                onUpdate:modelValue={async (value: boolean) => {
+                  if (value) {
+                    await store.dispatch(`${ns}/enable`, row._id);
+                    ElMessage.success(
+                      t('components.schedule.message.success.enable')
+                    );
+                  } else {
+                    await store.dispatch(`${ns}/disable`, row._id);
+                    ElMessage.success(
+                      t('components.schedule.message.success.disable')
+                    );
+                  }
+                  await store.dispatch(`${ns}/getList`);
+                }}
+              />
+            );
           },
           hasFilter: true,
           allowFilterItems: true,
@@ -326,7 +320,7 @@ const useScheduleList = () => {
   } as UseListOptions<Schedule>;
 
   // init
-  setupListComponent(ns, store, ['node', 'spider']);
+  setupListComponent(ns, store);
 
   return {
     ...useList<Schedule>(ns, store, opts),

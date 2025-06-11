@@ -1,5 +1,4 @@
 import useRequest from '@/services/request';
-import { debounce } from '@/utils';
 import * as llmService from './llm';
 
 // Export the LLM service
@@ -10,9 +9,9 @@ const { get, put, post, del, getList, putList, postList, delList } =
 
 export const useService = <T = any>(endpoint: string): Services<T> => {
   return {
-    getById: debounce(async (id: string) => {
+    getById: async (id: string) => {
       return await get<T>(`${endpoint}/${id}`);
-    }) as any,
+    },
     create: async (form: T) => {
       return await post<{ data: T }, ResponseWithData<T>>(`${endpoint}`, {
         data: form,

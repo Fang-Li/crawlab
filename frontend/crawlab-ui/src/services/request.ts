@@ -150,11 +150,6 @@ const useRequest = () => {
     params?: ListRequestParams,
     opts?: AxiosRequestConfig
   ) => {
-    // normalize conditions
-    if (params && Array.isArray(params.conditions)) {
-      params.conditions = JSON.stringify(params.conditions);
-    }
-
     // get request
     const res = await get<T, ResponseWithListData<T>, ListRequestParams>(
       url,

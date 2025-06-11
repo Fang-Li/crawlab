@@ -28,55 +28,24 @@ func GetSpiderById(_ *gin.Context, params *GetByIdParams) (response *Response[mo
 	if err != nil {
 		return GetErrorResponse[models.Spider](errors.BadRequestf("invalid id format"))
 	}
-	s, err := service.NewModelService[models.Spider]().GetById(id)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return GetErrorResponse[models.Spider](errors.NotFoundf("spider not found"))
-	}
+
+	// aggregation pipelines
+	pipelines := service.GetByIdPipeline(id)
+	pipelines = addSpiderPipelines(pipelines)
+
+	// perform query
+	var spiders []models.Spider
+	err = service.GetCollection[models.Spider]().Aggregate(pipelines, nil).All(&spiders)
 	if err != nil {
 		return GetErrorResponse[models.Spider](err)
 	}
 
-	// stat
-	s.Stat, err = service.NewModelService[models.SpiderStat]().GetById(s.Id)
-	if err != nil {
-		if !errors.Is(err, mongo.ErrNoDocuments) {
-			return GetErrorResponse[models.Spider](err)
-		}
+	// check results
+	if len(spiders) == 0 {
+		return nil, errors.NotFoundf("spider %s not found", params.Id)
 	}
 
-	// project
-	if !s.ProjectId.IsZero() {
-		s.Project, err = service.NewModelService[models.Project]().GetById(s.ProjectId)
-		if err != nil {
-			if !errors.Is(err, mongo.ErrNoDocuments) {
-				return GetErrorResponse[models.Spider](err)
-			}
-		}
-	}
-
-	// data collection (compatible to old version)
-	if s.ColName == "" && !s.ColId.IsZero() {
-		col, err := service.NewModelService[models.DataCollection]().GetById(s.ColId)
-		if err != nil {
-			if !errors.Is(err, mongo.ErrNoDocuments) {
-				return GetErrorResponse[models.Spider](err)
-			}
-		} else {
-			s.ColName = col.Name
-		}
-	}
-
-	// git
-	if utils.IsPro() && !s.GitId.IsZero() {
-		s.Git, err = service.NewModelService[models.Git]().GetById(s.GitId)
-		if err != nil {
-			if !errors.Is(err, mongo.ErrNoDocuments) {
-				return GetErrorResponse[models.Spider](err)
-			}
-		}
-	}
-
-	return GetDataResponse(*s)
+	return GetDataResponse(spiders[0])
 }
 
 // GetSpiderList handles getting a list of spiders with optional stats
@@ -102,13 +71,7 @@ func GetSpiderList(_ *gin.Context, params *GetListParams) (response *ListRespons
 
 	// aggregation pipelines
 	pipelines := service.GetPaginationPipeline(query, sort, skip, limit)
-	pipelines = append(pipelines, service.GetJoinPipeline[models.SpiderStat]("_id", "_id", "_stat")...)
-	pipelines = append(pipelines, service.GetJoinPipeline[models.Task]("_stat.last_task_id", "_id", "_last_task")...)
-	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_last_task._id", "_id", "_last_task._stat")...)
-	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Project]()...)
-	if utils.IsPro() {
-		pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Git]()...)
-	}
+	pipelines = addSpiderPipelines(pipelines)
 
 	// perform query
 	var spiders []models.Spider
@@ -675,4 +638,16 @@ func getSpiderRootPathByContext(c *gin.Context) (rootPath string, err error) {
 		return "", err
 	}
 	return utils.GetSpiderRootPath(s)
+}
+
+func addSpiderPipelines(pipelines []bson.D) []bson.D {
+	pipelines = append(pipelines, service.GetJoinPipeline[models.SpiderStat]("_id", "_id", "_stat")...)
+	pipelines = append(pipelines, service.GetJoinPipeline[models.Task]("_stat.last_task_id", "_id", "_last_task")...)
+	pipelines = append(pipelines, service.GetJoinPipeline[models.TaskStat]("_last_task._id", "_id", "_last_task._stat")...)
+	pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Project]()...)
+	if utils.IsPro() {
+		pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Git]()...)
+		pipelines = append(pipelines, service.GetDefaultJoinPipeline[models.Database]()...)
+	}
+	return pipelines
 }

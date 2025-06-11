@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeMount, onBeforeUnmount, onMounted } from 'vue';
+import {
+  computed,
+  onBeforeMount,
+  onBeforeUnmount,
+  onMounted,
+  watch,
+} from 'vue';
 import { useStore } from 'vuex';
 import { useDetail } from '@/layouts';
 
@@ -33,7 +39,7 @@ const {
   onBack,
   onSave,
   tabs,
-} = useDetail(ns.value);
+} = useDetail(props.storeNamespace);
 
 const computedTabs = computed<NavItem[]>(() =>
   tabs.value.map((tab: NavItem) => ({ ...tab }))
@@ -42,8 +48,20 @@ const computedTabs = computed<NavItem[]>(() =>
 // Fetch the form data when the component is mounted
 onBeforeMount(getForm);
 
+// Watch for changes in the activeId and fetch the form data accordingly
+watch(
+  () => activeId.value,
+  async () => {
+    if (!activeId.value) return;
+    await getForm();
+  }
+);
+
 // Fetch navigation list before mounting the component
-onBeforeMount(() => store.dispatch(`${ns.value}/getNavList`));
+const getNavList = async (query?: string) => {
+  await store.dispatch(`${ns.value}/getNavList`, query);
+};
+onBeforeMount(getNavList);
 
 // reset form before unmount
 onBeforeUnmount(() => {
@@ -73,6 +91,9 @@ defineOptions({ name: 'ClDetailLayout' });
               size="small"
               placement="bottom-end"
               filterable
+              remote
+              remote-show-suffix
+              :remote-method="getNavList"
               @change="onNavSelect"
             >
               <el-option
