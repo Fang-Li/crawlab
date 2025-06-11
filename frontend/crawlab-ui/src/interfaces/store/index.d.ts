@@ -85,6 +85,7 @@ export declare global {
     actionsCollapsed: boolean;
     tabs: NavItem[];
     disabledTabKeys: string[];
+    navList: T[];
     afterSave: (() => Promise)[];
   }
 
@@ -130,6 +131,8 @@ export declare global {
     setTabs: StoreMutation<BaseStoreState, NavItem[]>;
     setDisabledTabKeys: StoreMutation<BaseStoreState, string[]>;
     resetDisabledTabKeys: StoreMutation<BaseStoreState, string[]>;
+    setNavList: StoreMutation<BaseStoreState<T>, T[]>;
+    resetNavList: StoreMutation<BaseStoreState<T>>;
     setAfterSave: StoreMutation<BaseStoreState<T>, (() => Promise)[]>;
   }
 
@@ -144,6 +147,7 @@ export declare global {
     createList: StoreAction<BaseStoreState<T>, T[]>;
     updateList: StoreAction<BaseStoreState<T>, BatchRequestPayloadWithData<T>>;
     deleteList: StoreAction<BaseStoreState<T>, BatchRequestPayload>;
+    getNavList: StoreAction<BaseStoreState<T>, string>;
   }
 
   type StoreActionContext<

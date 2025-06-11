@@ -23,14 +23,27 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
 
   const showActionsToggleTooltip = ref<boolean>(false);
 
-  const navItems = computed<NavItem<T>[]>(() => {
-    // TODO: implement
-    return [];
-  });
-
   const activeId = computed<string>(() => {
     const { id } = route.params;
     return (id as string) || form._id || '';
+  });
+
+  const navItems = computed<NavItem<T>[]>(() => {
+    const items = state.navList.map(item => {
+      return {
+        id: item._id,
+        label: item['name'] || item._id,
+        data: item,
+      };
+    }) as NavItem<T>[];
+    if (!items.some(item => item.id === activeId.value)) {
+      // if activeId is not in navList, add it
+      items.unshift({
+        id: activeId.value,
+        label: form.name || activeId.value,
+      });
+    }
+    return items;
   });
 
   const activeTabName = computed<string>(() => getTabName(router));

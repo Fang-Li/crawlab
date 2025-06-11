@@ -8,6 +8,7 @@ import {
   saveNamespaceLocalStorage,
 } from '@/utils/storage';
 import { getMd5 } from '@/utils/hash';
+import { FILTER_OP_CONTAINS } from '@/constants';
 
 // i18n
 const t = translate;
@@ -50,6 +51,7 @@ export const getDefaultStoreState = <T = any>(
     actionsCollapsed: false,
     tabs: [{ id: 'overview', title: t('common.tabs.overview') }],
     disabledTabKeys: [],
+    navList: [],
     afterSave: [],
   };
 };
@@ -199,6 +201,12 @@ export const getDefaultStoreMutations = <T = any>(): BaseStoreMutations<T> => {
     resetDisabledTabKeys: (state: BaseStoreState<T>) => {
       state.disabledTabKeys = [];
     },
+    setNavList: (state: BaseStoreState<T>, navList: T[]) => {
+      state.navList = navList;
+    },
+    resetNavList: (state: BaseStoreState<T>) => {
+      state.navList = [];
+    },
     setAfterSave: (state: BaseStoreState<T>, fnList) => {
       state.afterSave = fnList;
     },
@@ -207,50 +215,7 @@ export const getDefaultStoreMutations = <T = any>(): BaseStoreMutations<T> => {
 
 export const getDefaultStoreActions = <T = any>(
   endpoint: string
-): {
-  deleteList: (
-    { commit }: StoreActionContext<BaseStoreState<T>>,
-    ids: string[]
-  ) => Promise<Response>;
-  createList: (
-    { state, commit }: StoreActionContext<BaseStoreState<T>>,
-    data: T[]
-  ) => Promise<ResponseWithListData<T>>;
-  getById: (
-    { commit }: StoreActionContext<BaseStoreState<T>>,
-    id: string
-  ) => Promise<ResponseWithData<T>>;
-  getList: ({
-    state,
-    commit,
-  }: StoreActionContext<BaseStoreState<T>>) => Promise<ResponseWithListData<T>>;
-  deleteById: (
-    { commit }: StoreActionContext<BaseStoreState<T>>,
-    id: string
-  ) => Promise<Response>;
-  create: (
-    { commit }: StoreActionContext<BaseStoreState<T>>,
-    form: T
-  ) => Promise<ResponseWithData<T>>;
-  getListWithParams: (
-    _: StoreActionContext<BaseStoreState<T>>,
-    params?: ListRequestParams
-  ) => Promise<ResponseWithListData<T>>;
-  updateById: (
-    { commit }: StoreActionContext<BaseStoreState<T>>,
-    {
-      id,
-      form,
-    }: {
-      id: string;
-      form: T;
-    }
-  ) => Promise<ResponseWithData<T>>;
-  updateList: (
-    { state, commit }: StoreActionContext<BaseStoreState<T>>,
-    { ids, data, fields }: BatchRequestPayloadWithData
-  ) => Promise<Response>;
-} => {
+): BaseStoreActions => {
   const {
     getById,
     create,
@@ -334,6 +299,22 @@ export const getDefaultStoreActions = <T = any>(
       ids: string[]
     ) => {
       return await deleteList(ids);
+    },
+    getNavList: async (
+      { commit }: StoreActionContext<BaseStoreState<T>>,
+      query?: string
+    ) => {
+      const res = await getList({
+        size: 100,
+        conditions: query
+          ? JSON.stringify([
+              { key: 'name', op: FILTER_OP_CONTAINS, value: query },
+            ] as FilterConditionData[])
+          : undefined,
+      });
+      if (res.data) {
+        commit('setNavList', res.data);
+      }
     },
   };
 };

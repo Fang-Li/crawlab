@@ -26,6 +26,7 @@ const {
   activeTabName,
   getForm,
   navLoading,
+  navItems,
   onNavSelect,
   onNavTabsSelect,
   onBack,
@@ -37,13 +38,17 @@ const computedTabs = computed<NavItem[]>(() =>
   tabs.value.map((tab: NavItem) => ({ ...tab }))
 );
 
-// get form before mount
+// Fetch the form data when the component is mounted
 onBeforeMount(getForm);
+
+// Fetch navigation list before mounting the component
+onBeforeMount(() => store.dispatch(`${ns.value}/getNavList`));
 
 // reset form before unmount
 onBeforeUnmount(() => {
   if (!activeTabName.value) {
     store.commit(`${ns.value}/resetForm`);
+    store.commit(`${ns.value}/resetNavList`);
   }
 });
 
@@ -70,10 +75,10 @@ defineOptions({ name: 'ClDetailLayout' });
               @change="onNavSelect"
             >
               <el-option
-                v-for="op in computedAllListSelectOptions"
-                :key="op.value"
-                :label="op.label"
-                :value="op.value"
+                v-for="item in navItems"
+                :key="item.id"
+                :label="item.label"
+                :value="item.id"
               />
             </el-select>
           </div>
