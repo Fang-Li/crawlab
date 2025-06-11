@@ -9,7 +9,7 @@ const ns: ListStoreNamespace = 'dependency';
 const store = useStore();
 const { dependency: state, node: nodeState } = store.state as RootStoreState;
 
-const activeNodes = computed(() => nodeState.activeNodes.filter(n => n.active));
+const activeNodes = computed(() => nodeState.allNodes.filter(n => n.active));
 
 const toInstallNodes = computed(() => {
   const { mode, node_ids } = state.installForm;

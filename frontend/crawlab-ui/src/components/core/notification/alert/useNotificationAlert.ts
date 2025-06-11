@@ -31,7 +31,7 @@ const useNotificationAlert = (store: Store<RootStoreState>) => {
     () =>
       [
         { label: t('common.mode.all'), value: EMPTY_OBJECT_ID },
-        ...nodeState.activeNodes
+        ...nodeState.allNodes
           .filter(node => node.active)
           .map(node => ({
             label: node.name,

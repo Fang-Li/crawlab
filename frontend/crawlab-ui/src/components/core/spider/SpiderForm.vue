@@ -94,9 +94,10 @@ const activeTemplateOption = computed<SpiderTemplate | undefined>(() => {
   return getSpiderTemplates().find(d => d.name === form.value.template);
 });
 
-const getActiveNodes = async () => {
-  await store.dispatch('node/getActiveNodes');
+const getAllNodes = async () => {
+  await store.dispatch('node/getAllNodes');
 };
+onBeforeMount(getAllNodes);
 
 defineExpose({
   validate,

@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"errors"
+	"github.com/crawlab-team/crawlab/core/models/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 
 	"github.com/crawlab-team/crawlab/core/constants"
 	"github.com/crawlab-team/crawlab/core/entity"
 	"github.com/crawlab-team/crawlab/core/models/models"
-	"github.com/crawlab-team/crawlab/core/mongo"
 	mongo2 "go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/gin-gonic/gin"
@@ -44,7 +45,7 @@ func GetStatsOverview(_ *gin.Context, params *GetStatsOverviewParams) (response 
 	var data GetStatsOverviewResponse
 
 	// nodes
-	data.Nodes, err = mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Node{})).Count(bson.M{"active": true})
+	data.Nodes, err = service.GetCollection[models.Node]().Count(bson.M{"active": true})
 	if err != nil {
 		if err.Error() != mongo2.ErrNoDocuments.Error() {
 			return nil, err
@@ -53,7 +54,7 @@ func GetStatsOverview(_ *gin.Context, params *GetStatsOverviewParams) (response 
 	}
 
 	// projects
-	data.Projects, err = mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Project{})).Count(nil)
+	data.Projects, err = service.GetCollection[models.Project]().Count(nil)
 	if err != nil {
 		if err.Error() != mongo2.ErrNoDocuments.Error() {
 			return nil, err
@@ -62,7 +63,7 @@ func GetStatsOverview(_ *gin.Context, params *GetStatsOverviewParams) (response 
 	}
 
 	// spiders
-	data.Spiders, err = mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Spider{})).Count(nil)
+	data.Spiders, err = service.GetCollection[models.Spider]().Count(nil)
 	if err != nil {
 		if err.Error() != mongo2.ErrNoDocuments.Error() {
 			return nil, err
@@ -71,7 +72,7 @@ func GetStatsOverview(_ *gin.Context, params *GetStatsOverviewParams) (response 
 	}
 
 	// schedules
-	data.Schedules, err = mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Schedule{})).Count(nil)
+	data.Schedules, err = service.GetCollection[models.Schedule]().Count(nil)
 	if err != nil {
 		if err.Error() != mongo2.ErrNoDocuments.Error() {
 			return nil, err
@@ -80,7 +81,7 @@ func GetStatsOverview(_ *gin.Context, params *GetStatsOverviewParams) (response 
 	}
 
 	// tasks
-	data.Tasks, err = mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Task{})).Count(nil)
+	data.Tasks, err = service.GetCollection[models.Task]().Count(nil)
 	if err != nil {
 		if err.Error() != mongo2.ErrNoDocuments.Error() {
 			return nil, err
@@ -89,7 +90,7 @@ func GetStatsOverview(_ *gin.Context, params *GetStatsOverviewParams) (response 
 	}
 
 	// error tasks
-	data.ErrorTasks, err = mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Task{})).Count(bson.M{"status": constants.TaskStatusError})
+	data.ErrorTasks, err = service.GetCollection[models.Task]().Count(bson.M{"status": constants.TaskStatusError})
 	if err != nil {
 		if err.Error() != mongo2.ErrNoDocuments.Error() {
 			return nil, err
@@ -111,15 +112,18 @@ func GetStatsOverview(_ *gin.Context, params *GetStatsOverviewParams) (response 
 	var res struct {
 		Results int `bson:"results"`
 	}
-	if err := mongo.GetMongoCol(models.GetCollectionNameByInstance(models.TaskStat{})).Aggregate(pipeline, nil).One(&res); err != nil {
-		return nil, err
+	if err := service.GetCollection[models.TaskStat]().Aggregate(pipeline, nil).One(&res); err != nil {
+		if !errors.Is(err, mongo2.ErrNoDocuments) {
+			return nil, err
+		}
+		res.Results = 0
 	}
 	data.Results = res.Results
 
 	// users
-	data.Users, err = mongo.GetMongoCol(models.GetCollectionNameByInstance(models.User{})).Count(nil)
+	data.Users, err = service.GetCollection[models.User]().Count(nil)
 	if err != nil {
-		if err.Error() != mongo2.ErrNoDocuments.Error() {
+		if !errors.Is(err, mongo2.ErrNoDocuments) {
 			return nil, err
 		}
 		data.Users = 0
@@ -168,7 +172,7 @@ func GetStatsDaily(_ *gin.Context, params *GetStatsDailyParams) (response *Respo
 		}},
 	}
 	var results []entity.StatsDailyItem
-	if err := mongo.GetMongoCol(models.GetCollectionNameByInstance(models.TaskStat{})).Aggregate(pipeline, nil).All(&results); err != nil {
+	if err := service.GetCollection[models.TaskStat]().Aggregate(pipeline, nil).All(&results); err != nil {
 		return nil, err
 	}
 	return GetDataResponse(results)
@@ -248,7 +252,7 @@ func getTaskStatsByStatus(query bson.M) (data []GetStatsTaskResponseByStatusItem
 			},
 		}},
 	}
-	if err := mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Task{})).Aggregate(pipeline, nil).All(&data); err != nil {
+	if err := service.GetCollection[models.Task]().Aggregate(pipeline, nil).All(&data); err != nil {
 		return nil, err
 	}
 	return data, nil
@@ -283,7 +287,7 @@ func getTaskStatsByNode(query bson.M) (data []GetStatsTaskResponseByNodeItem, er
 			},
 		}},
 	}
-	if err := mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Task{})).Aggregate(pipeline, nil).All(&data); err != nil {
+	if err := service.GetCollection[models.Task]().Aggregate(pipeline, nil).All(&data); err != nil {
 		return nil, err
 	}
 	return data, nil
@@ -319,7 +323,7 @@ func getTaskStatsBySpider(query bson.M) (data []GetStatsTaskResponseBySpiderItem
 		}},
 		{{"$limit", 10}},
 	}
-	if err := mongo.GetMongoCol(models.GetCollectionNameByInstance(models.Task{})).Aggregate(pipeline, nil).All(&data); err != nil {
+	if err := service.GetCollection[models.Task]().Aggregate(pipeline, nil).All(&data); err != nil {
 		return nil, err
 	}
 	return data, nil

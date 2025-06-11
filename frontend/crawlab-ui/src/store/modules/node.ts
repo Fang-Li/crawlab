@@ -21,7 +21,7 @@ const state = {
     { id: TAB_NAME_MONITORING, title: 'common.tabs.monitoring' },
   ],
   nodeMetricsMap: {},
-  activeNodes: [],
+  allNodes: [],
 } as NodeStoreState;
 
 const getters = {
@@ -33,8 +33,8 @@ const mutations = {
   setNodeMetricsMap(state: NodeStoreState, metricsMap: Record<string, Metric>) {
     state.nodeMetricsMap = metricsMap;
   },
-  setActiveNodes: (state: NodeStoreState, activeNodes: CNode[]) => {
-    state.activeNodes = activeNodes;
+  setAllNodes: (state: NodeStoreState, allNodes: CNode[]) => {
+    state.allNodes = allNodes;
   },
 } as NodeStoreMutations;
 
@@ -51,9 +51,9 @@ const actions = {
     commit('setNodeMetricsMap', res.data);
     return res;
   },
-  async getActiveNodes({ commit }: StoreActionContext<NodeStoreState>) {
+  async getAllNodes({ commit }: StoreActionContext<NodeStoreState>) {
     const res = await get<CNode[]>('/nodes');
-    commit('setActiveNodes', res.data || []);
+    commit('setAllNodes', res.data || []);
     return res;
   },
 } as NodeStoreActions;
