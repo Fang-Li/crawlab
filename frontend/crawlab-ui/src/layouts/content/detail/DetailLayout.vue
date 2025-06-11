@@ -10,6 +10,7 @@ const props = withDefaults(
     showBackButton?: boolean;
     showSaveButton?: boolean;
     allListSelectOptions?: SelectOption[];
+    navItemLabelFn?: (item: NavItem) => string;
   }>(),
   {
     navItemNameKey: 'name',
@@ -77,7 +78,7 @@ defineOptions({ name: 'ClDetailLayout' });
               <el-option
                 v-for="item in navItems"
                 :key="item.id"
-                :label="item.label"
+                :label="navItemLabelFn ? navItemLabelFn(item) : item.label"
                 :value="item.id"
               />
             </el-select>

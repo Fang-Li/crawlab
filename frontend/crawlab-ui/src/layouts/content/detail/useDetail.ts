@@ -41,6 +41,7 @@ const useDetail = <T extends BaseModel>(ns: ListStoreNamespace) => {
       items.unshift({
         id: activeId.value,
         label: form.name || activeId.value,
+        data: form,
       });
     }
     return items;

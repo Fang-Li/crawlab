@@ -4,7 +4,7 @@ import { useStore } from 'vuex';
 import { useSpider, useProject, useNode } from '@/components';
 import { TASK_MODE_RANDOM, TASK_MODE_SELECTED_NODES } from '@/constants/task';
 import pinyin, { STYLE_NORMAL } from 'pinyin';
-import { isZeroObjectId } from '@/utils/mongo';
+import { EMPTY_OBJECT_ID, isZeroObjectId } from '@/utils/mongo';
 import { useSpiderDetail } from '@/views';
 import { getToRunNodes, priorityOptions, translate } from '@/utils';
 import { getSpiderTemplateGroups, getSpiderTemplates } from '@/utils/spider';
@@ -20,11 +20,11 @@ const { get } = useRequest();
 const store = useStore();
 
 // use node
-const { activeNodesSorted: activeNodes } = useNode(store);
+const { allNodesSorted: allNodes } = useNode(store);
 
 const toRunNodes = computed(() => {
   const { mode, node_ids } = form.value;
-  return getToRunNodes(mode, node_ids, activeNodes.value);
+  return getToRunNodes(mode, node_ids, allNodes.value);
 });
 
 // use spider
@@ -177,7 +177,15 @@ defineOptions({ name: 'ClSpiderForm' });
       :label="t('components.spider.form.project')"
       prop="project_id"
     >
-      <cl-remote-select v-model="form.project_id" endpoint="/projects" />
+      <cl-remote-select
+        v-model="form.project_id"
+        endpoint="/projects"
+        filterable
+        :empty-option="{
+          label: t('common.status.unassigned'),
+          value: EMPTY_OBJECT_ID,
+        }"
+      />
     </cl-form-item>
     <!-- ./Row -->
 
@@ -246,7 +254,7 @@ defineOptions({ name: 'ClSpiderForm' });
         :placeholder="t('components.spider.form.selectedNodes')"
       >
         <el-option
-          v-for="n in activeNodes"
+          v-for="n in allNodes"
           :key="n.key"
           :value="n._id"
           :label="n.name"
@@ -254,7 +262,14 @@ defineOptions({ name: 'ClSpiderForm' });
           <span style="margin-right: 5px">
             <cl-node-tag :node="n" icon-only />
           </span>
-          <span>{{ n.name }}</span>
+          <span>
+            {{
+              n.name +
+              (n.active
+                ? ''
+                : ` (${t('components.node.nodeStatus.label.offline')})`)
+            }}
+          </span>
         </el-option>
       </el-select>
     </cl-form-item>

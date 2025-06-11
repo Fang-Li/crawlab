@@ -17,19 +17,22 @@ const useNode = (store: Store<RootStoreState>) => {
   // form rules
   const formRules: FormRules = {};
 
+  const allNodesSorted = computed(() => {
+    return state.allNodes.sort((a, b) => {
+      if (a.is_master) return -1;
+      if (b.is_master) return 1;
+      return a.name!.localeCompare(b.name!);
+    });
+  });
+
   const activeNodesSorted = computed(() => {
-    return state.allNodes
-      .filter(n => n.active)
-      .sort((a, b) => {
-        if (a.is_master) return -1;
-        if (b.is_master) return 1;
-        return a.name!.localeCompare(b.name!);
-      });
+    return allNodesSorted.value.filter(node => node.active);
   });
 
   return {
     ...useForm<Node>(ns, store, useNodeService(store), formComponentData),
     formRules,
+    allNodesSorted,
     activeNodesSorted,
   };
 };

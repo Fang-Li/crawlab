@@ -75,7 +75,6 @@
     "@popperjs/core": "^2.11.8",
     "@types/getos": "^3.0.4",
     "@types/humanize-duration": "^3.27.4",
-    "@types/javascript-time-ago": "^2.0.8",
     "@types/lodash": "^4.17.6",
     "@types/markdown-it": "^14.1.2",
     "@types/md5": "^2.3.5",

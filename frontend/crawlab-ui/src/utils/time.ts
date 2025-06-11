@@ -1,9 +1,8 @@
 import dayjs from 'dayjs';
-import TimeAgo, { LocaleData } from 'javascript-time-ago';
+import TimeAgo, { LocaleData, FormatStyleName } from 'javascript-time-ago';
 import { getI18n } from '@/i18n';
 import en from 'javascript-time-ago/locale/en';
 import zh from 'javascript-time-ago/locale/zh';
-import { FormatStyle } from 'javascript-time-ago/style';
 
 TimeAgo.addLocale(en as LocaleData);
 TimeAgo.addLocale(zh as LocaleData);
@@ -18,7 +17,7 @@ export const getTimeUnitParts = (timeUnit: string) => {
 
 export const formatTimeAgo = (
   value: string | Date,
-  formatStyle?: string | FormatStyle
+  formatStyle?: string | FormatStyleName
 ) => {
   const time = dayjs(value);
   const timeAgo = new TimeAgo(

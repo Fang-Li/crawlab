@@ -50,9 +50,6 @@ importers:
       '@types/humanize-duration':
         specifier: ^3.27.4
         version: 3.27.4
-      '@types/javascript-time-ago':
-        specifier: ^2.0.8
-        version: 2.5.0
       '@types/lodash':
         specifier: ^4.17.6
         version: 4.17.16
@@ -1204,10 +1201,6 @@ packages:
 
   '@types/istanbul-reports@3.0.4':
     resolution: {integrity: sha512-pk2B1NWalF9toCRu6gjBzR69syFjP4Od8WRAX+0mmf9lAjCRicLOWc+ZrxZHx/0XRjotgkF9t6iaMJ+aXcOdZQ==}
-
-  '@types/javascript-time-ago@2.5.0':
-    resolution: {integrity: sha512-c0GQ02qkkZx138VphjPqU4+PkVSNkWvQcpE3Yy03S6NpWlT9XTSXPUbJ1qv4KV0/eW7wSEAoU87e2YHz7ndHrA==}
-    deprecated: This is a stub types definition. javascript-time-ago provides its own type definitions, so you do not need this installed.
 
   '@types/jest@29.5.14':
     resolution: {integrity: sha512-ZN+4sdnLUbo8EVvVc2ao0GFW6oVrQRPn4K2lglySj7APvSrgzxHiNNK99us4WDMi57xxA2yggblIAMNhXOotLQ==}
@@ -4631,10 +4624,6 @@ snapshots:
   '@types/istanbul-reports@3.0.4':
     dependencies:
       '@types/istanbul-lib-report': 3.0.3
-
-  '@types/javascript-time-ago@2.5.0':
-    dependencies:
-      javascript-time-ago: 2.5.11
 
   '@types/jest@29.5.14':
     dependencies:

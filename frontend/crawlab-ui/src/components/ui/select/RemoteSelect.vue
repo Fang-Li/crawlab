@@ -8,11 +8,13 @@ const props = withDefaults(
     placeholder?: string;
     disabled?: boolean;
     filterable?: boolean;
+    clearable?: boolean;
     remoteShowSuffix?: boolean;
     endpoint: string;
     labelKey?: string;
     valueKey?: string;
     limit?: number;
+    emptyOption?: SelectOption;
   }>(),
   {
     remoteShowSuffix: true,
@@ -62,12 +64,21 @@ const remoteMethod = async (query?: string) => {
     loading.value = false;
   }
 };
-const selectOptions = computed<SelectOption[]>(() =>
-  list.value.map(row => ({
-    label: row[props.labelKey],
-    value: row[props.valueKey],
-  }))
-);
+const selectOptions = computed<SelectOption[]>(() => {
+  const { emptyOption, labelKey, valueKey } = props;
+  const options: SelectOption[] = list.value.map(row => ({
+    label: row[labelKey],
+    value: row[valueKey],
+  }));
+  if (emptyOption) {
+    const { label, value } = emptyOption;
+    options.unshift({
+      label,
+      value,
+    });
+  }
+  return options;
+});
 onBeforeMount(remoteMethod);
 
 defineOptions({ name: 'ClRemoteSelect' });
@@ -79,6 +90,7 @@ defineOptions({ name: 'ClRemoteSelect' });
     :placeholder="placeholder"
     :filterable="filterable"
     :disabled="disabled"
+    :clearable="clearable"
     remote
     :remote-method="remoteMethod"
     :remote-show-suffix="remoteShowSuffix"
