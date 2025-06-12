@@ -102,6 +102,11 @@ defineOptions({ name: 'ClDetailLayout' });
                 :label="navItemLabelFn ? navItemLabelFn(item) : item.label"
                 :value="item.id"
               />
+              <template #label>
+                {{
+                  navItems.find(item => item.id === activeId)?.label || activeId
+                }}
+              </template>
             </el-select>
           </div>
         </template>
