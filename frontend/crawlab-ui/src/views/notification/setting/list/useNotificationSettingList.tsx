@@ -13,7 +13,12 @@ import {
   ACTION_VIEW_TEMPLATE,
   FILTER_OP_CONTAINS,
 } from '@/constants';
-import { getIconByAction, onListFilterChangeByKey, translate } from '@/utils';
+import {
+  getIconByAction,
+  getIconByRouteConcept,
+  onListFilterChangeByKey,
+  translate,
+} from '@/utils';
 import useRequest from '@/services/request';
 import useList from '@/layouts/content/list/useList';
 import NavLink from '@/components/ui/nav/NavLink.vue';
@@ -113,6 +118,18 @@ const useNotificationSettingList = () => {
                   ElMessage.success(t('common.message.success.enabled'));
                 }
               }}
+            />
+          ),
+        },
+        {
+          key: 'channels',
+          label: t('views.notification.settings.form.channels'),
+          icon: getIconByRouteConcept('notificationChannel'),
+          width: '240',
+          value: (row: NotificationSetting) => (
+            <NavLink
+              label={row.channels?.length || 0}
+              path={`/notifications/settings/${row._id}/channels`}
             />
           ),
         },

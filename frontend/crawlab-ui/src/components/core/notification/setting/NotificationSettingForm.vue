@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue';
 import { useStore } from 'vuex';
-import { alertTemplates, allTemplates, translate } from '@/utils';
+import {
+  alertTemplates,
+  allTemplates,
+  getIconByAction,
+  translate,
+} from '@/utils';
 import useNotificationSetting from '@/components/core/notification/setting/useNotificationSetting';
-import { ClNotificationAlertForm } from '@/components';
 import { ElMessage } from 'element-plus';
+import { ACTION_ADD } from '@/constants';
 
 defineProps<{
   readonly?: boolean;
@@ -16,8 +21,10 @@ const t = translate;
 // store
 const ns: ListStoreNamespace = 'notificationSetting';
 const store = useStore();
-const { notificationAlert: notificationAlertState } =
-  store.state as RootStoreState;
+const {
+  notificationAlert: notificationAlertState,
+  notificationChannel: notificationChannelState,
+} = store.state as RootStoreState;
 
 const { form, formRef, isSelectiveForm, activeDialogKey } =
   useNotificationSetting(store);
@@ -34,8 +41,8 @@ const onTemplateChange = () => {
     name: t(name as string),
     description: t(description as string),
     title: t(title as string),
-    template_markdown: template_markdown && t(template_markdown as string),
-    template_rich_text: template_rich_text && t(template_rich_text as string),
+    template_markdown,
+    template_rich_text,
   });
 
   // handle alert template
@@ -44,60 +51,95 @@ const onTemplateChange = () => {
   }
 };
 
-const alertSelectOptions = computed<SelectOption<string>[]>(() => {
-  // TODO: implement
-  return [];
-  // notificationAlertState.allList.map((item: NotificationAlert) => ({
-  //   label: item.name,
-  //   value: item._id,
-  // }))
-});
+const createChannelVisible = ref(false);
+const channelFormRef = ref();
+const allChannels = computed<NotificationChannel[]>(
+  () => notificationChannelState.allChannels
+);
+const updateChannelIds = async () => {
+  if (activeDialogKey.value === 'create') {
+    // get all channels
+    await store.dispatch('notificationChannel/getAllChannels');
+
+    // enable all channels
+    store.commit(`${ns}/setForm`, {
+      ...form.value,
+      channel_ids: allChannels.value.map(channel => channel._id),
+    });
+  } else if (!activeDialogKey.value) {
+    store.commit('notificationChannel/resetAllChannels');
+  }
+};
+watch(activeDialogKey, updateChannelIds);
+onBeforeMount(updateChannelIds);
+onBeforeUnmount(() => store.commit('notificationChannel/resetAllChannels'));
+const onCreateChannelConfirm = async () => {
+  // validate channel form
+  await channelFormRef.value?.validateForm();
+
+  // create channel
+  const { data: newChannel } = await store.dispatch(
+    'notificationChannel/create',
+    notificationChannelState.form
+  );
+  ElMessage.success(t('views.notification.message.success.create.channel'));
+
+  // get all channels again
+  await store.dispatch('notificationChannel/getAllChannels');
+
+  // set channel ids
+  store.commit(`${ns}/setForm`, {
+    ...form.value,
+    channel_ids: [...(form.value.channel_ids || []), newChannel._id],
+  });
+
+  // close channel form create dialog
+  createChannelVisible.value = false;
+};
 
 const createAlertVisible = ref(false);
-const alertFormRef = ref<typeof ClNotificationAlertForm>();
+const alertFormRef = ref();
 const onCreateAlertClick = () => {
-  // TODO: implement
-  return [];
   // find existing alert
-  // let alertForm = notificationAlertState.allList.find(
-  //   a => a.name === form.value.name
-  // ) as NotificationAlert;
-  //
-  // // create new alert if not found
-  // if (!alertForm) {
-  //   if (form.value.template_key) {
-  //     // find alert template
-  //     alertForm = alertTemplates.find(
-  //       t => t.key === form.value.template_key
-  //     ) as NotificationAlert;
-  //
-  //     // handle alert template
-  //     if (alertForm) {
-  //       alertForm = {
-  //         ...alertForm,
-  //         name: t(alertForm.name as string),
-  //         description: t(alertForm.description as string),
-  //         enabled: true,
-  //         template_key: form.value.template_key,
-  //       };
-  //     }
-  //   }
-  //
-  //   // create new alert form if template not found
-  //   if (!alertForm) alertForm = notificationAlertState.newFormFn();
-  //
-  //   // set alert form
-  //   store.commit('notificationAlert/setForm', { ...alertForm });
-  //
-  //   // open alert form create dialog
-  //   createAlertVisible.value = true;
-  // } else {
-  //   // set alert id if alert form exists
-  //   store.commit(`${ns}/setForm`, {
-  //     ...form.value,
-  //     alert_id: alertForm._id,
-  //   });
-  // }
+  let alertForm = notificationAlertState.allAlerts.find(
+    a => a.name === form.value.name
+  );
+
+  // create new alert given a template key
+  if (!alertForm) {
+    if (form.value.template_key) {
+      // find alert template
+      alertForm = alertTemplates.find(
+        t => t.key === form.value.template_key
+      ) as NotificationAlert;
+
+      // handle alert template
+      if (alertForm) {
+        alertForm = {
+          ...alertForm,
+          name: t(alertForm.name as string),
+          description: t(alertForm.description as string),
+          enabled: true,
+          template_key: form.value.template_key,
+        };
+      }
+    }
+
+    // create new alert form if template not found
+    if (!alertForm) alertForm = notificationAlertState.newFormFn();
+
+    // set alert form
+    store.commit('notificationAlert/setForm', { ...alertForm });
+
+    // open alert form create dialog
+    createAlertVisible.value = true;
+  } else {
+    // set alert id if alert form exists
+    store.commit(`${ns}/setForm`, {
+      ...form.value,
+      alert_id: alertForm._id,
+    });
+  }
 };
 const onCreateAlertConfirm = async () => {
   // validate alert form
@@ -226,21 +268,62 @@ defineOptions({ name: 'ClNotificationSettingForm' });
       prop="alert_id"
       required
     >
-      <el-select v-model="form.alert_id">
-        <el-option
-          v-for="op in alertSelectOptions"
-          :key="op.value"
-          :value="op.value"
-          :label="op.label"
-        />
-      </el-select>
+      <cl-remote-select
+        v-model="form.alert_id"
+        endpoint="/notifications/alerts"
+      />
       <cl-fa-icon-button
-        :icon="['fa', 'plus']"
+        type="default"
+        size="default"
+        :icon="getIconByAction(ACTION_ADD)"
         :tooltip="t('views.notification.settings.actions.createAlert')"
         @click="onCreateAlertClick"
       />
     </cl-form-item>
+
+    <cl-form-item
+      v-if="activeDialogKey === 'create'"
+      :span="4"
+      :label="t('views.notification.settings.form.channels')"
+      prop="channel_ids"
+      :required="formRequired"
+    >
+      <el-checkbox-group v-model="form.channel_ids">
+        <el-space spacer="10px" wrap>
+          <el-checkbox
+            v-for="channel in allChannels"
+            :key="channel._id"
+            :value="channel._id"
+          >
+            {{ channel.name }}
+          </el-checkbox>
+        </el-space>
+      </el-checkbox-group>
+      <cl-fa-icon-button
+        type="default"
+        size="small"
+        :icon="getIconByAction(ACTION_ADD)"
+        :tooltip="t('views.notification.channels.navActions.new.tooltip')"
+        @click="createChannelVisible = true"
+      />
+    </cl-form-item>
   </cl-form>
+
+  <el-drawer
+    v-model="createChannelVisible"
+    :title="t('views.notification.settings.actions.createChannel')"
+    size="960px"
+  >
+    <cl-notification-channel-form ref="channelFormRef" />
+    <template #footer>
+      <el-button plain @click="createChannelVisible = false">
+        {{ t('common.actions.cancel') }}
+      </el-button>
+      <el-button type="primary" @click="onCreateChannelConfirm">
+        {{ t('common.actions.confirm') }}
+      </el-button>
+    </template>
+  </el-drawer>
 
   <el-drawer
     v-model="createAlertVisible"

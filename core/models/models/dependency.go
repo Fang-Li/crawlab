@@ -17,3 +17,10 @@ type Dependency struct {
 	NodeIds     []primitive.ObjectID `json:"node_ids,omitempty" bson:"-" binding:"-"`
 	Versions    []string             `json:"versions,omitempty" bson:"-" binding:"-"`
 }
+
+type DependencyDTO struct {
+	Dependency `json:",inline" bson:",inline"`
+
+	NodeIds  []primitive.ObjectID `json:"node_ids,omitempty" bson:"-"`
+	Versions []string             `json:"versions,omitempty" bson:"-"`
+}

@@ -15,6 +15,7 @@ const notification: LViewsNotification = {
       name: 'Name',
       description: 'Description',
       enabled: 'Enabled',
+      channels: 'Channels',
       title: 'Title',
       template: 'Template',
       templateContent: 'Template Content',
@@ -74,6 +75,7 @@ const notification: LViewsNotification = {
       label: 'Select Template',
     },
     actions: {
+      createChannel: 'Create Channel',
       createAlert: 'Create Alert',
     },
   },
@@ -202,6 +204,7 @@ const notification: LViewsNotification = {
   message: {
     success: {
       create: {
+        channel: 'Notification channel created successfully',
         alert: 'Notification alert created successfully',
       },
       sendTestMessage: 'Test message sent successfully',

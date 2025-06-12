@@ -24,7 +24,6 @@ const emit = defineEmits<{
   (e: 'select-remote', value: string): void;
   (e: 'new-branch'): void;
   (e: 'delete-branch', value: string): void;
-  (e: 'new-tag'): void;
   (e: 'pull'): void;
   (e: 'commit'): void;
   (e: 'push'): void;

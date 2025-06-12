@@ -23,10 +23,10 @@ import (
 )
 
 // GetSpiderById handles getting a spider by ID
-func GetSpiderById(_ *gin.Context, params *GetByIdParams) (response *Response[models.Spider], err error) {
+func GetSpiderById(_ *gin.Context, params *GetByIdParams) (response *Response[models.SpiderDTO], err error) {
 	id, err := primitive.ObjectIDFromHex(params.Id)
 	if err != nil {
-		return GetErrorResponse[models.Spider](errors.BadRequestf("invalid id format"))
+		return GetErrorResponse[models.SpiderDTO](errors.BadRequestf("invalid id format"))
 	}
 
 	// aggregation pipelines
@@ -34,10 +34,10 @@ func GetSpiderById(_ *gin.Context, params *GetByIdParams) (response *Response[mo
 	pipelines = addSpiderPipelines(pipelines)
 
 	// perform query
-	var spiders []models.Spider
-	err = service.GetCollection[models.Spider]().Aggregate(pipelines, nil).All(&spiders)
+	var spiders []models.SpiderDTO
+	err = service.GetCollection[models.SpiderDTO]().Aggregate(pipelines, nil).All(&spiders)
 	if err != nil {
-		return GetErrorResponse[models.Spider](err)
+		return GetErrorResponse[models.SpiderDTO](err)
 	}
 
 	// check results
@@ -49,24 +49,24 @@ func GetSpiderById(_ *gin.Context, params *GetByIdParams) (response *Response[mo
 }
 
 // GetSpiderList handles getting a list of spiders with optional stats
-func GetSpiderList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Spider], err error) {
+func GetSpiderList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.SpiderDTO], err error) {
 	// query parameters
 	query := ConvertToBsonMFromListParams(params)
 	sort, err := GetSortOptionFromString(params.Sort)
 	if err != nil {
-		return GetErrorListResponse[models.Spider](errors.BadRequestf("invalid request parameters: %v", err))
+		return GetErrorListResponse[models.SpiderDTO](errors.BadRequestf("invalid request parameters: %v", err))
 	}
 	skip, limit := GetSkipLimitFromListParams(params)
 
 	// total count
-	total, err := service.NewModelService[models.Spider]().Count(query)
+	total, err := service.NewModelService[models.SpiderDTO]().Count(query)
 	if err != nil {
-		return GetErrorListResponse[models.Spider](err)
+		return GetErrorListResponse[models.SpiderDTO](err)
 	}
 
 	// check total
 	if total == 0 {
-		return GetEmptyListResponse[models.Spider]()
+		return GetEmptyListResponse[models.SpiderDTO]()
 	}
 
 	// aggregation pipelines
@@ -74,10 +74,10 @@ func GetSpiderList(_ *gin.Context, params *GetListParams) (response *ListRespons
 	pipelines = addSpiderPipelines(pipelines)
 
 	// perform query
-	var spiders []models.Spider
+	var spiders []models.SpiderDTO
 	err = service.GetCollection[models.Spider]().Aggregate(pipelines, nil).All(&spiders)
 	if err != nil {
-		return GetErrorListResponse[models.Spider](err)
+		return GetErrorListResponse[models.SpiderDTO](err)
 	}
 
 	return GetListResponse(spiders, total)

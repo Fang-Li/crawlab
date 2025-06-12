@@ -21,3 +21,7 @@ type Node struct {
 	CurrentRunners int       `json:"current_runners" bson:"current_runners" description:"Current runners"`
 	MaxRunners     int       `json:"max_runners" bson:"max_runners" description:"Max runners"`
 }
+
+type NodeDTO struct {
+	Node `json:",inline" bson:",inline"`
+}

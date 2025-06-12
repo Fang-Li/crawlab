@@ -25,3 +25,12 @@ type Task struct {
 	Spider   *Spider   `json:"spider,omitempty" bson:"_spider,omitempty"`
 	Schedule *Schedule `json:"schedule,omitempty" bson:"_schedule,omitempty"`
 }
+
+type TaskDTO struct {
+	Task `json:",inline" bson:",inline"`
+
+	Stat     *TaskStat `json:"stat,omitempty" bson:"_stat,omitempty"`
+	Node     *Node     `json:"node,omitempty" bson:"_node,omitempty"`
+	Spider   *Spider   `json:"spider,omitempty" bson:"_spider,omitempty"`
+	Schedule *Schedule `json:"schedule,omitempty" bson:"_schedule,omitempty"`
+}

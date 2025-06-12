@@ -5,5 +5,10 @@ type Project struct {
 	BaseModel   `bson:",inline"`
 	Name        string `json:"name" bson:"name" description:"Name"`
 	Description string `json:"description" bson:"description" description:"Description"`
-	Spiders     int    `json:"spiders" bson:"-"`
+}
+
+type ProjectDTO struct {
+	Project `json:",inline" bson:",inline"`
+
+	Spiders []Spider `json:"spiders,omitempty" bson:"_spiders,omitempty"`
 }

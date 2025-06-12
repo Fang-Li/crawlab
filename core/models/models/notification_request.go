@@ -20,3 +20,10 @@ type NotificationRequest struct {
 	Channel     *NotificationChannel `json:"channel,omitempty" bson:"-" binding:"-"`
 	Test        bool                 `json:"test,omitempty" bson:"test,omitempty" description:"Test"`
 }
+
+type NotificationRequestDTO struct {
+	NotificationRequest `json:",inline" bson:",inline"`
+
+	Setting *NotificationSetting `json:"setting,omitempty" bson:"-"`
+	Channel *NotificationChannel `json:"channel,omitempty" bson:"-"`
+}

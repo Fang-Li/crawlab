@@ -348,7 +348,7 @@ const actions = {
     _: StoreActionContext<GitStoreState>,
     { id, spider }: { id: string; spider: Spider }
   ) => {
-    return await post(`${endpoint}/${id}/spiders`, spider);
+    return await post(`${endpoint}/${id}/spiders`, { data: spider });
   },
 } as GitStoreActions;
 

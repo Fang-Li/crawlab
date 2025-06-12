@@ -5,12 +5,21 @@ type NotificationChannelStoreModule = BaseModule<
   NotificationChannelStoreActions
 >;
 
-type NotificationChannelStoreState = BaseStoreState<NotificationChannel>;
+interface NotificationChannelStoreState
+  extends BaseStoreState<NotificationChannel> {
+  allChannels: NotificationChannel[];
+}
 
 type NotificationChannelStoreGetters = BaseStoreGetters<NotificationChannel>;
 
-type NotificationChannelStoreMutations =
-  BaseStoreMutations<NotificationChannel>;
+interface NotificationChannelStoreMutations
+  extends BaseStoreMutations<NotificationChannel> {
+  setAllChannels: StoreMutation<
+    NotificationChannelStoreState,
+    NotificationChannel[]
+  >;
+  resetAllChannels: StoreMutation<NotificationChannelStoreState>;
+}
 
 interface NotificationChannelStoreActions
   extends BaseStoreActions<NotificationChannel> {
@@ -18,4 +27,5 @@ interface NotificationChannelStoreActions
     NotificationChannelStoreState,
     { id: string; toMail?: string }
   >;
+  getAllChannels: StoreAction<NotificationChannelStoreState>;
 }

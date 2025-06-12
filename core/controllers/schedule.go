@@ -2,6 +2,7 @@ package controllers
 
 import (
 	errors2 "errors"
+
 	"github.com/crawlab-team/crawlab/core/interfaces"
 	"github.com/crawlab-team/crawlab/core/models/models"
 	"github.com/crawlab-team/crawlab/core/models/service"
@@ -14,10 +15,10 @@ import (
 )
 
 // GetScheduleById handles getting a spider by ID
-func GetScheduleById(_ *gin.Context, params *GetByIdParams) (response *Response[models.Schedule], err error) {
+func GetScheduleById(_ *gin.Context, params *GetByIdParams) (response *Response[models.ScheduleDTO], err error) {
 	id, err := primitive.ObjectIDFromHex(params.Id)
 	if err != nil {
-		return GetErrorResponse[models.Schedule](errors.BadRequestf("invalid id format"))
+		return GetErrorResponse[models.ScheduleDTO](errors.BadRequestf("invalid id format"))
 	}
 
 	// aggregation pipelines
@@ -25,10 +26,10 @@ func GetScheduleById(_ *gin.Context, params *GetByIdParams) (response *Response[
 	pipelines = addSchedulePipelines(pipelines)
 
 	// perform query
-	var schedules []models.Schedule
-	err = service.GetCollection[models.Schedule]().Aggregate(pipelines, nil).All(&schedules)
+	var schedules []models.ScheduleDTO
+	err = service.GetCollection[models.ScheduleDTO]().Aggregate(pipelines, nil).All(&schedules)
 	if err != nil {
-		return GetErrorResponse[models.Schedule](err)
+		return GetErrorResponse[models.ScheduleDTO](err)
 	}
 
 	// check results
@@ -39,23 +40,23 @@ func GetScheduleById(_ *gin.Context, params *GetByIdParams) (response *Response[
 	return GetDataResponse(schedules[0])
 }
 
-func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Schedule], err error) {
+func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.ScheduleDTO], err error) {
 	query := ConvertToBsonMFromListParams(params)
 	sort, err := GetSortOptionFromString(params.Sort)
 	if err != nil {
-		return GetErrorListResponse[models.Schedule](errors.BadRequestf("invalid request parameters: %v", err))
+		return GetErrorListResponse[models.ScheduleDTO](errors.BadRequestf("invalid request parameters: %v", err))
 	}
 	skip, limit := GetSkipLimitFromListParams(params)
 
 	// total count
-	total, err := service.NewModelService[models.Schedule]().Count(query)
+	total, err := service.NewModelService[models.ScheduleDTO]().Count(query)
 	if err != nil {
-		return GetErrorListResponse[models.Schedule](err)
+		return GetErrorListResponse[models.ScheduleDTO](err)
 	}
 
 	// check total
 	if total == 0 {
-		return GetEmptyListResponse[models.Schedule]()
+		return GetEmptyListResponse[models.ScheduleDTO]()
 	}
 
 	// aggregation pipelines
@@ -63,10 +64,10 @@ func GetScheduleList(_ *gin.Context, params *GetListParams) (response *ListRespo
 	pipelines = addSchedulePipelines(pipelines)
 
 	// perform query
-	var schedules []models.Schedule
-	err = service.GetCollection[models.Schedule]().Aggregate(pipelines, nil).All(&schedules)
+	var schedules []models.ScheduleDTO
+	err = service.GetCollection[models.ScheduleDTO]().Aggregate(pipelines, nil).All(&schedules)
 	if err != nil {
-		return GetErrorListResponse[models.Schedule](err)
+		return GetErrorListResponse[models.ScheduleDTO](err)
 	}
 
 	return GetListResponse(schedules, total)

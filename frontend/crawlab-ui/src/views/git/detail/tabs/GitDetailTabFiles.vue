@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { inject, ref, watch } from 'vue';
 import { useStore } from 'vuex';
-import { debounce } from 'lodash';
 import { translate } from '@/utils';
 import useGitService from '@/services/git/gitService';
 import { useGitDetail } from '@/views';
@@ -21,16 +20,19 @@ const spidersDict = inject<{ [key: string]: Spider }>('spiders-dict');
 
 const navMenuLoading = ref(false);
 
-const getFiles = debounce(async () => {
+const getFiles = async () => {
   if (!activeId.value) return;
   navMenuLoading.value = true;
   try {
-    await store.dispatch(`${nsGit}/listDir`, { id: activeId.value });
+    await store.dispatch(`${nsGit}/listRootDir`, { id: activeId.value });
   } finally {
     navMenuLoading.value = false;
   }
+};
+watch(currentBranch, (_, prev) => {
+  if (!prev) return;
+  getFiles();
 });
-watch(currentBranch, getFiles);
 watch(activeId, getFiles);
 
 const onFileChange = async () => {

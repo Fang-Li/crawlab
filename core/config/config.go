@@ -2,13 +2,14 @@ package config
 
 import (
 	"errors"
-	"github.com/crawlab-team/crawlab/core/interfaces"
-	"github.com/crawlab-team/crawlab/core/utils"
 	"strings"
 	"sync"
 
 	"github.com/apex/log"
+	"github.com/crawlab-team/crawlab/core/interfaces"
+	"github.com/crawlab-team/crawlab/core/utils"
 	"github.com/fsnotify/fsnotify"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -18,6 +19,9 @@ type Config struct {
 }
 
 func (c *Config) Init() {
+	// Load .env file before setting up viper
+	c.loadDotEnv()
+
 	// Set default values
 	c.setDefaults()
 
@@ -78,6 +82,15 @@ func (c *Config) initLogLevel() {
 		l = log.InfoLevel
 	}
 	log.SetLevel(l)
+}
+
+func (c *Config) loadDotEnv() {
+	// Try to load .env file, but don't fail if it doesn't exist
+	if err := godotenv.Load(); err != nil {
+		c.Debug("No .env file found or unable to load .env file")
+	} else {
+		c.Info("Loaded .env file successfully")
+	}
 }
 
 func newConfig() *Config {

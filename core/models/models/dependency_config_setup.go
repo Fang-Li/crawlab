@@ -13,7 +13,14 @@ type DependencyConfigSetup struct {
 	Error              string             `json:"error,omitempty" bson:"error,omitempty" description:"Error"`
 	Node               *Node              `json:"node,omitempty" bson:"-" binding:"-"`
 }
+
 type DependencyDriver struct {
 	Name    string `json:"name" bson:"name" description:"Name"`
 	Version string `json:"version" bson:"version" description:"Version"`
+}
+
+type DependencyConfigSetupDTO struct {
+	DependencyConfigSetup `json:",inline" bson:",inline"`
+
+	Node *Node `json:"node,omitempty" bson:"-"`
 }

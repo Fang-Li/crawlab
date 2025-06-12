@@ -27,8 +27,11 @@ type NotificationSetting struct {
 	MailCc               []string `json:"mail_cc,omitempty" bson:"mail_cc,omitempty" description:"Mail CC"`
 	MailBcc              []string `json:"mail_bcc,omitempty" bson:"mail_bcc,omitempty" description:"Mail BCC"`
 
-	ChannelIds []primitive.ObjectID  `json:"channel_ids,omitempty" bson:"channel_ids,omitempty" description:"Channel IDs"`
-	Channels   []NotificationChannel `json:"channels,omitempty" bson:"-"`
+	ChannelIds []primitive.ObjectID `json:"channel_ids,omitempty" bson:"channel_ids,omitempty" description:"Channel IDs"`
+}
 
-	AlertId primitive.ObjectID `json:"alert_id,omitempty" bson:"alert_id,omitempty" description:"Alert ID"`
+type NotificationSettingDTO struct {
+	NotificationSetting `json:",inline" bson:",inline"`
+
+	Channels []NotificationChannel `json:"channels,omitempty" bson:"_channels,omitempty"`
 }

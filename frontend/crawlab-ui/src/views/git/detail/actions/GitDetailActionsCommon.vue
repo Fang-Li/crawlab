@@ -146,21 +146,6 @@ const onDeleteBranch = async (branch: string) => {
   }
 };
 
-const onNewTag = async (tag: string) => {
-  // branchSelectLoading.value = true;
-  // try {
-  //   await store.dispatch(`${ns}/newTag`, {
-  //     id: activeId.value,
-  //     tag,
-  //   });
-  //   await store.dispatch(`${ns}/getBranches`, { id: activeId.value });
-  // } catch (e: any) {
-  //   ElMessage.error(e.message);
-  // } finally {
-  //   branchSelectLoading.value = false;
-  // }
-};
-
 const onClickPull = async () => {
   if (pullLoading.value) return;
   await onPull();
@@ -234,7 +219,6 @@ defineOptions({ name: 'ClGitDetailActionsCommon' });
           @select-remote="onRemoteBranchChange"
           @new-branch="onNewBranch"
           @delete-branch="onDeleteBranch"
-          @new-tag="onNewTag"
           @pull="onClickPull"
           @commit="onClickCommit"
           @push="onClickPush"

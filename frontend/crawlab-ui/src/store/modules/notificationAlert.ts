@@ -6,8 +6,11 @@ import {
 } from '@/utils/store';
 import { TAB_NAME_OVERVIEW } from '@/constants';
 import { translate } from '@/utils/i18n';
+import useRequest from '@/services/request';
 
 const t = translate;
+
+const { get } = useRequest();
 
 const state = {
   ...getDefaultStoreState<NotificationAlert>('notificationAlert'),
@@ -20,6 +23,7 @@ const state = {
     level: 'warning',
   }),
   tabs: [{ id: TAB_NAME_OVERVIEW, title: t('common.tabs.overview') }],
+  allAlerts: [],
 } as NotificationAlertStoreState;
 
 const getters = {
@@ -28,10 +32,25 @@ const getters = {
 
 const mutations = {
   ...getDefaultStoreMutations<NotificationAlert>(),
+  setAllAlerts: (
+    state: NotificationAlertStoreState,
+    allAlerts: NotificationAlert[]
+  ) => {
+    state.allAlerts = allAlerts;
+  },
+  resetAllAlerts: (state: NotificationAlertStoreState) => {
+    state.allAlerts = [];
+  },
 } as NotificationAlertStoreMutations;
 
 const actions = {
   ...getDefaultStoreActions<NotificationAlert>('/notifications/alerts'),
+  getAllAlerts: async ({ commit }: StoreActionContext) => {
+    const res = await get<NotificationAlert[]>('/notifications/alerts', {
+      size: 10000,
+    });
+    commit('setAllAlerts', res.data || []);
+  },
 } as NotificationAlertStoreActions;
 
 export default {

@@ -6,13 +6,14 @@ import {
   translate,
 } from '@/utils';
 import { useNotificationChannel, useNotificationSetting } from '@/components';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue';
 import { useNotificationSettingDetail } from '@/views';
 
 const t = translate;
 
-const ns: ListStoreNamespace = 'notificationSetting';
 const store = useStore();
+const { notificationChannel: notificationChannelState } =
+  store.state as RootStoreState;
 
 const router = useRouter();
 
@@ -20,32 +21,40 @@ const { form } = useNotificationSetting(store);
 
 const { activeId } = useNotificationSettingDetail();
 
+const allChannels = computed<NotificationChannel[]>(
+  () => notificationChannelState.allChannels
+);
+const allChannelsDict = computed<Map<string, NotificationChannel>>(() => {
+  return new Map(allChannels.value.map(channel => [channel._id!, channel]));
+});
+onBeforeMount(() => store.dispatch('notificationChannel/getAllChannels'));
+onBeforeUnmount(() => store.commit('notificationChannel/resetAllChannels'));
+
 const selectAll = ref(false);
 const selectIntermediate = ref(false);
 const updateSelectAll = () => {
-  if (!allListSelectOptions.value) return;
+  if (!allChannels.value?.length) return;
 
   // check if all options are selected
-  selectAll.value = allListSelectOptions.value.every(option =>
-    form.value.channel_ids?.includes(option.value)
+  selectAll.value = allChannels.value.every(channel =>
+    form.value.channel_ids?.includes(channel._id!)
   );
 
   // check if some options are selected
   if (!selectAll.value) {
-    selectIntermediate.value = allListSelectOptions.value.some(option =>
-      form.value.channel_ids?.includes(option.value)
+    selectIntermediate.value = allChannels.value.some(channel =>
+      form.value.channel_ids?.includes(channel._id!)
     );
   } else {
     selectIntermediate.value = false;
   }
 };
+watch(allChannels, updateSelectAll);
 watch(() => form.value.channel_ids, updateSelectAll);
 watch(activeId, updateSelectAll);
 const onSelectAll = () => {
   if (selectAll.value) {
-    form.value.channel_ids = allListSelectOptions.value.map(
-      option => option.value
-    );
+    form.value.channel_ids = allChannels.value.map(channel => channel._id!);
   } else {
     form.value.channel_ids = [];
   }
@@ -59,7 +68,7 @@ const onChannelNavigate = async (channelId: string) => {
 const hasWarningMissingMailConfigFields = computed(() => {
   return hasNotificationSettingChannelWarningMissingMailConfigFields(
     form.value,
-    allDict.value
+    allChannelsDict.value
   );
 });
 
@@ -87,16 +96,16 @@ defineOptions({ name: 'ClNotificationSettingDetailTabChannels' });
         <el-checkbox-group v-model="form.channel_ids">
           <el-space spacer="10px" wrap>
             <div
-              v-for="option in allListSelectOptions"
-              :key="option.value"
+              v-for="channel in allChannels"
+              :key="channel._id!"
               style="display: flex; align-items: center"
             >
-              <el-checkbox :label="option.value" :value="option.value">
-                {{ option.label }}
+              <el-checkbox :label="channel.name" :value="channel._id">
+                {{ channel.name }}
               </el-checkbox>
               <cl-icon
                 :icon="['fa', 'external-link-alt']"
-                @click="onChannelNavigate(option.value)"
+                @click="onChannelNavigate(channel._id!)"
               />
             </div>
           </el-space>

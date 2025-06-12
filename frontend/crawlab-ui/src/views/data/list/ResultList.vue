@@ -104,8 +104,8 @@ const actionFunctions = {
     return store.dispatch(`${ns}/getResultData`, {
       id: spiderId,
       params: {
-        conditions: filterConditions.value,
         ...tablePagination.value,
+        filter: filterConditions.value,
       },
     });
   },

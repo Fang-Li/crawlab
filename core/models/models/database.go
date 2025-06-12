@@ -46,3 +46,9 @@ type Database struct {
 		DB int `json:"db,omitempty" bson:"db,omitempty" description:"DB"`
 	} `json:"redis_params,omitempty" bson:"redis_params,omitempty" description:"Redis params"`
 }
+
+type DatabaseDTO struct {
+	Database `json:",inline" bson:",inline"`
+
+	IsDefault bool `json:"is_default" bson:"-"`
+}

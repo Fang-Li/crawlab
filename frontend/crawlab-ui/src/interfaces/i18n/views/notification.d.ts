@@ -5,6 +5,7 @@ interface LViewsNotification {
       name: string;
       description: string;
       enabled: string;
+      channels: string;
       title: string;
       template: string;
       templateContent: string;
@@ -62,6 +63,7 @@ interface LViewsNotification {
       label: string;
     };
     actions: {
+      createChannel: string;
       createAlert: string;
     };
   };
@@ -170,6 +172,7 @@ interface LViewsNotification {
   message: {
     success: {
       create: {
+        channel: string;
         alert: string;
       };
       sendTestMessage: string;

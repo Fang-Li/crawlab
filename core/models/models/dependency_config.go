@@ -12,3 +12,11 @@ type DependencyConfig struct {
 	TotalDependencies int    `json:"total_dependencies" bson:"-" binding:"-"`
 	SearchReady       bool   `json:"search_ready" bson:"-" binding:"-"`
 }
+
+type DependencyConfigDTO struct {
+	DependencyConfig `json:",inline" bson:",inline"`
+
+	Setup             bool `json:"setup" bson:"-"`
+	TotalDependencies int  `json:"total_dependencies" bson:"-"`
+	SearchReady       bool `json:"search_ready" bson:"-"`
+}

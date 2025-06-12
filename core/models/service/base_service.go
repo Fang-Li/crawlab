@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/crawlab-team/crawlab/core/mongo"
-	"github.com/crawlab-team/crawlab/core/utils"
 	"reflect"
 	"sync"
+
+	"github.com/crawlab-team/crawlab/core/mongo"
+	"github.com/crawlab-team/crawlab/core/utils"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -306,9 +307,59 @@ func GetCollectionNameByInstance(v any) string {
 
 func GetCollectionName[T any]() string {
 	var instance T
-	t := reflect.TypeOf(instance)
+	return getCollectionNameFromType(reflect.TypeOf(instance))
+}
+
+// getCollectionNameFromType recursively searches for collection tag in struct hierarchy
+// The function follows the Crawlab pattern where collection tags are typically on the first field
+func getCollectionNameFromType(t reflect.Type) string {
+	// Handle pointer types
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	// Must be a struct
+	if t.Kind() != reflect.Struct {
+		return ""
+	}
+
+	// Check if struct has any fields
+	if t.NumField() == 0 {
+		return ""
+	}
+
+	// Priority 1: Check the first field for collection tag (Crawlab standard pattern)
+	// Most Crawlab models have: `any collection:"collection_name"` as first field
 	field := t.Field(0)
-	return field.Tag.Get("collection")
+	if collectionName := field.Tag.Get("collection"); collectionName != "" {
+		return collectionName
+	}
+
+	// Priority 2: If first field is an embedded struct, recursively check it
+	// This handles DTO patterns like SpiderDTO embedding Spider
+	if field.Type.Kind() == reflect.Struct && field.Anonymous {
+		if collectionName := getCollectionNameFromType(field.Type); collectionName != "" {
+			return collectionName
+		}
+	}
+
+	// Priority 3: Fallback - check all remaining fields for collection tag
+	// This provides robustness for non-standard patterns
+	for i := 1; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if collectionName := field.Tag.Get("collection"); collectionName != "" {
+			return collectionName
+		}
+
+		// Also recursively check embedded structs in other positions
+		if field.Type.Kind() == reflect.Struct && field.Anonymous {
+			if collectionName := getCollectionNameFromType(field.Type); collectionName != "" {
+				return collectionName
+			}
+		}
+	}
+
+	return ""
 }
 
 func GetCollection[T any]() *mongo.Col {

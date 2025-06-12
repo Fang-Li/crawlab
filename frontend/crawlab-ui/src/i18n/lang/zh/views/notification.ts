@@ -15,6 +15,7 @@ const notification: LViewsNotification = {
       name: '名称',
       description: '描述',
       enabled: '是否启用',
+      channels: '通知渠道',
       title: '标题',
       template: '模板',
       templateContent: '模板内容',
@@ -74,6 +75,7 @@ const notification: LViewsNotification = {
       label: '选择模板',
     },
     actions: {
+      createChannel: '创建通知渠道',
       createAlert: '创建通知警报',
     },
   },
@@ -202,6 +204,7 @@ const notification: LViewsNotification = {
   message: {
     success: {
       create: {
+        channel: '通知渠道创建成功',
         alert: '通知警报创建成功',
       },
       sendTestMessage: '发送测试消息成功',

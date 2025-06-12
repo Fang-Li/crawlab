@@ -83,13 +83,10 @@ const mutations = {
 const actions = {
   ...getDefaultStoreActions<Task>('/tasks'),
   getList: async ({ state, commit }: StoreActionContext<TaskStoreState>) => {
-    const payload = {
+    const res = await getList(`/tasks`, {
       ...state.tablePagination,
-      conditions: JSON.stringify(state.tableListFilter),
-      // sort: JSON.stringify(state.tableListSort),
-      stats: true,
-    };
-    const res = await getList(`/tasks`, payload);
+      filter: JSON.stringify(state.tableListFilter),
+    });
     commit('setTableData', { data: res.data || [], total: res.total });
     return res;
   },

@@ -91,9 +91,13 @@ const selectOptions = computed<SelectOption[]>(() => {
 });
 onBeforeMount(remoteMethod);
 
-const getSelectedItem = () => {
+const selectedItem = computed(() => {
   const { valueKey } = props;
   return list.value.find(item => item[valueKey] === internalValue.value);
+});
+
+const getSelectedItem = () => {
+  return selectedItem.value;
 };
 
 defineExpose({
@@ -106,6 +110,7 @@ defineOptions({ name: 'ClRemoteSelect' });
 <template>
   <el-select
     v-model="internalValue"
+    :key="JSON.stringify(selectOptions)"
     :size="size"
     :placeholder="placeholder"
     :filterable="filterable"

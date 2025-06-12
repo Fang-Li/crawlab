@@ -26,11 +26,11 @@ type GetTaskByIdParams struct {
 	Id string `path:"id" description:"Task ID" format:"objectid" pattern:"^[0-9a-fA-F]{24}$"`
 }
 
-func GetTaskById(_ *gin.Context, params *GetTaskByIdParams) (response *Response[models.Task], err error) {
+func GetTaskById(_ *gin.Context, params *GetTaskByIdParams) (response *Response[models.TaskDTO], err error) {
 	// id
 	id, err := primitive.ObjectIDFromHex(params.Id)
 	if err != nil {
-		return GetErrorResponse[models.Task](err)
+		return GetErrorResponse[models.TaskDTO](err)
 	}
 
 	// aggregation pipelines
@@ -38,10 +38,10 @@ func GetTaskById(_ *gin.Context, params *GetTaskByIdParams) (response *Response[
 	pipelines = addTaskPipelines(pipelines)
 
 	// perform query
-	var tasks []models.Task
-	err = service.GetCollection[models.Task]().Aggregate(pipelines, nil).All(&tasks)
+	var tasks []models.TaskDTO
+	err = service.GetCollection[models.TaskDTO]().Aggregate(pipelines, nil).All(&tasks)
 	if err != nil {
-		return GetErrorResponse[models.Task](err)
+		return GetErrorResponse[models.TaskDTO](err)
 	}
 
 	// check results
@@ -52,12 +52,12 @@ func GetTaskById(_ *gin.Context, params *GetTaskByIdParams) (response *Response[
 	return GetDataResponse(tasks[0])
 }
 
-func GetTaskList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.Task], err error) {
+func GetTaskList(_ *gin.Context, params *GetListParams) (response *ListResponse[models.TaskDTO], err error) {
 	// query parameters
 	query := ConvertToBsonMFromListParams(params)
 	sort, err := GetSortOptionFromString(params.Sort)
 	if err != nil {
-		return GetErrorListResponse[models.Task](err)
+		return GetErrorListResponse[models.TaskDTO](err)
 	}
 	skip, limit := GetSkipLimitFromListParams(params)
 
@@ -76,14 +76,14 @@ func GetTaskList(_ *gin.Context, params *GetListParams) (response *ListResponse[
 	}
 
 	// total
-	total, err := service.NewModelService[models.Task]().Count(query)
+	total, err := service.NewModelService[models.TaskDTO]().Count(query)
 	if err != nil {
-		return GetErrorListResponse[models.Task](err)
+		return GetErrorListResponse[models.TaskDTO](err)
 	}
 
 	// check total
 	if total == 0 {
-		return GetEmptyListResponse[models.Task]()
+		return GetEmptyListResponse[models.TaskDTO]()
 	}
 
 	// aggregation pipelines
@@ -91,10 +91,10 @@ func GetTaskList(_ *gin.Context, params *GetListParams) (response *ListResponse[
 	pipelines = addTaskPipelines(pipelines)
 
 	// perform query
-	var tasks []models.Task
-	err = service.GetCollection[models.Task]().Aggregate(pipelines, nil).All(&tasks)
+	var tasks []models.TaskDTO
+	err = service.GetCollection[models.TaskDTO]().Aggregate(pipelines, nil).All(&tasks)
 	if err != nil {
-		return GetErrorListResponse[models.Task](err)
+		return GetErrorListResponse[models.TaskDTO](err)
 	}
 
 	return GetListResponse(tasks, total)

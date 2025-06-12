@@ -100,13 +100,10 @@ const actions = {
   ...getDefaultStoreActions<Spider>(endpoint),
   ...getBaseFileStoreActions<SpiderStoreState>(endpoint),
   getList: async ({ state, commit }: StoreActionContext<SpiderStoreState>) => {
-    const payload = {
+    const res = await getList(`/spiders`, {
       ...state.tablePagination,
-      conditions: JSON.stringify(state.tableListFilter),
-      // sort: JSON.stringify(state.tableListSort),
-      stats: true,
-    };
-    const res = await getList(`/spiders`, payload);
+      filter: JSON.stringify(state.tableListFilter),
+    });
     commit('setTableData', { data: res.data || [], total: res.total });
     return res;
   },

@@ -24,6 +24,7 @@ const {
   activeProvider,
   activeProviderOption,
   allProviderNames,
+  validateForm,
 } = useNotificationChannel(store);
 
 const smtpPasswordVisible = ref(false);
@@ -89,6 +90,11 @@ const hasProvider = computed(
 );
 
 const showTelegramBotToken = ref(false);
+
+
+defineExpose({
+  validateForm,
+});
 
 defineOptions({ name: 'ClNotificationChannelForm' });
 </script>

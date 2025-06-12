@@ -23,3 +23,9 @@ type Schedule struct {
 	// associated data
 	Spider *Spider `json:"spider" bson:"_spider" description:"Spider"`
 }
+
+type ScheduleDTO struct {
+	Schedule `json:",inline" bson:",inline"`
+
+	Spider *Spider `json:"spider,omitempty" bson:"_spider,omitempty"`
+}

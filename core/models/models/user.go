@@ -16,3 +16,9 @@ type User struct {
 	RootAdminRole bool               `json:"root_admin_role,omitempty" bson:"-"`
 	Routes        []string           `json:"routes,omitempty" bson:"-"`
 }
+
+type UserDTO struct {
+	User `json:",inline" bson:",inline"`
+
+	RoleInfo *Role `json:"role_info,omitempty" bson:"_role,omitempty"`
+}

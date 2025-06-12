@@ -25,12 +25,6 @@ type Spider struct {
 	Cmd      string `json:"cmd" bson:"cmd" description:"Execute command"`
 	Param    string `json:"param" bson:"param" description:"Default task param"`
 	Priority int    `json:"priority" bson:"priority" description:"Priority" default:"5" minimum:"1" maximum:"10"`
-
-	Stat     *SpiderStat `json:"stat,omitempty" bson:"_stat,omitempty"`
-	LastTask *Task       `json:"last_task,omitempty" bson:"_last_task,omitempty"`
-	Project  *Project    `json:"project,omitempty" bson:"_project,omitempty"`
-	Git      *Git        `json:"git,omitempty" bson:"_git,omitempty"`
-	Database *Database   `json:"database,omitempty" bson:"_database,omitempty"`
 }
 
 type SpiderTemplateParams struct {
@@ -38,4 +32,14 @@ type SpiderTemplateParams struct {
 	SpiderName     string `json:"spider_name,omitempty" bson:"spider_name,omitempty" description:"Spider name"`
 	StartUrls      string `json:"start_urls,omitempty" bson:"start_urls,omitempty" description:"Start urls"`
 	AllowedDomains string `json:"allowed_domains,omitempty" bson:"allowed_domains,omitempty" description:"Allowed domains"`
+}
+
+type SpiderDTO struct {
+	Spider `json:",inline" bson:",inline"`
+
+	Stat     *SpiderStat `json:"stat,omitempty" bson:"_stat,omitempty"`
+	LastTask *Task       `json:"last_task,omitempty" bson:"_last_task,omitempty"`
+	Project  *Project    `json:"project,omitempty" bson:"_project,omitempty"`
+	Git      *Git        `json:"git,omitempty" bson:"_git,omitempty"`
+	Database *Database   `json:"database,omitempty" bson:"_database,omitempty"`
 }

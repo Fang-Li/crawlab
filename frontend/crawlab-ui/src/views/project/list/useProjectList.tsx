@@ -98,7 +98,7 @@ const useProjectList = () => {
           value: (row: Project) => (
             <ClNavLink
               path={`/projects/${row._id}/spiders`}
-              label={row.spiders || '0'}
+              label={row.spiders?.length || '0'}
             />
           ),
           width: '120',
@@ -146,7 +146,7 @@ const useProjectList = () => {
   );
 
   const selectableFunction = (row: Project) => {
-    return row.spiders === 0;
+    return !row.spiders?.length;
   };
 
   // options

@@ -17,11 +17,16 @@ type Git struct {
 	CurrentBranch string       `json:"current_branch" bson:"current_branch" description:"Current branch"`
 	Status        string       `json:"status" bson:"status" description:"Status"`
 	Error         string       `json:"error" bson:"error" description:"Error"`
-	Spiders       []Spider     `json:"spiders,omitempty" bson:"-" binding:"-"`
 	Refs          []vcs.GitRef `json:"refs" bson:"refs" description:"Refs"`
 	RefsUpdatedAt time.Time    `json:"refs_updated_at" bson:"refs_updated_at" description:"Refs updated at"`
 	CloneLogs     []string     `json:"clone_logs,omitempty" bson:"clone_logs" description:"Clone logs"`
 
 	// settings
 	AutoPull bool `json:"auto_pull" bson:"auto_pull" description:"Auto pull"`
+}
+
+type GitDTO struct {
+	Git `json:",inline" bson:",inline"`
+
+	Spiders []Spider `json:"spiders,omitempty" bson:"_spiders,omitempty" description:"Spiders"`
 }
