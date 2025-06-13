@@ -3,19 +3,20 @@ import { computed, onBeforeMount, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { EMPTY_OBJECT_ID, translate } from '@/utils';
-import { useDatabase } from '@/components';
 import useRequest from '@/services/request';
 import { useSpiderDetail } from '@/views';
 import { debounce } from 'lodash';
 import { DATABASE_STATUS_OFFLINE } from '@/constants/database';
+import { getDatabaseName } from '@/utils/database';
 
 const t = translate;
+
+const { get } = useRequest();
 
 // store
 const ns = 'spider';
 const store = useStore();
-const { spider: state, database: databaseState } =
-  store.state as RootStoreState;
+const { spider: state } = store.state as RootStoreState;
 
 // display all fields
 const displayAllFields = ref<boolean>(state.dataDisplayAllFields);
@@ -27,30 +28,15 @@ const form = computed(() => state.form);
 
 const { activeId } = useSpiderDetail();
 
-const allDatabaseSelectOptions = computed<SelectOption[]>(() => {
-  // TODO: implement
-  return [];
-  // return databaseState.allList.map(db => {
-  //   const value = db._id;
-  //   let dbName = db.name;
-  //   if (db._id === EMPTY_OBJECT_ID) {
-  //     dbName = t('components.database.default.name');
-  //   }
-  //   let label = dbName;
-  //   if (db.status === DATABASE_STATUS_OFFLINE) {
-  //     label = `${dbName} (${t('components.database.status.label.offline')})`;
-  //   }
-  //   return {
-  //     value,
-  //     label,
-  //   };
-  // });
-});
+const allDatabases = ref<Database[]>([]);
+const getAllDatabases = async () => {
+  const res = await get<Database[]>('/databases', { size: 100 });
+  allDatabases.value = res.data || [];
+};
+onBeforeMount(getAllDatabases);
 
 const currentDatabase = computed<Database | undefined>(() => {
-  // TODO: implement
-  return undefined;
-  // return allDatabaseDict.value.get(databaseId.value) as Database | undefined;
+  return allDatabases.value.find(db => db._id === databaseId.value);
 });
 
 const isDatabaseOffline = computed(() => {
@@ -58,6 +44,9 @@ const isDatabaseOffline = computed(() => {
 });
 
 const isDatabaseTableMissing = computed(() => {
+  if (currentDatabase.value?.data_source === 'mongo') {
+    return false;
+  }
   if (isMultiDatabases.value) {
     return !databaseTableSelectOptions.value.some(
       op =>
@@ -115,11 +104,9 @@ watch(
   }
 );
 const getDataSourceByDatabaseId = (id: string): DatabaseDataSource => {
-  // TODO: implement
-  return 'mongo';
-  // const db = allDatabaseDict.value.get(id) as Database | undefined;
-  // if (!db?.data_source) return 'mongo';
-  // return db.data_source;
+  const db = allDatabases.value.find(db => db._id === id) as Database;
+  if (!db?.data_source) return 'mongo';
+  return db.data_source;
 };
 
 // database table options
@@ -212,19 +199,19 @@ defineOptions({ name: 'ClSpiderDetailActionsData' });
           </div>
         </template>
         <el-option
-          v-for="(op, $index) in allDatabaseSelectOptions"
-          :key="$index"
-          :label="op.label"
-          :value="op.value"
+          v-for="db in allDatabases"
+          :key="db._id"
+          :label="getDatabaseName(db)"
+          :value="db._id"
         >
           <div>
             <cl-database-data-source
-              :data-source="getDataSourceByDatabaseId(op.value)"
+              :data-source="getDataSourceByDatabaseId(db._id!)"
               icon-only
             />
-            <span style="margin: 5px">{{ op.label }}</span>
+            <span style="margin: 5px">{{ getDatabaseName(db) }}</span>
             <cl-icon
-              v-if="op.value === EMPTY_OBJECT_ID"
+              v-if="db._id === EMPTY_OBJECT_ID"
               color="var(--cl-warning-color)"
               :icon="['fa', 'star']"
             />

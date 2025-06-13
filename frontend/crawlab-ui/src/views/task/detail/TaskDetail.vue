@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { useStore } from 'vuex';
 import { useTaskDetail } from '@/views';
-import { useTask } from '@/components';
 import { formatTimeAgo, isPro } from '@/utils';
 
 const { activeTabName } = useTaskDetail();
-
-const store = useStore();
-const { allListSelectOptions } = useTask(store);
 
 const navItemLabelFn = (item: NavItem<Task>) => {
   if (!item.data) return item.label;
@@ -22,7 +17,6 @@ defineOptions({ name: 'ClTaskDetail' });
 <template>
   <cl-detail-layout
     store-namespace="task"
-    :all-list-select-options="allListSelectOptions"
     :nav-item-label-fn="navItemLabelFn"
   >
     <template #actions>

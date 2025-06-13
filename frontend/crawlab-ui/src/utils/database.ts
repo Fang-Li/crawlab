@@ -1,4 +1,5 @@
 import { translate } from '@/utils/i18n';
+import { EMPTY_OBJECT_ID } from '@/utils/mongo';
 
 const t = translate;
 
@@ -465,3 +466,10 @@ export const getDatabaseAllMetricGroups = (): MetricGroup<DatabaseMetric>[] => [
     format: 'duration',
   },
 ];
+
+export const getDatabaseName = (database: Database) => {
+  if (database._id === EMPTY_OBJECT_ID) {
+    return t('components.database.dataSources.default');
+  }
+  return database.name;
+};

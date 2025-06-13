@@ -15,7 +15,6 @@ const props = withDefaults(
     navItemNameKey?: string;
     showBackButton?: boolean;
     showSaveButton?: boolean;
-    allListSelectOptions?: SelectOption[];
     navItemLabelFn?: (item: NavItem) => string;
   }>(),
   {

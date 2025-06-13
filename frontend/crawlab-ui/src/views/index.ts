@@ -68,7 +68,6 @@ import ScheduleList from './schedule/list/ScheduleList.vue';
 import SpiderDetail from './spider/detail/SpiderDetail.vue';
 import SpiderDetailActionsCommon from './spider/detail/actions/SpiderDetailActionsCommon.vue';
 import SpiderDetailActionsData from './spider/detail/actions/SpiderDetailActionsData.vue';
-import SpiderDetailActionsDatabase from './spider/detail/actions/SpiderDetailActionsDatabase.vue';
 import SpiderDetailActionsFiles from './spider/detail/actions/SpiderDetailActionsFiles.vue';
 import SpiderDetailTabData from './spider/detail/tabs/SpiderDetailTabData.vue';
 import SpiderDetailTabDependencies from './spider/detail/tabs/SpiderDetailTabDependencies.vue';
@@ -195,7 +194,6 @@ export {
   SpiderDetail as ClSpiderDetail,
   SpiderDetailActionsCommon as ClSpiderDetailActionsCommon,
   SpiderDetailActionsData as ClSpiderDetailActionsData,
-  SpiderDetailActionsDatabase as ClSpiderDetailActionsDatabase,
   SpiderDetailActionsFiles as ClSpiderDetailActionsFiles,
   SpiderDetailTabData as ClSpiderDetailTabData,
   SpiderDetailTabDependencies as ClSpiderDetailTabDependencies,

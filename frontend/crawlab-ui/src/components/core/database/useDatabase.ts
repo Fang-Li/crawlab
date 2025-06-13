@@ -88,16 +88,6 @@ export const useDatabase = (store: Store<RootStoreState>) => {
     store.commit(`${ns}/setForm`, { ...form });
   };
 
-  const allListSelectOptions = computed<SelectOption[]>(
-    () =>
-      store.getters[`${ns}/allListSelectOptions`]?.map((op: SelectOption) => {
-        if (op.value === EMPTY_OBJECT_ID) {
-          return { ...op, label: t('components.database.default.name') };
-        }
-        return op;
-      }) || []
-  );
-
   return {
     ...useForm<Database>(
       ns,
@@ -107,7 +97,6 @@ export const useDatabase = (store: Store<RootStoreState>) => {
     ),
     formRules,
     dataSourceOptions,
-    allListSelectOptions,
     getTypeOptionsWithDefault,
     onChangePasswordFunc,
     onHostsAdd,

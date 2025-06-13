@@ -28,18 +28,18 @@ const { form } = useSpider(store);
 
 const databaseMetadata = computed(() => state.databaseMetadata);
 const getDatabaseMetadata = debounce(async () => {
-  if (!form.value?.data_source_id) return;
-  await store.dispatch(`${ns}/getDatabaseMetadata`, form.value.data_source_id);
+  if (!form.value?.database_id) return;
+  await store.dispatch(`${ns}/getDatabaseMetadata`, form.value.database_id);
 });
-watch(() => form.value?.data_source_id, getDatabaseMetadata);
+watch(() => form.value?.database_id, getDatabaseMetadata);
 onBeforeMount(getDatabaseMetadata);
 
 const activeTable = ref<DatabaseTable>();
 const getActiveTable = debounce(async () => {
-  const { data_source_id, db_name, col_name } = form.value;
-  if (!data_source_id || !col_name) return;
+  const { database_id, db_name, col_name } = form.value;
+  if (!database_id || !col_name) return;
   const res = await post<any, Promise<ResponseWithData>>(
-    `/databases/${data_source_id}/tables/metadata/get`,
+    `/databases/${database_id}/tables/metadata/get`,
     {
       database: db_name,
       table: col_name,
@@ -110,7 +110,7 @@ defineOptions({ name: 'ClSpiderResultDataWithDatabase' });
         v-if="activeTable"
         ref="dataRef"
         :active-table="activeTable"
-        :active-id="form?.data_source_id || EMPTY_OBJECT_ID"
+        :active-id="form?.database_id || EMPTY_OBJECT_ID"
         :database-name="form?.db_name"
         :filter="dataFilter"
         :display-all-fields="displayAllFields"

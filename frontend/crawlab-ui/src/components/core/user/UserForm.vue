@@ -45,8 +45,6 @@ const form = computed<User>(() => {
   return userForm.value;
 });
 
-const { allListSelectOptions: allRolesSelectOptions } = useRole(store);
-
 defineOptions({ name: 'ClUserForm' });
 </script>
 
@@ -167,17 +165,11 @@ defineOptions({ name: 'ClUserForm' });
       required
     >
       <template v-if="isPro()">
-        <el-select
+        <cl-remote-select
           v-model="form.role_id"
+          endpoint="/roles"
           :disabled="form.root_admin || isFormItemDisabled('role_id')"
-        >
-          <el-option
-            v-for="op in allRolesSelectOptions"
-            :key="op.value"
-            :value="op.value"
-            :label="op.label"
-          />
-        </el-select>
+        />
       </template>
       <template v-else>
         <el-select v-model="form.role" :disabled="isFormItemDisabled('role')">

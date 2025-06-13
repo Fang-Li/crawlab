@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { useStore } from 'vuex';
 import { useDatabaseDetail } from '@/views';
 import { TAB_NAME_CONSOLE } from '@/constants';
-import { useDatabase } from '@/components';
 
 const { activeTabName } = useDatabaseDetail();
-
-const store = useStore();
-const { allListSelectOptions } = useDatabase(store);
 
 defineOptions({ name: 'ClDatabaseDetail' });
 </script>
@@ -15,7 +10,6 @@ defineOptions({ name: 'ClDatabaseDetail' });
 <template>
   <cl-detail-layout
     store-namespace="database"
-    :all-list-select-options="allListSelectOptions"
   >
     <template #actions>
       <cl-database-detail-actions-common />
