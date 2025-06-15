@@ -80,94 +80,101 @@ defineOptions({ name: 'ClSystemDetailTabCustomize' });
 </script>
 
 <template>
-  <cl-form v-if="form?.value" ref="formRef" :model="form.value" label-width="200px">
-    <cl-form-item
-      :span="4"
-      :label="t('views.system.customize.showCustomTitle')"
-      prop="show_custom_title"
+  <el-scrollbar>
+    <cl-form
+      v-if="form?.value"
+      ref="formRef"
+      :model="form.value"
+      label-width="200px"
     >
-      <cl-switch v-model="form.value.show_custom_title" @change="onSave" />
-    </cl-form-item>
-    <cl-form-item
-      :span="4"
-      :label="t('views.system.customize.customTitle')"
-      prop="custom_title"
-      :required="form.value.show_custom_title"
-    >
-      <cl-edit-input
-        v-model="form.value.custom_title"
-        :disabled="!form.value.show_custom_title"
-        :placeholder="t('views.system.customize.customTitle')"
-        @change="onSave"
-      />
-    </cl-form-item>
-
-    <el-divider />
-
-    <cl-form-item
-      :span="4"
-      :label="t('views.system.customize.showCustomLogo')"
-      prop="show_custom_logo"
-    >
-      <cl-switch v-model="form.value.show_custom_logo" @change="onSave" />
-    </cl-form-item>
-    <cl-form-item
-      :span="4"
-      :label="t('views.system.customize.customLogo')"
-      prop="custom_logo"
-      :required="form.value.show_custom_logo"
-    >
-      <div
-        class="site-logo"
-        :class="!form.value.show_custom_logo ? 'disabled' : ''"
+      <cl-form-item
+        :span="4"
+        :label="t('views.system.customize.showCustomTitle')"
+        prop="show_custom_title"
       >
-        <el-upload
-          ref="customLogoUploadRef"
-          :auto-upload="false"
-          :show-file-list="false"
-          :disabled="!form.value.show_custom_logo"
-          :on-change="onUploadCustomLogo"
-          :on-remove="
+        <cl-switch v-model="form.value.show_custom_title" @change="onSave" />
+      </cl-form-item>
+      <cl-form-item
+        :span="4"
+        :label="t('views.system.customize.customTitle')"
+        prop="custom_title"
+        :required="form.value.show_custom_title"
+      >
+        <cl-edit-input
+          v-model="form.value.custom_title"
+          :disabled="!form.value.show_custom_title"
+          :placeholder="t('views.system.customize.customTitle')"
+          @change="onSave"
+        />
+      </cl-form-item>
+
+      <el-divider />
+
+      <cl-form-item
+        :span="4"
+        :label="t('views.system.customize.showCustomLogo')"
+        prop="show_custom_logo"
+      >
+        <cl-switch v-model="form.value.show_custom_logo" @change="onSave" />
+      </cl-form-item>
+      <cl-form-item
+        :span="4"
+        :label="t('views.system.customize.customLogo')"
+        prop="custom_logo"
+        :required="form.value.show_custom_logo"
+      >
+        <div
+          class="site-logo"
+          :class="!form.value.show_custom_logo ? 'disabled' : ''"
+        >
+          <el-upload
+            ref="customLogoUploadRef"
+            :auto-upload="false"
+            :show-file-list="false"
+            :disabled="!form.value.show_custom_logo"
+            :on-change="onUploadCustomLogo"
+            :on-remove="
             async () => {
               form.value.custom_logo = '';
               await save();
             }
           "
-        >
-          <div v-if="form.value.custom_logo" class="site-logo-img-wrapper">
-            <img
-              :src="form.value.custom_logo"
-              class="site-logo-img"
-              alt="logo"
-            />
-            <div class="actions">
-              <el-icon class="remove-button" @click.stop="onCustomLogoRemove">
-                <Delete />
-              </el-icon>
+          >
+            <div v-if="form.value.custom_logo" class="site-logo-img-wrapper">
+              <img
+                :src="form.value.custom_logo"
+                class="site-logo-img"
+                alt="logo"
+              />
+              <div class="actions">
+                <el-icon class="remove-button" @click.stop="onCustomLogoRemove">
+                  <Delete />
+                </el-icon>
+              </div>
             </div>
-          </div>
-          <el-icon v-else class="site-logo-uploader-icon">
-            <Plus />
-          </el-icon>
-          <template #tip>
-            <div class="el-upload__tip">
-              {{ t('views.system.customize.uploadLogoTip') }}
-            </div>
-          </template>
-        </el-upload>
-      </div>
-    </cl-form-item>
+            <el-icon v-else class="site-logo-uploader-icon">
+              <Plus />
+            </el-icon>
+            <template #tip>
+              <div class="el-upload__tip">
+                {{ t('views.system.customize.uploadLogoTip') }}
+              </div>
+            </template>
+          </el-upload>
+        </div>
+      </cl-form-item>
 
-    <el-divider />
+      <el-divider />
 
-    <cl-form-item
-      :span="4"
-      :label="t('views.system.customize.hidePlatformVersion')"
-      prop="hide_platform_version"
-    >
-      <cl-switch v-model="form.value.hide_platform_version" @change="onSave" />
-    </cl-form-item>
-  </cl-form>
+      <cl-form-item
+        :span="4"
+        :label="t('views.system.customize.hidePlatformVersion')"
+        prop="hide_platform_version"
+      >
+        <cl-switch v-model="form.value.hide_platform_version" @change="onSave" />
+      </cl-form-item>
+    </cl-form>
+  </el-scrollbar>
 </template>
 
 <style scoped>

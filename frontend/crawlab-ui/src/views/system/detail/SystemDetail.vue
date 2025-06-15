@@ -77,7 +77,7 @@ defineOptions({ name: 'ClSystemDetail' });
 <style scoped>
 .system-detail {
   background-color: #ffffff;
-  min-height: 100%;
+  height: calc(100vh - var(--cl-header-height) - var(--cl-tabs-view-height));
   display: flex;
   overflow: hidden;
 
