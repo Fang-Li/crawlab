@@ -27,6 +27,10 @@ type ModelService[T any] struct {
 	col *mongo.Col
 }
 
+func (svc *ModelService[T]) GetCol() (col *mongo.Col) {
+	return svc.col
+}
+
 func (svc *ModelService[T]) GetById(id primitive.ObjectID) (model *T, err error) {
 	var result T
 	err = svc.col.FindId(id).One(&result)
@@ -252,6 +256,7 @@ func (svc *ModelService[T]) InsertManyContext(ctx context.Context, models []T) (
 	}
 	return ids, nil
 }
+
 func (svc *ModelService[T]) UpsertOne(query bson.M, model T) (id primitive.ObjectID, err error) {
 	opts := options.ReplaceOptions{}
 	opts.SetUpsert(true)
@@ -295,8 +300,24 @@ func (svc *ModelService[T]) Count(query bson.M) (total int, err error) {
 	return svc.col.Count(query)
 }
 
-func (svc *ModelService[T]) GetCol() (col *mongo.Col) {
-	return svc.col
+func (svc *ModelService[T]) AggregateAll(pipeline []bson.D, result any) (err error) {
+	return svc.AggregateWithOptionsAll(pipeline, nil, result)
+}
+
+func (svc *ModelService[T]) AggregateWithOptionsAll(pipeline []bson.D, opts *options.AggregateOptions, result any) (err error) {
+	return svc.aggregateWithOptions(pipeline, opts).All(result)
+}
+
+func (svc *ModelService[T]) AggregateOne(pipeline []bson.D, result any) (err error) {
+	return svc.AggregateWithOptionsOne(pipeline, nil, result)
+}
+
+func (svc *ModelService[T]) AggregateWithOptionsOne(pipeline []bson.D, opts *options.AggregateOptions, result any) (err error) {
+	return svc.aggregateWithOptions(pipeline, opts).One(result)
+}
+
+func (svc *ModelService[T]) aggregateWithOptions(pipeline []bson.D, opts *options.AggregateOptions) (fr *mongo.FindResult) {
+	return svc.GetCol().Aggregate(pipeline, opts)
 }
 
 func GetCollectionNameByInstance(v any) string {
