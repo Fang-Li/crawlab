@@ -5,7 +5,7 @@ import useAutoProbeService from '@/services/autoprobe/autoprobeService';
 import { getDefaultFormComponentData } from '@/utils/form';
 
 // form component data
-const formComponentData = getDefaultFormComponentData<AutoProbe>();
+const formComponentData = getDefaultFormComponentData<AutoProbeV2>();
 
 const useAutoProbe = (store: Store<RootStoreState>) => {
   // store
@@ -20,7 +20,7 @@ const useAutoProbe = (store: Store<RootStoreState>) => {
   };
 
   return {
-    ...useForm<AutoProbe>(
+    ...useForm<AutoProbeV2>(
       'autoprobe',
       store,
       useAutoProbeService(store),

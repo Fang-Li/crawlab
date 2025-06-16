@@ -34,7 +34,7 @@ const useAutoProbeList = () => {
   const store = useStore();
   const { commit } = store;
 
-  const { actionFunctions } = useList<AutoProbe>(ns, store);
+  const { actionFunctions } = useList<AutoProbeV2>(ns, store);
   const { getList, deleteByIdConfirm } = actionFunctions;
 
   // nav actions
@@ -79,7 +79,7 @@ const useAutoProbeList = () => {
   ]);
 
   // table columns
-  const tableColumns = computed<TableColumns<AutoProbe>>(
+  const tableColumns = computed<TableColumns<AutoProbeV2>>(
     () =>
       [
         {
@@ -88,7 +88,7 @@ const useAutoProbeList = () => {
           label: t('views.autoprobe.table.columns.name'),
           icon: ['fa', 'font'],
           width: '150',
-          value: (row: AutoProbe) => (
+          value: (row: AutoProbeV2) => (
             <ClNavLink path={`/autoprobes/${row._id}`} label={row.name} />
           ),
           hasSort: true,
@@ -101,7 +101,7 @@ const useAutoProbeList = () => {
           icon: ['fa', 'at'],
           width: 'auto',
           minWidth: '200',
-          value: (row: AutoProbe) => (
+          value: (row: AutoProbeV2) => (
             <ClNavLink path={row.url} label={row.url} external />
           ),
           hasFilter: true,
@@ -112,7 +112,7 @@ const useAutoProbeList = () => {
           label: t('views.autoprobe.table.columns.lastTask'),
           icon: ['fa', 'heartbeat'],
           width: '120',
-          value: (row: AutoProbe) => {
+          value: (row: AutoProbeV2) => {
             const status = row.last_task_status;
             const error = row.last_task_error;
             if (!status) return;
@@ -188,14 +188,14 @@ const useAutoProbeList = () => {
           ],
           disableTransfer: true,
         },
-      ] as TableColumns<AutoProbe>
+      ] as TableColumns<AutoProbeV2>
   );
 
-  const rowKey = (row: AutoProbe) => {
+  const rowKey = (row: AutoProbeV2) => {
     return JSON.stringify([
       row._id,
       row.url,
-      row.last_task?.status,
+      row.last_task_status,
       row.page_pattern,
     ]);
   };
@@ -203,7 +203,7 @@ const useAutoProbeList = () => {
   setupAutoUpdate(getList);
 
   return {
-    ...useList<AutoProbe>(ns, store),
+    ...useList<AutoProbeV2>(ns, store),
     navActions,
     tableColumns,
     rowKey,

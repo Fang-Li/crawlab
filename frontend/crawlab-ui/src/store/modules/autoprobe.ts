@@ -16,10 +16,10 @@ import { getViewPortOptions } from '@/utils';
 // i18n
 const t = translate;
 
-const { post } = useRequest();
+const { get, post } = useRequest();
 
 const state = {
-  ...getDefaultStoreState<AutoProbe>('autoprobe'),
+  ...getDefaultStoreState<AutoProbeV2>('autoprobe'),
   newFormFn: () => {
     return {
       run_on_create: true,
@@ -37,11 +37,11 @@ const state = {
 } as AutoProbeStoreState;
 
 const getters = {
-  ...getDefaultStoreGetters<AutoProbe>(),
+  ...getDefaultStoreGetters<AutoProbeV2>(),
 } as AutoProbeStoreGetters;
 
 const mutations = {
-  ...getDefaultStoreMutations<AutoProbe>(),
+  ...getDefaultStoreMutations<AutoProbeV2>(),
   setPagePattern(state: AutoProbeStoreState, pagePattern: PagePatternV2) {
     state.pagePattern = pagePattern;
   },
@@ -62,7 +62,7 @@ const mutations = {
 const endpoint = '/ai/autoprobes';
 
 const actions = {
-  ...getDefaultStoreActions<AutoProbe>(endpoint),
+  ...getDefaultStoreActions<AutoProbeV2>(endpoint),
   runTask: async (
     _: StoreActionContext<AutoProbeStoreState>,
     { id }: { id: string }
@@ -76,18 +76,46 @@ const actions = {
     await post(`${endpoint}/tasks/${id}/cancel`);
   },
   getPagePattern: async (
-    { commit }: StoreActionContext<AutoProbeStoreState>,
+    { commit, state }: StoreActionContext<AutoProbeStoreState>,
     { id }: { id: string }
   ) => {
-    const res = await post(`${endpoint}/${id}/pattern`);
+    const res = await get(`${endpoint}/${id}/pattern`);
     commit('setPagePattern', res.data);
+    
+    // Also update the form data so the component can access it
+    if (state.form) {
+      commit('setForm', {
+        ...state.form,
+        page_pattern: res.data
+      });
+    }
   },
   getPagePatternData: async (
-    { commit }: StoreActionContext<AutoProbeStoreState>,
+    { commit, state }: StoreActionContext<AutoProbeStoreState>,
     { id }: { id: string }
   ) => {
-    const res = await post(`${endpoint}/${id}/pattern/data`);
+    const res = await get(`${endpoint}/${id}/pattern/results`);
     commit('setPagePatternData', res.data);
+    
+    // Transform PatternDataV2[] array into structured page data object
+    const structuredData: Record<string, any> = {};
+    if (Array.isArray(res.data)) {
+      res.data.forEach((patternData: any) => {
+        // For now, just use a simple mapping - we might need to enhance this later
+        // based on how the pattern hierarchy should map to data
+        if (patternData.pattern_id && patternData.data !== undefined) {
+          structuredData[patternData.pattern_id] = patternData.data;
+        }
+      });
+    }
+    
+    // Also update the form data so the component can access it
+    if (state.form) {
+      commit('setForm', {
+        ...state.form,
+        page_data: structuredData
+      });
+    }
   },
 } as AutoProbeStoreActions;
 

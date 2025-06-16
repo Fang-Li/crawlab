@@ -3,11 +3,11 @@ import { getDefaultService } from '@/utils';
 
 const useAutoProbeService = (
   store: Store<RootStoreState>
-): Services<AutoProbe> => {
+): Services<AutoProbeV2> => {
   const ns: ListStoreNamespace = 'autoprobe';
 
   return {
-    ...getDefaultService<AutoProbe>(ns, store),
+    ...getDefaultService<AutoProbeV2>(ns, store),
   };
 };
 

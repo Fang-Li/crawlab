@@ -16,10 +16,8 @@ const { autoprobe: state } = store.state as RootStoreState;
 const { activeId } = useAutoProbeDetail();
 
 // form data
-const form = computed<AutoProbe>(() => state.form);
-const pageFields = computed(() => form.value?.page_pattern?.fields);
-const pageLists = computed(() => form.value?.page_pattern?.lists);
-const pagePagination = computed(() => form.value?.page_pattern?.pagination);
+const form = computed<AutoProbeV2>(() => state.form);
+const pagePattern = computed(() => form.value?.page_pattern as PagePatternV2);
 const pageData = computed<PageData>(() => form.value?.page_data || {});
 const pageNavItemId = 'page';
 
@@ -27,7 +25,7 @@ const pageNavItemId = 'page';
 const resultsDataFields = computed<AutoProbeResults>(() => {
   const rootDataFields: AutoProbeResults = {
     data: pageData.value,
-    fields: computedTreeItems.value[0].children?.filter(
+    fields: computedTreeItems.value[0]?.children?.filter(
       item => item.type !== 'pagination'
     ),
   };
@@ -42,8 +40,11 @@ const resultsDataFields = computed<AutoProbeResults>(() => {
     return rootDataFields;
   } else if (item.level === 1) {
     if (item.type === 'list') {
+      // For V2 patterns, use pattern ID to get the data
+      const pattern = item.rule as PatternV2;
+      const patternId = pattern._id || pattern.name;
       return {
-        data: pageData.value[item.name!],
+        data: pageData.value[patternId],
         fields: item.children,
       } as AutoProbeResults;
     }
@@ -56,8 +57,11 @@ const resultsDataFields = computed<AutoProbeResults>(() => {
     while (currentItem.parent) {
       const parent = currentItem.parent;
       if (parent.level === 1 && parent.type === 'list') {
+        // For V2 patterns, use pattern ID to get the data
+        const parentPattern = parent.rule as PatternV2;
+        const parentPatternId = parentPattern._id || parentPattern.name;
         return {
-          data: pageData.value[parent.name!],
+          data: pageData.value[parentPatternId],
           fields: parent.children,
           activeField: currentItem,
         } as AutoProbeResults;
@@ -75,8 +79,9 @@ const normalizeItem = (item: AutoProbeNavItem) => {
   const label = item.label ?? `${item.name} (${item.children?.length || 0})`;
   let icon: Icon;
   if (item.type === 'field') {
-    const field = item.rule as FieldRule;
-    icon = getIconByExtractType(field.extraction_type);
+    // For V2 patterns, extraction_type is directly on the pattern object
+    const pattern = item.rule as PatternV2;
+    icon = getIconByExtractType(pattern.extraction_type);
   } else {
     icon = getIconByItemType(item.type);
   }
@@ -87,47 +92,30 @@ const normalizeItem = (item: AutoProbeNavItem) => {
   } as AutoProbeNavItem;
 };
 
-// Helper function to recursively process list items
-const processListItem = (
-  list: ListRule,
+// Helper function to recursively process V2 patterns
+const processPatternV2 = (
+  pattern: PatternV2,
   parent?: AutoProbeNavItem,
   level: number = 1
 ): AutoProbeNavItem => {
-  const listItem: AutoProbeNavItem = {
-    id: list.name,
-    name: list.name,
-    type: 'list',
-    rule: list,
+  const navItem: AutoProbeNavItem = {
+    id: pattern._id || pattern.name,
+    name: pattern.name,
+    type: pattern.type as AutoProbeItemType,
+    rule: pattern as any, // PatternV2 structure is compatible, just cast for type compatibility
     children: [],
     parent,
     level,
   };
 
-  // Add fields directly if they exist
-  if (list.item_pattern?.fields && list.item_pattern.fields.length > 0) {
-    list.item_pattern.fields.forEach((field: FieldRule) => {
-      listItem.children!.push(
-        normalizeItem({
-          id: `${list.name}-${field.name}`,
-          label: field.name,
-          name: field.name,
-          type: 'field',
-          rule: field,
-          parent: listItem,
-          level: level + 1,
-        })
-      );
+  // Recursively process child patterns
+  if (pattern.children && pattern.children.length > 0) {
+    pattern.children.forEach((childPattern: PatternV2) => {
+      navItem.children!.push(processPatternV2(childPattern, navItem, level + 1));
     });
   }
 
-  // Recursively process nested lists if they exist
-  if (list.item_pattern?.lists && list.item_pattern.lists.length > 0) {
-    list.item_pattern.lists.forEach((nestedList: ListRule) => {
-      listItem.children!.push(processListItem(nestedList, listItem, level + 1));
-    });
-  }
-
-  return normalizeItem(listItem);
+  return normalizeItem(navItem);
 };
 
 // items
@@ -144,53 +132,21 @@ const detailNavItem = computed<AutoProbeNavItem | undefined>(() => {
   }
 });
 const computedTreeItems = computed<AutoProbeNavItem[]>(() => {
-  if (!form.value?.page_pattern) return [];
+  if (!pagePattern.value) return [];
 
   const rootItem: AutoProbeNavItem = {
     id: pageNavItemId,
-    name: form.value.page_pattern.name,
+    name: pagePattern.value.name,
     type: 'page_pattern',
     children: [],
     level: 0,
   };
 
-  // Add fields directly if they exist
-  if (pageFields.value) {
-    pageFields.value.forEach(field => {
-      rootItem.children!.push(
-        normalizeItem({
-          id: field.name,
-          label: field.name,
-          name: field.name,
-          type: 'field',
-          rule: field,
-          parent: rootItem,
-          level: 1,
-        })
-      );
+  // Process V2 pattern children
+  if (pagePattern.value.children && pagePattern.value.children.length > 0) {
+    pagePattern.value.children.forEach(pattern => {
+      rootItem.children!.push(processPatternV2(pattern, rootItem, 1));
     });
-  }
-
-  // Add lists directly if they exist
-  if (pageLists.value) {
-    pageLists.value.forEach(list => {
-      rootItem.children!.push(processListItem(list, rootItem, 1));
-    });
-  }
-
-  // Add pagination if it exists
-  if (pagePagination.value) {
-    rootItem.children!.push(
-      normalizeItem({
-        id: 'pagination',
-        label: t('components.autoprobe.navItems.pagination'),
-        name: t('components.autoprobe.navItems.pagination'),
-        type: 'pagination',
-        rule: pagePagination.value,
-        parent: rootItem,
-        level: 1,
-      })
-    );
   }
 
   return [normalizeItem(rootItem)];
@@ -235,8 +191,8 @@ const onSizeChange = (size: number) => {
 
 const getData = debounce(async () => {
   await Promise.all([
-    store.dispatch(`${ns}/getPagePattern`),
-    store.dispatch(`${ns}/getPagePatternData`),
+    store.dispatch(`${ns}/getPagePattern`, { id: activeId.value }),
+    store.dispatch(`${ns}/getPagePatternData`, { id: activeId.value }),
   ]);
 });
 watch(activeId, getData);

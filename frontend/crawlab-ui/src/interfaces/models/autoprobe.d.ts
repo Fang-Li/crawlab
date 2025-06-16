@@ -13,6 +13,22 @@ export declare global {
     viewport?: PageViewPort;
   }
 
+  // V2 AutoProbe interface that matches backend AutoProbeV2
+  interface AutoProbeV2 extends BaseModel {
+    name?: string;
+    description?: string;
+    url?: string;
+    query?: string;
+    last_task_id?: string;
+    last_task_status?: AutoProbeTaskStatus;
+    last_task_error?: string;
+    default_task_id?: string;
+    run_on_create?: boolean;
+    page_pattern?: PagePatternV2;
+    page_data?: PageData;
+    viewport?: PageViewPort;
+  }
+
   // Hierarchical pattern structure for V2
   interface PatternV2 extends BaseModel {
     name: string;
