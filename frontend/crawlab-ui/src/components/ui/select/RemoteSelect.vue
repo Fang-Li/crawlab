@@ -66,7 +66,7 @@ const remoteMethod = async (query?: string) => {
       ]);
     }
     const sort = labelKey;
-    const res = await get(endpoint, { filter, limit, sort });
+    const res = await get(endpoint, { filter, size: limit, sort });
     list.value = res.data || [];
   } catch (e) {
     console.error(e);
