@@ -111,6 +111,11 @@ const spiderSelectOptions = computed<SelectOption[]>(() =>
 );
 onBeforeMount(getSpiders);
 
+const getNodes = async () => {
+  await store.dispatch('node/getAllNodes');
+};
+onBeforeMount(getNodes);
+
 const validate = async () => {
   await formRef.value?.validate();
 };

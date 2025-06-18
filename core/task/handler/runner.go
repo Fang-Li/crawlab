@@ -87,8 +87,8 @@ func newTaskRunner(id primitive.ObjectID, svc *Service) (r *Runner, err error) {
 // Runner represents a task execution handler that manages the lifecycle of a running task
 type Runner struct {
 	// dependencies
-	svc   *Service             // task handler service
-	fsSvc interfaces.FsService // task fs service
+	svc   *Service    // task handler service
+	fsSvc *fs.Service // task fs service
 
 	// settings
 	subscribeTimeout time.Duration // maximum time to wait for task subscription
@@ -499,8 +499,10 @@ func (r *Runner) syncFiles() (err error) {
 		r.Errorf("error reading response body: %v", err)
 		return err
 	}
-	var masterFiles map[string]entity.FsFileInfo
-	err = json.Unmarshal(body, &masterFiles)
+	var response struct {
+		Data map[string]entity.FsFileInfo `json:"data"`
+	}
+	err = json.Unmarshal(body, &response)
 	if err != nil {
 		r.Errorf("error unmarshaling JSON for URL: %s", resp.Request.URL.String())
 		r.Errorf("error details: %v", err)
@@ -509,7 +511,7 @@ func (r *Runner) syncFiles() (err error) {
 
 	// create a map for master files
 	masterFilesMap := make(map[string]entity.FsFileInfo)
-	for _, file := range masterFiles {
+	for _, file := range response.Data {
 		masterFilesMap[file.Path] = file
 	}
 

@@ -8,21 +8,21 @@ import (
 	"os"
 	"sync"
 
+	"github.com/crawlab-team/crawlab/core/entity"
 	"github.com/crawlab-team/crawlab/core/fs"
-	"github.com/crawlab-team/crawlab/core/interfaces"
 	"github.com/gin-gonic/gin"
 )
 
-func GetBaseFileListDir(rootPath, path string) (response *Response[[]interfaces.FsFileInfo], err error) {
+func GetBaseFileListDir(rootPath, path string) (response *Response[[]entity.FsFileInfo], err error) {
 	fsSvc, err := fs.GetBaseFileFsSvc(rootPath)
 	if err != nil {
-		return GetErrorResponse[[]interfaces.FsFileInfo](err)
+		return GetErrorResponse[[]entity.FsFileInfo](err)
 	}
 
 	files, err := fsSvc.List(path)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			return GetErrorResponse[[]interfaces.FsFileInfo](err)
+			return GetErrorResponse[[]entity.FsFileInfo](err)
 		}
 	}
 
@@ -43,15 +43,15 @@ func GetBaseFileContent(rootPath, path string) (response *Response[string], err 
 	return GetDataResponse(string(data))
 }
 
-func GetBaseFileInfo(rootPath, path string) (response *Response[interfaces.FsFileInfo], err error) {
+func GetBaseFileInfo(rootPath, path string) (response *Response[*entity.FsFileInfo], err error) {
 	fsSvc, err := fs.GetBaseFileFsSvc(rootPath)
 	if err != nil {
-		return GetErrorResponse[interfaces.FsFileInfo](err)
+		return GetErrorResponse[*entity.FsFileInfo](err)
 	}
 
 	info, err := fsSvc.GetFileInfo(path)
 	if err != nil {
-		return GetErrorResponse[interfaces.FsFileInfo](err)
+		return GetErrorResponse[*entity.FsFileInfo](err)
 	}
 
 	return GetDataResponse(info)

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/crawlab-team/crawlab/core/entity"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -358,10 +359,10 @@ type GetSpiderFilesParams struct {
 	Path string `query:"path" description:"Directory path"`
 }
 
-func GetSpiderFiles(c *gin.Context, params *GetSpiderFilesParams) (response *Response[[]interfaces.FsFileInfo], err error) {
+func GetSpiderFiles(c *gin.Context, params *GetSpiderFilesParams) (response *Response[[]entity.FsFileInfo], err error) {
 	rootPath, err := getSpiderRootPathByContext(c)
 	if err != nil {
-		return GetErrorResponse[[]interfaces.FsFileInfo](err)
+		return GetErrorResponse[[]entity.FsFileInfo](err)
 	}
 	return GetBaseFileListDir(rootPath, params.Path)
 }
@@ -384,10 +385,10 @@ type GetSpiderFileInfoParams struct {
 	Path string `query:"path" description:"File path"`
 }
 
-func GetSpiderFileInfo(c *gin.Context, params *GetSpiderFileInfoParams) (response *Response[interfaces.FsFileInfo], err error) {
+func GetSpiderFileInfo(c *gin.Context, params *GetSpiderFileInfoParams) (response *Response[*entity.FsFileInfo], err error) {
 	rootPath, err := getSpiderRootPathByContext(c)
 	if err != nil {
-		return GetErrorResponse[interfaces.FsFileInfo](err)
+		return GetErrorResponse[*entity.FsFileInfo](err)
 	}
 	return GetBaseFileInfo(rootPath, params.Path)
 }
@@ -612,14 +613,14 @@ func GetSpiderResults(c *gin.Context, params *GetSpiderResultsParams) (response 
 	return GetListResponse(results, total)
 }
 
-func getSpiderFsSvc(s *models.Spider) (svc interfaces.FsService, err error) {
+func getSpiderFsSvc(s *models.Spider) (svc *fs.Service, err error) {
 	workspacePath := utils.GetWorkspace()
 	fsSvc := fs.NewFsService(filepath.Join(workspacePath, s.Id.Hex()))
 
 	return fsSvc, nil
 }
 
-func getSpiderFsSvcById(id primitive.ObjectID) (svc interfaces.FsService, err error) {
+func getSpiderFsSvcById(id primitive.ObjectID) (svc *fs.Service, err error) {
 	s, err := service.NewModelService[models.Spider]().GetById(id)
 	if err != nil {
 		logger.Errorf("failed to get spider: %v", err)
