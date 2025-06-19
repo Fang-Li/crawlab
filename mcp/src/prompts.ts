@@ -139,4 +139,117 @@ Use the Crawlab monitoring tools to gather comprehensive system information.`
       };
     }
   );
+
+  server.prompt(
+    "ai-autoprobe-setup",
+    "Guide for setting up AI-powered web scraping with AutoProbe",
+    {
+      target_url: z.string().describe("Target URL to scrape"),
+      data_description: z.string().describe("Description of the data you want to extract"),
+      autoprobe_name: z.string().optional().describe("Name for the AutoProbe configuration"),
+    },
+    async (args) => {
+      const targetUrl = args.target_url as string;
+      const dataDescription = args.data_description as string;
+      const autoprobeName = (args.autoprobe_name as string) || `AutoProbe for ${new URL(targetUrl).hostname}`;
+      
+      return {
+        description: `AI AutoProbe Setup Guide for ${targetUrl}`,
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: `I want to set up an AI-powered AutoProbe to scrape data from "${targetUrl}".
+
+Target URL: ${targetUrl}
+Data to extract: ${dataDescription}
+AutoProbe name: ${autoprobeName}
+
+Please help me:
+1. Check if there are existing LLM providers configured
+2. Create a new AutoProbe V2 configuration with the specified parameters
+3. Run a preview to see what data would be extracted
+4. Test the AutoProbe with a sample run
+5. Provide guidance on optimizing the extraction pattern
+
+Use the AI and AutoProbe tools to guide me through this process.`
+            }
+          }
+        ]
+      };
+    }
+  );
+
+  server.prompt(
+    "llm-provider-setup",
+    "Configure LLM providers for AI features",
+    {
+      provider_type: z.string().describe("Type of LLM provider (openai, azure-openai, anthropic, gemini)"),
+      provider_name: z.string().optional().describe("Display name for the provider"),
+    },
+    async (args) => {
+      const providerType = args.provider_type as string;
+      const providerName = (args.provider_name as string) || `${providerType.charAt(0).toUpperCase() + providerType.slice(1)} Provider`;
+      
+      return {
+        description: `LLM Provider Setup Guide for ${providerType}`,
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: `I want to set up a ${providerType} LLM provider named "${providerName}" for Crawlab's AI features.
+
+Please help me:
+1. List existing LLM providers to avoid conflicts
+2. Guide me through the configuration process for ${providerType}
+3. Explain what API credentials and settings are needed
+4. Test the provider connection
+5. Show me how to use this provider with AutoProbe and other AI features
+
+Use the LLM provider tools to assist with the setup.`
+            }
+          }
+        ]
+      };
+    }
+  );
+
+  server.prompt(
+    "ai-data-extraction",
+    "Optimize AI-powered data extraction",
+    {
+      autoprobe_id: z.string().describe("ID of the AutoProbe to optimize"),
+      extraction_issues: z.string().optional().describe("Specific issues with current extraction"),
+    },
+    async (args) => {
+      const autoprobeId = args.autoprobe_id as string;
+      const extractionIssues = args.extraction_issues as string;
+      
+      return {
+        description: `AI Data Extraction Optimization for AutoProbe ${autoprobeId}`,
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: `I need help optimizing the AI data extraction for AutoProbe "${autoprobeId}".
+
+${extractionIssues ? `Current issues: ${extractionIssues}` : ""}
+
+Please help me:
+1. Review the current AutoProbe configuration
+2. Check the extraction pattern and recent results
+3. Analyze any failed or incomplete extractions
+4. Suggest improvements to the query or settings
+5. Test the optimized configuration
+
+Use the AutoProbe tools to analyze and improve the extraction process.`
+            }
+          }
+        ]
+      };
+    }
+  );
 }

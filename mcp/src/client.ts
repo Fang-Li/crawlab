@@ -504,4 +504,143 @@ export class CrawlabClient {
       return false;
     }
   }
+
+  // AI/LLM Features
+  async getLLMProviders(params?: PaginationParams): Promise<ApiResponse<any[]>> {
+    const response = await this.client.get('/ai/llm/providers', { params });
+    return response.data;
+  }
+
+  async getLLMProvider(id: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/llm/providers/${id}`);
+    return response.data;
+  }
+
+  async createLLMProvider(provider: any): Promise<ApiResponse<any>> {
+    const response = await this.client.post('/ai/llm/providers', { data: provider });
+    return response.data;
+  }
+
+  async updateLLMProvider(id: string, provider: any): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/ai/llm/providers/${id}`, { data: provider });
+    return response.data;
+  }
+
+  async deleteLLMProvider(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.delete(`/ai/llm/providers/${id}`);
+    return response.data;
+  }
+
+  // Chat Conversations
+  async getConversations(params?: PaginationParams & { filter?: string }): Promise<ApiResponse<any[]>> {
+    const response = await this.client.get('/ai/conversations', { params });
+    return response.data;
+  }
+
+  async getConversation(id: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/conversations/${id}`);
+    return response.data;
+  }
+
+  async createConversation(conversation: any): Promise<ApiResponse<any>> {
+    const response = await this.client.post('/ai/conversations', { data: conversation });
+    return response.data;
+  }
+
+  async updateConversation(id: string, conversation: any): Promise<ApiResponse<any>> {
+    const response = await this.client.put(`/ai/conversations/${id}`, { data: conversation });
+    return response.data;
+  }
+
+  async deleteConversation(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.delete(`/ai/conversations/${id}`);
+    return response.data;
+  }
+
+  async getConversationMessages(id: string): Promise<ApiResponse<any[]>> {
+    const response = await this.client.get(`/ai/conversations/${id}/messages`);
+    return response.data;
+  }
+
+  async getChatMessage(conversationId: string, messageId: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/conversations/${conversationId}/messages/${messageId}`);
+    return response.data;
+  }
+
+  // AutoProbe V2
+  async getAutoProbesV2(params?: PaginationParams & { filter?: string }): Promise<ApiResponse<any[]>> {
+    const response = await this.client.get('/ai/autoprobes', { params });
+    return response.data;
+  }
+
+  async getAutoProbeV2(id: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/autoprobes/${id}`);
+    return response.data;
+  }
+
+  async createAutoProbeV2(autoprobe: any): Promise<ApiResponse<any>> {
+    const response = await this.client.post('/ai/autoprobes', { data: autoprobe });
+    return response.data;
+  }
+
+  async updateAutoProbeV2(id: string, autoprobe: any): Promise<ApiResponse<any>> {
+    const response = await this.client.patch(`/ai/autoprobes/${id}`, { data: autoprobe });
+    return response.data;
+  }
+
+  async deleteAutoProbeV2(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.delete(`/ai/autoprobes/${id}`);
+    return response.data;
+  }
+
+  async runAutoProbeV2Task(id: string, params?: { query?: string; view_port?: any }): Promise<ApiResponse<any>> {
+    const response = await this.client.post(`/ai/autoprobes/${id}/tasks`, params);
+    return response.data;
+  }
+
+  async getAutoProbeV2Tasks(id: string, params?: PaginationParams & { filter?: string }): Promise<ApiResponse<any[]>> {
+    const response = await this.client.get(`/ai/autoprobes/${id}/tasks`, { params });
+    return response.data;
+  }
+
+  async getAutoProbeV2Preview(id: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/autoprobes/${id}/preview`);
+    return response.data;
+  }
+
+  async getAutoProbeV2Pattern(id: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/autoprobes/${id}/pattern`);
+    return response.data;
+  }
+
+  async getAutoProbeV2PatternResults(id: string): Promise<ApiResponse<any[]>> {
+    const response = await this.client.get(`/ai/autoprobes/${id}/pattern/results`);
+    return response.data;
+  }
+
+  // AutoProbe V1 (legacy)
+  async getAutoProbes(params?: PaginationParams & { filter?: string }): Promise<ApiResponse<any[]>> {
+    const response = await this.client.get('/ai/autoprobes/v1', { params });
+    return response.data;
+  }
+
+  async getAutoProbe(id: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/autoprobes/v1/${id}`);
+    return response.data;
+  }
+
+  async createAutoProbe(autoprobe: any): Promise<ApiResponse<any>> {
+    const response = await this.client.post('/ai/autoprobes/v1', { data: autoprobe });
+    return response.data;
+  }
+
+  async runAutoProbeTask(id: string, params?: any): Promise<ApiResponse<any>> {
+    const response = await this.client.post(`/ai/autoprobes/v1/${id}/tasks`, params);
+    return response.data;
+  }
+
+  async getAutoProbePreview(id: string): Promise<ApiResponse<any>> {
+    const response = await this.client.get(`/ai/autoprobes/v1/${id}/preview`);
+    return response.data;
+  }
 }

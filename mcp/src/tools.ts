@@ -10,6 +10,7 @@ import { configureProjectTools } from "./tools/projects.js";
 import { configureDatabaseTools } from "./tools/databases.js";
 import { configureGitTools } from "./tools/git.js";
 import { configureStatsTools } from "./tools/stats.js";
+import { configureAITools } from "./tools/ai.js";
 
 export function configureAllTools(server: McpServer, client: CrawlabClient) {
   configureSpiderTools(server, client);
@@ -21,4 +22,5 @@ export function configureAllTools(server: McpServer, client: CrawlabClient) {
   configureDatabaseTools(server, client);
   configureGitTools(server, client);
   configureStatsTools(server, client);
+  configureAITools(server, client);
 }
