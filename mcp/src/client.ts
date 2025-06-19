@@ -18,47 +18,75 @@ export interface PaginationParams {
   size?: number;
 }
 
+export interface SpiderTemplateParams {
+  project_name?: string;
+  spider_name?: string;
+  start_urls?: string;
+  allowed_domains?: string;
+}
+
 export interface Spider {
   _id: string;
   name: string;
+  col_id?: string;
+  col_name?: string;
+  db_name?: string;
   description?: string;
+  database_id?: string;
+  project_id?: string;
+  mode?: string; // random, all, selected-nodes
+  node_ids?: string[];
+  git_id?: string;
+  git_root_path?: string;
+  template?: string;
+  template_params?: SpiderTemplateParams;
   cmd: string;
   param?: string;
-  project_id?: string;
-  type?: string;
-  tags?: string[];
-  created_ts?: Date;
-  updated_ts?: Date;
+  priority?: number; // 1-10, default 5
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+  updated_by?: string;
 }
 
 export interface Task {
   _id: string;
   spider_id: string;
-  spider_name?: string;
+  status: string; // pending, assigned, running, finished, error, cancelled, abnormal
+  node_id?: string;
   cmd: string;
   param?: string;
-  priority?: number;
-  status: string;
-  log_path?: string;
-  result_count?: number;
   error?: string;
-  start_ts?: Date;
-  end_ts?: Date;
-  created_ts?: Date;
-  updated_ts?: Date;
+  pid?: number;
+  schedule_id?: string;
+  mode?: string;
+  priority?: number;
+  node_ids?: string[];
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+  updated_by?: string;
 }
 
 export interface Node {
   _id: string;
+  key?: string;
   name: string;
-  description?: string;
   ip: string;
   mac: string;
   hostname: string;
-  status: string;
+  description?: string;
   is_master: boolean;
-  created_ts?: Date;
-  updated_ts?: Date;
+  status: string;
+  enabled?: boolean;
+  active?: boolean;
+  active_at?: Date;
+  current_runners?: number;
+  max_runners?: number;
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+  updated_by?: string;
 }
 
 export interface Schedule {
@@ -66,13 +94,91 @@ export interface Schedule {
   name: string;
   description?: string;
   spider_id: string;
-  spider_name?: string;
   cron: string;
+  entry_id?: number; // cron entry ID
   cmd?: string;
   param?: string;
+  mode?: string;
+  node_ids?: string[];
+  priority?: number;
   enabled: boolean;
-  created_ts?: Date;
-  updated_ts?: Date;
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+  updated_by?: string;
+}
+
+export interface Project {
+  _id: string;
+  name: string;
+  description?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+  updated_by?: string;
+}
+
+export interface Database {
+  _id: string;
+  name: string;
+  description?: string;
+  data_source: string;
+  host: string;
+  port: number;
+  uri?: string;
+  database?: string;
+  username?: string;
+  status: string;
+  error?: string;
+  active: boolean;
+  active_at?: Date;
+  is_default?: boolean;
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+  updated_by?: string;
+}
+
+export interface Git {
+  _id: string;
+  url: string;
+  name: string;
+  auth_type?: string;
+  username?: string;
+  current_branch?: string;
+  status: string;
+  error?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: string;
+  updated_by?: string;
+}
+
+export interface SpiderStat {
+  _id: string;
+  last_task_id?: string;
+  tasks: number;
+  results: number;
+  wait_duration?: number; // in seconds
+  runtime_duration?: number; // in seconds  
+  total_duration?: number; // in seconds
+  average_wait_duration?: number;
+  average_runtime_duration?: number;
+  average_total_duration?: number;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface TaskStat {
+  _id: string;
+  started_at?: Date;
+  ended_at?: Date;
+  wait_duration?: number; // in milliseconds
+  runtime_duration?: number; // in milliseconds
+  total_duration?: number; // in milliseconds
+  result_count: number;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export class CrawlabClient {
@@ -136,6 +242,8 @@ export class CrawlabClient {
       cmd?: string;
       param?: string;
       priority?: number;
+      mode?: string;
+      node_ids?: string[];
     }
   ): Promise<ApiResponse<string[]>> {
     const response = await this.client.post(`/spiders/${id}/run`, params);
@@ -225,6 +333,21 @@ export class CrawlabClient {
     return response.data;
   }
 
+  async updateNode(id: string, node: Partial<Node>): Promise<ApiResponse<Node>> {
+    const response = await this.client.put(`/nodes/${id}`, node);
+    return response.data;
+  }
+
+  async enableNode(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.post(`/nodes/${id}/enable`);
+    return response.data;
+  }
+
+  async disableNode(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.post(`/nodes/${id}/disable`);
+    return response.data;
+  }
+
   // Schedules
   async getSchedules(
     params?: PaginationParams
@@ -265,6 +388,110 @@ export class CrawlabClient {
 
   async disableSchedule(id: string): Promise<ApiResponse<void>> {
     const response = await this.client.post(`/schedules/${id}/disable`);
+    return response.data;
+  }
+
+  // Projects
+  async getProjects(params?: PaginationParams): Promise<ApiResponse<Project[]>> {
+    const response = await this.client.get('/projects', { params });
+    return response.data;
+  }
+
+  async getProject(id: string): Promise<ApiResponse<Project>> {
+    const response = await this.client.get(`/projects/${id}`);
+    return response.data;
+  }
+
+  async createProject(project: Partial<Project>): Promise<ApiResponse<Project>> {
+    const response = await this.client.post('/projects', project);
+    return response.data;
+  }
+
+  async updateProject(id: string, project: Partial<Project>): Promise<ApiResponse<Project>> {
+    const response = await this.client.put(`/projects/${id}`, project);
+    return response.data;
+  }
+
+  async deleteProject(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.delete(`/projects/${id}`);
+    return response.data;
+  }
+
+  // Databases
+  async getDatabases(params?: PaginationParams): Promise<ApiResponse<Database[]>> {
+    const response = await this.client.get('/databases', { params });
+    return response.data;
+  }
+
+  async getDatabase(id: string): Promise<ApiResponse<Database>> {
+    const response = await this.client.get(`/databases/${id}`);
+    return response.data;
+  }
+
+  async createDatabase(database: Partial<Database>): Promise<ApiResponse<Database>> {
+    const response = await this.client.post('/databases', database);
+    return response.data;
+  }
+
+  async updateDatabase(id: string, database: Partial<Database>): Promise<ApiResponse<Database>> {
+    const response = await this.client.put(`/databases/${id}`, database);
+    return response.data;
+  }
+
+  async deleteDatabase(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.delete(`/databases/${id}`);
+    return response.data;
+  }
+
+  async testDatabaseConnection(id: string): Promise<ApiResponse<boolean>> {
+    const response = await this.client.post(`/databases/${id}/test`);
+    return response.data;
+  }
+
+  // Git repositories
+  async getGitRepos(params?: PaginationParams): Promise<ApiResponse<Git[]>> {
+    const response = await this.client.get('/gits', { params });
+    return response.data;
+  }
+
+  async getGitRepo(id: string): Promise<ApiResponse<Git>> {
+    const response = await this.client.get(`/gits/${id}`);
+    return response.data;
+  }
+
+  async createGitRepo(git: Partial<Git>): Promise<ApiResponse<Git>> {
+    const response = await this.client.post('/gits', git);
+    return response.data;
+  }
+
+  async updateGitRepo(id: string, git: Partial<Git>): Promise<ApiResponse<Git>> {
+    const response = await this.client.put(`/gits/${id}`, git);
+    return response.data;
+  }
+
+  async deleteGitRepo(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.delete(`/gits/${id}`);
+    return response.data;
+  }
+
+  async pullGitRepo(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.post(`/gits/${id}/pull`);
+    return response.data;
+  }
+
+  async cloneGitRepo(id: string): Promise<ApiResponse<void>> {
+    const response = await this.client.post(`/gits/${id}/clone`);
+    return response.data;
+  }
+
+  // Statistics
+  async getSpiderStats(id: string): Promise<ApiResponse<SpiderStat>> {
+    const response = await this.client.get(`/spiders/${id}/stats`);
+    return response.data;
+  }
+
+  async getTaskStats(id: string): Promise<ApiResponse<TaskStat>> {
+    const response = await this.client.get(`/tasks/${id}/stats`);
     return response.data;
   }
 

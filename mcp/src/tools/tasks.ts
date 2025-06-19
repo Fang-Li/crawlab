@@ -20,7 +20,7 @@ export function configureTaskTools(server: McpServer, client: CrawlabClient) {
       page: z.number().optional().describe("Page number for pagination (default: 1)"),
       size: z.number().optional().describe("Number of tasks per page (default: 10)"),
       spider_id: z.string().optional().describe("Filter by spider ID"),
-      status: z.string().optional().describe("Filter by task status (pending, running, success, error, cancelled)"),
+      status: z.string().optional().describe("Filter by task status (pending, assigned, running, finished, error, cancelled, abnormal)"),
     },
     async ({ page, size, spider_id, status }) => {
       try {

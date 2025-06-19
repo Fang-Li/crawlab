@@ -87,10 +87,17 @@ export function configureSpiderTools(server: McpServer, client: CrawlabClient) {
       cmd: z.string().describe("Command to execute the spider"),
       param: z.string().optional().describe("Parameters for the spider command"),
       project_id: z.string().optional().describe("Project ID to associate with the spider"),
-      type: z.string().optional().describe("Type of spider (e.g., 'scrapy', 'selenium', 'custom')"),
-      tags: z.array(z.string()).optional().describe("Tags for categorizing the spider"),
+      database_id: z.string().optional().describe("Database ID for data storage"),
+      col_name: z.string().optional().describe("Collection/table name for results"),
+      db_name: z.string().optional().describe("Database name for results"),
+      mode: z.enum(["random", "all", "selected-nodes"]).optional().describe("Task execution mode"),
+      node_ids: z.array(z.string()).optional().describe("Node IDs for selected-nodes mode"),
+      git_id: z.string().optional().describe("Git repository ID"),
+      git_root_path: z.string().optional().describe("Git root path"),
+      template: z.string().optional().describe("Spider template"),
+      priority: z.number().min(1).max(10).optional().describe("Priority (1-10, default: 5)"),
     },
-    async ({ name, description, cmd, param, project_id, type, tags }) => {
+    async ({ name, description, cmd, param, project_id, database_id, col_name, db_name, mode, node_ids, git_id, git_root_path, template, priority }) => {
       try {
         const spiderData = {
           name,
@@ -98,8 +105,15 @@ export function configureSpiderTools(server: McpServer, client: CrawlabClient) {
           cmd,
           param,
           project_id,
-          type,
-          tags,
+          database_id,
+          col_name,
+          db_name,
+          mode,
+          node_ids,
+          git_id,
+          git_root_path,
+          template,
+          priority: priority || 5,
         };
         const response = await client.createSpider(spiderData);
         return {
@@ -134,10 +148,17 @@ export function configureSpiderTools(server: McpServer, client: CrawlabClient) {
       cmd: z.string().optional().describe("New command to execute the spider"),
       param: z.string().optional().describe("New parameters for the spider command"),
       project_id: z.string().optional().describe("New project ID to associate with the spider"),
-      type: z.string().optional().describe("New type of spider"),
-      tags: z.array(z.string()).optional().describe("New tags for the spider"),
+      database_id: z.string().optional().describe("New database ID for data storage"),
+      col_name: z.string().optional().describe("New collection/table name for results"),
+      db_name: z.string().optional().describe("New database name for results"),
+      mode: z.enum(["random", "all", "selected-nodes"]).optional().describe("New task execution mode"),
+      node_ids: z.array(z.string()).optional().describe("New node IDs for selected-nodes mode"),
+      git_id: z.string().optional().describe("New git repository ID"),
+      git_root_path: z.string().optional().describe("New git root path"),
+      template: z.string().optional().describe("New spider template"),
+      priority: z.number().min(1).max(10).optional().describe("New priority (1-10)"),
     },
-    async ({ spider_id, name, description, cmd, param, project_id, type, tags }) => {
+    async ({ spider_id, name, description, cmd, param, project_id, database_id, col_name, db_name, mode, node_ids, git_id, git_root_path, template, priority }) => {
       try {
         const updateData = {
           ...(name && { name }),
@@ -145,8 +166,15 @@ export function configureSpiderTools(server: McpServer, client: CrawlabClient) {
           ...(cmd && { cmd }),
           ...(param && { param }),
           ...(project_id && { project_id }),
-          ...(type && { type }),
-          ...(tags && { tags }),
+          ...(database_id && { database_id }),
+          ...(col_name && { col_name }),
+          ...(db_name && { db_name }),
+          ...(mode && { mode }),
+          ...(node_ids && { node_ids }),
+          ...(git_id && { git_id }),
+          ...(git_root_path && { git_root_path }),
+          ...(template && { template }),
+          ...(priority && { priority }),
         };
         const response = await client.updateSpider(spider_id, updateData);
         return {
@@ -209,14 +237,18 @@ export function configureSpiderTools(server: McpServer, client: CrawlabClient) {
       spider_id: z.string().describe("The ID of the spider to run"),
       cmd: z.string().optional().describe("Override command for this run"),
       param: z.string().optional().describe("Override parameters for this run"),
-      priority: z.number().optional().describe("Priority of the task (1-10, higher = more priority)"),
+      priority: z.number().min(1).max(10).optional().describe("Task priority (1-10)"),
+      mode: z.enum(["random", "all", "selected-nodes"]).optional().describe("Task execution mode"),
+      node_ids: z.array(z.string()).optional().describe("Node IDs for selected-nodes mode"),
     },
-    async ({ spider_id, cmd, param, priority }) => {
+    async ({ spider_id, cmd, param, priority, mode, node_ids }) => {
       try {
         const runData = {
           ...(cmd && { cmd }),
           ...(param && { param }),
           ...(priority && { priority }),
+          ...(mode && { mode }),
+          ...(node_ids && { node_ids }),
         };
         const response = await client.runSpider(spider_id, runData);
         return {

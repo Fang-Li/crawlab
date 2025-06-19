@@ -5,6 +5,9 @@ import { z } from "zod";
 const NODE_TOOLS = {
   list_nodes: "crawlab_list_nodes",
   get_node: "crawlab_get_node",
+  update_node: "crawlab_update_node",
+  enable_node: "crawlab_enable_node",
+  disable_node: "crawlab_disable_node",
 };
 
 export function configureNodeTools(server: McpServer, client: CrawlabClient) {
@@ -63,6 +66,109 @@ export function configureNodeTools(server: McpServer, client: CrawlabClient) {
             {
               type: "text",
               text: `Error getting node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    NODE_TOOLS.update_node,
+    "Update a node configuration",
+    {
+      node_id: z.string().describe("The ID of the node to update"),
+      name: z.string().optional().describe("New name for the node"),
+      description: z.string().optional().describe("New description for the node"),
+      max_runners: z.number().optional().describe("New maximum number of concurrent runners"),
+      enabled: z.boolean().optional().describe("Whether the node is enabled"),
+    },
+    async ({ node_id, name, description, max_runners, enabled }) => {
+      try {
+        const updateData = {
+          ...(name && { name }),
+          ...(description && { description }),
+          ...(max_runners && { max_runners }),
+          ...(enabled !== undefined && { enabled }),
+        };
+        const response = await client.updateNode(node_id, updateData);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(response, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    NODE_TOOLS.enable_node,
+    "Enable a node",
+    {
+      node_id: z.string().describe("The ID of the node to enable"),
+    },
+    async ({ node_id }) => {
+      try {
+        const response = await client.enableNode(node_id);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Node ${node_id} enabled successfully.`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error enabling node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    NODE_TOOLS.disable_node,
+    "Disable a node",
+    {
+      node_id: z.string().describe("The ID of the node to disable"),
+    },
+    async ({ node_id }) => {
+      try {
+        const response = await client.disableNode(node_id);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Node ${node_id} disabled successfully.`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error disabling node: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
           isError: true,

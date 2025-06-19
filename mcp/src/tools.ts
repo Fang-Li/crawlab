@@ -6,6 +6,10 @@ import { configureTaskTools } from "./tools/tasks.js";
 import { configureNodeTools } from "./tools/nodes.js";
 import { configureScheduleTools } from "./tools/schedules.js";
 import { configureSystemTools } from "./tools/system.js";
+import { configureProjectTools } from "./tools/projects.js";
+import { configureDatabaseTools } from "./tools/databases.js";
+import { configureGitTools } from "./tools/git.js";
+import { configureStatsTools } from "./tools/stats.js";
 
 export function configureAllTools(server: McpServer, client: CrawlabClient) {
   configureSpiderTools(server, client);
@@ -13,4 +17,8 @@ export function configureAllTools(server: McpServer, client: CrawlabClient) {
   configureNodeTools(server, client);
   configureScheduleTools(server, client);
   configureSystemTools(server, client);
+  configureProjectTools(server, client);
+  configureDatabaseTools(server, client);
+  configureGitTools(server, client);
+  configureStatsTools(server, client);
 }

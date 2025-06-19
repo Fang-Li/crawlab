@@ -86,9 +86,12 @@ export function configureScheduleTools(server: McpServer, client: CrawlabClient)
       cron: z.string().describe("Cron expression for the schedule (e.g., '0 0 * * *' for daily at midnight)"),
       cmd: z.string().optional().describe("Command to override for scheduled runs"),
       param: z.string().optional().describe("Parameters to override for scheduled runs"),
+      mode: z.enum(["random", "all", "selected-nodes"]).optional().describe("Task execution mode"),
+      node_ids: z.array(z.string()).optional().describe("Node IDs for selected-nodes mode"),
+      priority: z.number().min(1).max(10).optional().describe("Task priority (1-10)"),
       enabled: z.boolean().optional().describe("Whether the schedule is enabled (default: true)"),
     },
-    async ({ name, description, spider_id, cron, cmd, param, enabled = true }) => {
+    async ({ name, description, spider_id, cron, cmd, param, mode, node_ids, priority, enabled = true }) => {
       try {
         const scheduleData = {
           name,
@@ -97,6 +100,9 @@ export function configureScheduleTools(server: McpServer, client: CrawlabClient)
           cron,
           cmd,
           param,
+          mode,
+          node_ids,
+          priority,
           enabled,
         };
         const response = await client.createSchedule(scheduleData);
@@ -133,9 +139,12 @@ export function configureScheduleTools(server: McpServer, client: CrawlabClient)
       cron: z.string().optional().describe("New cron expression for the schedule"),
       cmd: z.string().optional().describe("New command for the schedule"),
       param: z.string().optional().describe("New parameters for the schedule"),
+      mode: z.enum(["random", "all", "selected-nodes"]).optional().describe("New task execution mode"),
+      node_ids: z.array(z.string()).optional().describe("New node IDs for selected-nodes mode"),
+      priority: z.number().min(1).max(10).optional().describe("New task priority (1-10)"),
       enabled: z.boolean().optional().describe("Whether the schedule is enabled"),
     },
-    async ({ schedule_id, name, description, spider_id, cron, cmd, param, enabled }) => {
+    async ({ schedule_id, name, description, spider_id, cron, cmd, param, mode, node_ids, priority, enabled }) => {
       try {
         const updateData = {
           ...(name && { name }),
@@ -144,6 +153,9 @@ export function configureScheduleTools(server: McpServer, client: CrawlabClient)
           ...(cron && { cron }),
           ...(cmd && { cmd }),
           ...(param && { param }),
+          ...(mode && { mode }),
+          ...(node_ids && { node_ids }),
+          ...(priority && { priority }),
           ...(enabled !== undefined && { enabled }),
         };
         const response = await client.updateSchedule(schedule_id, updateData);
