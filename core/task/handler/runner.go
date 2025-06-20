@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -444,7 +445,7 @@ func (r *Runner) configureEnv() {
 	r.cmd.Env = append(r.cmd.Env, "CRAWLAB_PARENT_PID="+fmt.Sprint(os.Getpid()))
 }
 
-func (r *Runner) createHttpRequest(method, path string) (*http.Response, error) {
+func (r *Runner) performHttpRequest(method, path string, params url.Values) (*http.Response, error) {
 	// Normalize path
 	if strings.HasPrefix(path, "/") {
 		path = path[1:]
@@ -457,10 +458,10 @@ func (r *Runner) createHttpRequest(method, path string) (*http.Response, error) 
 	} else {
 		id = r.s.GitId.Hex()
 	}
-	url := fmt.Sprintf("%s/sync/%s/%s", utils.GetApiEndpoint(), id, path)
+	requestUrl := fmt.Sprintf("%s/sync/%s/%s?%s", utils.GetApiEndpoint(), id, path, params.Encode())
 
 	// Create and execute request
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequest(method, requestUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
@@ -488,7 +489,10 @@ func (r *Runner) syncFiles() (err error) {
 
 	// get file list from master
 	r.Infof("fetching file list from master node")
-	resp, err := r.createHttpRequest("GET", "/scan?path="+workingDir)
+	params := url.Values{
+		"path": []string{workingDir},
+	}
+	resp, err := r.performHttpRequest("GET", "/scan", params)
 	if err != nil {
 		r.Errorf("error getting file list from master: %v", err)
 		return err
@@ -500,7 +504,7 @@ func (r *Runner) syncFiles() (err error) {
 		return err
 	}
 	var response struct {
-		Data map[string]entity.FsFileInfo `json:"data"`
+		Data entity.FsFileInfoMap `json:"data"`
 	}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
@@ -510,7 +514,7 @@ func (r *Runner) syncFiles() (err error) {
 	}
 
 	// create a map for master files
-	masterFilesMap := make(map[string]entity.FsFileInfo)
+	masterFilesMap := make(entity.FsFileInfoMap)
 	for _, file := range response.Data {
 		masterFilesMap[file.Path] = file
 	}
@@ -591,8 +595,10 @@ func (r *Runner) syncFiles() (err error) {
 // downloadFile downloads a file from the master node and saves it to the local file system
 func (r *Runner) downloadFile(path string, filePath string, fileInfo *entity.FsFileInfo) error {
 	r.Debugf("downloading file: %s -> %s", path, filePath)
-
-	resp, err := r.createHttpRequest("GET", "/download?path="+path)
+	params := url.Values{
+		"path": []string{path},
+	}
+	resp, err := r.performHttpRequest("GET", "/download", params)
 	if err != nil {
 		r.Errorf("error getting file response: %v", err)
 		return err

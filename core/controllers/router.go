@@ -19,7 +19,7 @@ import (
 type RouterGroups struct {
 	AuthGroup      *fizz.RouterGroup    // Routes requiring full authentication
 	AnonymousGroup *fizz.RouterGroup    // Public routes that don't require auth
-	SyncAuthGroup  *gin.RouterGroup     // Routes for sync operations with special auth
+	SyncAuthGroup  *fizz.RouterGroup    // Routes for sync operations with special auth
 	Wrapper        *openapi.FizzWrapper // OpenAPI wrapper for documentation
 }
 
@@ -41,7 +41,7 @@ func NewRouterGroups(app *gin.Engine) (groups *RouterGroups) {
 	return &RouterGroups{
 		AuthGroup:      f.Group("/", "AuthGroup", "Router group that requires authentication", middlewares.AuthorizationMiddleware()),
 		AnonymousGroup: f.Group("/", "AnonymousGroup", "Router group that doesn't require authentication"),
-		SyncAuthGroup:  app.Group("/", middlewares.SyncAuthorizationMiddleware()),
+		SyncAuthGroup:  f.Group("/", "SyncAuthGroup", "Router group for sync operations with special auth", middlewares.SyncAuthorizationMiddleware()),
 		Wrapper:        globalWrapper,
 	}
 }
@@ -704,8 +704,22 @@ func InitRoutes(app *gin.Engine) (err error) {
 	})
 
 	// Register sync routes that require special authentication
-	groups.SyncAuthGroup.GET("/sync/:id/scan", GetSyncScan)
-	groups.SyncAuthGroup.GET("/sync/:id/download", GetSyncDownload)
+	RegisterActions(groups.SyncAuthGroup.Group("", "Sync", "APIs for sync operations"), "/sync/:id", []Action{
+		{
+			Method:      http.MethodGet,
+			Path:        "/scan",
+			Name:        "Scan files (sync)",
+			Description: "Scan files for a specific ID (Spider/Git)",
+			HandlerFunc: GetSyncScan,
+		},
+		{
+			Method:      http.MethodGet,
+			Path:        "/download",
+			Name:        "Download file (sync)",
+			Description: "Download a file for a specific ID (Spider/Git)",
+			HandlerFunc: GetSyncDownload,
+		},
+	})
 
 	// Register health check route
 	groups.AnonymousGroup.GinRouterGroup().GET("/health", GetHealthFn(func() bool { return true }))

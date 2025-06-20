@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 
 	"github.com/crawlab-team/crawlab/core/entity"
 )
@@ -182,14 +183,33 @@ func GetFileHash(filePath string) (res string, err error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-const IgnoreFileRegexPattern = "^(node_modules)/"
+const IgnoreFileRegexPattern = `(^node_modules|__pycache__)/|\.(tmp|temp|log|swp|swo|bak|orig|lock|pid|pyc|pyo)$`
 
-func ScanDirectory(dir string) (res map[string]entity.FsFileInfo, err error) {
-	files := make(map[string]entity.FsFileInfo)
+func ScanDirectory(dir string) (res entity.FsFileInfoMap, err error) {
+	files := make(entity.FsFileInfoMap)
+
+	// Compile the ignore pattern regex
+	ignoreRegex, err := regexp.Compile(IgnoreFileRegexPattern)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile ignore pattern: %v", err)
+	}
 
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+
+		// Skip files that match the ignore pattern
+		if ignoreRegex.MatchString(relPath) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 
 		var hash string
@@ -198,11 +218,6 @@ func ScanDirectory(dir string) (res map[string]entity.FsFileInfo, err error) {
 			if err != nil {
 				return err
 			}
-		}
-
-		relPath, err := filepath.Rel(dir, path)
-		if err != nil {
-			return err
 		}
 
 		files[relPath] = entity.FsFileInfo{

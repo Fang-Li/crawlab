@@ -57,3 +57,5 @@ func (f *FsFileInfo) GetHash() string {
 func (f *FsFileInfo) GetChildren() []FsFileInfo {
 	return f.Children
 }
+
+type FsFileInfoMap map[string]FsFileInfo
