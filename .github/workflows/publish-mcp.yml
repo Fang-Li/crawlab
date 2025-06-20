@@ -97,14 +97,42 @@ jobs:
             exit 1
           fi
 
+      - name: Check if version already exists on NPM
+        id: version_check
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "Checking if ${PACKAGE_NAME}@${PACKAGE_VERSION} already exists on NPM..."
+          
+          # Check if the version exists on npm
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version 2>/dev/null; then
+            echo "Version ${PACKAGE_VERSION} already exists on NPM"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+            echo "version_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version ${PACKAGE_VERSION} does not exist on NPM, proceeding with publish"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "version_exists=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "package_name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Skip publish - version already exists
+        if: steps.version_check.outputs.version_exists == 'true'
+        run: |
+          echo "⚠️ Skipping publish: ${{ steps.version_check.outputs.package_name }}@${{ steps.version_check.outputs.package_version }} already exists on NPM"
+          echo "To publish a new version, update the version in package.json first"
+
       - name: Publish to NPM (dry-run for PRs)
         if: github.event_name == 'pull_request'
         run: pnpm publish --dry-run --no-git-checks --tag ${{ steps.npm_tag.outputs.tag }}
 
       - name: Publish to NPM
-        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
+        if: steps.version_check.outputs.should_publish == 'true' && (github.event_name == 'release' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')))
         run: |
-          echo "Publishing with tag: ${{ steps.npm_tag.outputs.tag }}"
+          echo "Publishing ${{ steps.version_check.outputs.package_name }}@${{ steps.version_check.outputs.package_version }} with tag: ${{ steps.npm_tag.outputs.tag }}"
           pnpm publish --no-git-checks --tag ${{ steps.npm_tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
@@ -124,3 +152,22 @@ jobs:
           asset_path: ./crawlab/mcp/mcp-server-crawlab-${{ github.ref_name }}.tar.gz
           asset_name: mcp-server-crawlab-${{ github.ref_name }}.tar.gz
           asset_content_type: application/gzip
+
+      - name: Publish Summary
+        if: always()
+        run: |
+          echo "## 📦 Publish Summary"
+          echo "Package: ${{ steps.version_check.outputs.package_name }}"
+          echo "Version: ${{ steps.version_check.outputs.package_version }}"
+          echo "NPM Tag: ${{ steps.npm_tag.outputs.tag }}"
+          
+          if [ "${{ steps.version_check.outputs.should_publish }}" = "true" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "✅ Dry-run completed successfully"
+            else
+              echo "✅ Published successfully to NPM"
+            fi
+          else
+            echo "⚠️ Publish skipped - version already exists on NPM"
+            echo "💡 To publish a new version, update the version in package.json"
+          fi
