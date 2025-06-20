@@ -1,6 +1,6 @@
 {
   "name": "@crawlab/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1-dev.6",
   "description": "MCP server for interacting with Crawlab web crawler management platform",
   "license": "MIT",
   "author": "Crawlab Team",
@@ -24,7 +24,15 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "clean": "shx rm -rf dist",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "version:dev": "npm version prerelease --preid=dev",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "publish:dev": "npm run version:dev && npm publish --tag dev",
+    "publish:latest": "npm publish",
+    "release:dev": "npm run build && npm run publish:dev",
+    "release:prod": "npm run build && npm run version:patch && npm run publish:latest"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.2",
@@ -46,5 +54,5 @@
     "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"
   },
-  "packageManager": "pnpm@10.12.1"
+  "packageManager": "pnpm@9.9.0+sha512.60c18acd138bff695d339be6ad13f7e936eea6745660d4cc4a776d5247c540d0edee1a563695c183a66eb917ef88f2b4feb1fc25f32a7adcadc7aaf3438e99c1"
 }

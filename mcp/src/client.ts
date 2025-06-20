@@ -185,11 +185,16 @@ export class CrawlabClient {
   private client: AxiosInstance;
   private baseURL: string;
 
-  constructor(baseURL: string, apiToken?: string, timeout: number = 30000) {
-    this.baseURL = baseURL.replace(/\/$/, ''); // Remove trailing slash
+  constructor(apiUrl: string, apiToken?: string, timeout: number = 30000) {
+    this.baseURL = apiUrl.replace(/\/$/, ''); // Remove trailing slash
+
+    // Warn if no API token is provided
+    if (!apiToken) {
+      console.error('ℹ️  INFO: No API token provided - some endpoints may require authentication');
+    }
 
     this.client = axios.create({
-      baseURL: `${this.baseURL}/api`,
+      baseURL: this.baseURL,
       timeout,
       headers: {
         'Content-Type': 'application/json',

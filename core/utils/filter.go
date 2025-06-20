@@ -8,11 +8,12 @@ import (
 
 // FilterToQuery Translate entity.Filter to bson.M
 func FilterToQuery(f interfaces.Filter) (q bson.M) {
+	q = bson.M{}
+
 	if f == nil || f.IsNil() {
-		return nil
+		return q
 	}
 
-	q = bson.M{}
 	for _, cond := range f.GetConditions() {
 		key := cond.GetKey()
 		op := cond.GetOp()
@@ -44,8 +45,6 @@ func FilterToQuery(f interfaces.Filter) (q bson.M) {
 			// ignore invalid operation
 		}
 	}
-	if len(q) == 0 {
-		return nil
-	}
+
 	return q
 }
