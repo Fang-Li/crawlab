@@ -5,6 +5,9 @@
   "license": "MIT",
   "author": "Crawlab Team",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "mcp-server-crawlab": "dist/index.js"
   },
