@@ -123,7 +123,7 @@ export function configureNodeTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ node_id }) => {
       try {
-        const response = await client.enableNode(node_id);
+        await client.enableNode(node_id);
         return {
           content: [
             {
@@ -154,7 +154,7 @@ export function configureNodeTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ node_id }) => {
       try {
-        const response = await client.disableNode(node_id);
+        await client.disableNode(node_id);
         return {
           content: [
             {

@@ -86,7 +86,7 @@ export function configureTaskTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ task_id }) => {
       try {
-        const response = await client.cancelTask(task_id);
+        await client.cancelTask(task_id);
         return {
           content: [
             {
@@ -148,7 +148,7 @@ export function configureTaskTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ task_id }) => {
       try {
-        const response = await client.deleteTask(task_id);
+        await client.deleteTask(task_id);
         return {
           content: [
             {

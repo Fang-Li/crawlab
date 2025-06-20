@@ -1,16 +1,16 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CrawlabClient } from "./client.js";
 
-import { configureSpiderTools } from "./tools/spiders.js";
-import { configureTaskTools } from "./tools/tasks.js";
-import { configureNodeTools } from "./tools/nodes.js";
-import { configureScheduleTools } from "./tools/schedules.js";
-import { configureSystemTools } from "./tools/system.js";
-import { configureProjectTools } from "./tools/projects.js";
-import { configureDatabaseTools } from "./tools/databases.js";
-import { configureGitTools } from "./tools/git.js";
-import { configureStatsTools } from "./tools/stats.js";
-import { configureAITools } from "./tools/ai.js";
+import { configureSpiderTools } from '@tools/spiders';
+import { configureTaskTools } from '@tools/tasks';
+import { configureNodeTools } from '@tools/nodes';
+import { configureScheduleTools } from '@tools/schedules';
+import { configureSystemTools } from '@tools/system';
+import { configureProjectTools } from '@tools/projects';
+import { configureDatabaseTools } from '@tools/databases';
+import { configureGitTools } from '@tools/git';
+import { configureStatsTools } from '@tools/stats';
+import { configureAITools } from '@tools/ai';
 
 export function configureAllTools(server: McpServer, client: CrawlabClient) {
   configureSpiderTools(server, client);

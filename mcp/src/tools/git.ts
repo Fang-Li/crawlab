@@ -169,7 +169,7 @@ export function configureGitTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ git_id }) => {
       try {
-        const response = await client.deleteGitRepo(git_id);
+        await client.deleteGitRepo(git_id);
         return {
           content: [
             {
@@ -200,7 +200,7 @@ export function configureGitTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ git_id }) => {
       try {
-        const response = await client.cloneGitRepo(git_id);
+        await client.cloneGitRepo(git_id);
         return {
           content: [
             {
@@ -231,7 +231,7 @@ export function configureGitTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ git_id }) => {
       try {
-        const response = await client.pullGitRepo(git_id);
+        await client.pullGitRepo(git_id);
         return {
           content: [
             {

@@ -184,7 +184,7 @@ export function configureDatabaseTools(server: McpServer, client: CrawlabClient)
     },
     async ({ database_id }) => {
       try {
-        const response = await client.deleteDatabase(database_id);
+        await client.deleteDatabase(database_id);
         return {
           content: [
             {

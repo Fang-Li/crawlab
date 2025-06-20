@@ -155,7 +155,7 @@ export function configureProjectTools(server: McpServer, client: CrawlabClient) 
     },
     async ({ project_id }) => {
       try {
-        const response = await client.deleteProject(project_id);
+        await client.deleteProject(project_id);
         return {
           content: [
             {

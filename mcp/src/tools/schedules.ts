@@ -189,7 +189,7 @@ export function configureScheduleTools(server: McpServer, client: CrawlabClient)
     },
     async ({ schedule_id }) => {
       try {
-        const response = await client.deleteSchedule(schedule_id);
+        await client.deleteSchedule(schedule_id);
         return {
           content: [
             {
@@ -220,7 +220,7 @@ export function configureScheduleTools(server: McpServer, client: CrawlabClient)
     },
     async ({ schedule_id }) => {
       try {
-        const response = await client.enableSchedule(schedule_id);
+        await client.enableSchedule(schedule_id);
         return {
           content: [
             {
@@ -251,7 +251,7 @@ export function configureScheduleTools(server: McpServer, client: CrawlabClient)
     },
     async ({ schedule_id }) => {
       try {
-        const response = await client.disableSchedule(schedule_id);
+        await client.disableSchedule(schedule_id);
         return {
           content: [
             {

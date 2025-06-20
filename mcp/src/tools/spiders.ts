@@ -207,7 +207,7 @@ export function configureSpiderTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ spider_id }) => {
       try {
-        const response = await client.deleteSpider(spider_id);
+        await client.deleteSpider(spider_id);
         return {
           content: [
             {
@@ -347,7 +347,7 @@ export function configureSpiderTools(server: McpServer, client: CrawlabClient) {
     },
     async ({ spider_id, file_path, content }) => {
       try {
-        const response = await client.saveSpiderFile(spider_id, file_path, content);
+        await client.saveSpiderFile(spider_id, file_path, content);
         return {
           content: [
             {
