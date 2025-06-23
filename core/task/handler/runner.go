@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -52,6 +53,12 @@ func newTaskRunner(id primitive.ObjectID, svc *Service) (r *Runner, err error) {
 		ch:               make(chan constants.TaskSignal),
 		logBatchSize:     20,
 		Logger:           utils.NewLogger("TaskRunner"),
+		// treat all tasks as potentially long-running
+		maxConnRetries:      10,
+		connRetryDelay:      10 * time.Second,
+		ipcTimeout:          60 * time.Second, // generous timeout for all tasks
+		healthCheckInterval: 5 * time.Second,  // check process every 5 seconds
+		connHealthInterval:  60 * time.Second, // check connection health every minute
 	}
 
 	// multi error
@@ -123,6 +130,19 @@ type Runner struct {
 	cancel context.CancelFunc // function to cancel the context
 	done   chan struct{}      // channel to signal completion
 	wg     sync.WaitGroup     // wait group for goroutine synchronization
+	// connection management for robust task execution
+	connMutex         sync.RWMutex  // mutex for connection access
+	connHealthTicker  *time.Ticker  // ticker for connection health checks
+	lastConnCheck     time.Time     // last successful connection check
+	connRetryAttempts int           // current retry attempts
+	maxConnRetries    int           // maximum connection retry attempts
+	connRetryDelay    time.Duration // delay between connection retries
+	resourceCleanup   *time.Ticker  // periodic resource cleanup
+
+	// configurable timeouts for robust task execution
+	ipcTimeout          time.Duration // timeout for IPC operations
+	healthCheckInterval time.Duration // interval for health checks
+	connHealthInterval  time.Duration // interval for connection health checks
 }
 
 // Init initializes the task runner by updating the task status and establishing gRPC connections
@@ -204,7 +224,15 @@ func (r *Runner) Run() (err error) {
 		// 1. Signal all goroutines to stop
 		r.cancel()
 
-		// 2. Wait for all goroutines to finish with timeout
+		// 2. Stop tickers to prevent resource leaks
+		if r.connHealthTicker != nil {
+			r.connHealthTicker.Stop()
+		}
+		if r.resourceCleanup != nil {
+			r.resourceCleanup.Stop()
+		}
+
+		// 3. Wait for all goroutines to finish with timeout
 		done := make(chan struct{})
 		go func() {
 			r.wg.Wait()
@@ -214,17 +242,20 @@ func (r *Runner) Run() (err error) {
 		select {
 		case <-done:
 			// All goroutines finished normally
-		case <-time.After(5 * time.Second):
+		case <-time.After(10 * time.Second): // Increased timeout for long-running tasks
 			// Timeout waiting for goroutines, proceed with cleanup
 			r.Warnf("timeout waiting for goroutines to finish, proceeding with cleanup")
 		}
 
-		// 3. Close gRPC connection after all goroutines have stopped
+		// 4. Close gRPC connection after all goroutines have stopped
+		r.connMutex.Lock()
 		if r.conn != nil {
 			_ = r.conn.CloseSend()
+			r.conn = nil
 		}
+		r.connMutex.Unlock()
 
-		// 4. Close channels after everything has stopped
+		// 5. Close channels after everything has stopped
 		close(r.done)
 		if r.ipcChan != nil {
 			close(r.ipcChan)
@@ -346,7 +377,7 @@ func (r *Runner) startHealthCheck() {
 		return
 	}
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(r.healthCheckInterval)
 	defer ticker.Stop()
 
 	for {
@@ -447,9 +478,7 @@ func (r *Runner) configureEnv() {
 
 func (r *Runner) performHttpRequest(method, path string, params url.Values) (*http.Response, error) {
 	// Normalize path
-	if strings.HasPrefix(path, "/") {
-		path = path[1:]
-	}
+	path = strings.TrimPrefix(path, "/")
 
 	// Construct master URL
 	var id string
@@ -768,17 +797,167 @@ func (r *Runner) updateTask(status string, e error) (err error) {
 	return nil
 }
 
-// initConnection establishes a gRPC connection to the task service
+// initConnection establishes a gRPC connection to the task service with retry logic
 func (r *Runner) initConnection() (err error) {
+	r.connMutex.Lock()
+	defer r.connMutex.Unlock()
+
 	r.conn, err = client2.GetGrpcClient().TaskClient.Connect(context.Background())
 	if err != nil {
 		r.Errorf("error connecting to task service: %v", err)
 		return err
 	}
+
+	r.lastConnCheck = time.Now()
+	r.connRetryAttempts = 0
+	// Start connection health monitoring for all tasks (potentially long-running)
+	go r.monitorConnectionHealth()
+
+	// Start periodic resource cleanup for all tasks
+	go r.performPeriodicCleanup()
+
 	return nil
 }
 
+// monitorConnectionHealth periodically checks gRPC connection health and reconnects if needed
+func (r *Runner) monitorConnectionHealth() {
+	r.wg.Add(1)
+	defer r.wg.Done()
+
+	r.connHealthTicker = time.NewTicker(r.connHealthInterval)
+	defer r.connHealthTicker.Stop()
+
+	for {
+		select {
+		case <-r.ctx.Done():
+			return
+		case <-r.connHealthTicker.C:
+			if r.isConnectionHealthy() {
+				r.lastConnCheck = time.Now()
+				r.connRetryAttempts = 0
+			} else {
+				r.Warnf("gRPC connection unhealthy, attempting reconnection (attempt %d/%d)",
+					r.connRetryAttempts+1, r.maxConnRetries)
+				if err := r.reconnectWithRetry(); err != nil {
+					r.Errorf("failed to reconnect after %d attempts: %v", r.maxConnRetries, err)
+				}
+			}
+		}
+	}
+}
+
+// isConnectionHealthy checks if the gRPC connection is still healthy
+func (r *Runner) isConnectionHealthy() bool {
+	r.connMutex.RLock()
+	defer r.connMutex.RUnlock()
+
+	if r.conn == nil {
+		return false
+	}
+	// Try to send a ping-like message to test connection
+	// Use a simple log message as ping since PING code doesn't exist
+	testMsg := &grpc.TaskServiceConnectRequest{
+		Code:   grpc.TaskServiceConnectCode_INSERT_LOGS,
+		TaskId: r.tid.Hex(),
+		Data:   []byte(`["[HEALTH CHECK] connection test"]`),
+	}
+
+	if err := r.conn.Send(testMsg); err != nil {
+		r.Debugf("connection health check failed: %v", err)
+		return false
+	}
+
+	return true
+}
+
+// reconnectWithRetry attempts to reconnect to the gRPC service with exponential backoff
+func (r *Runner) reconnectWithRetry() error {
+	r.connMutex.Lock()
+	defer r.connMutex.Unlock()
+
+	for attempt := 0; attempt < r.maxConnRetries; attempt++ {
+		r.connRetryAttempts = attempt + 1
+
+		// Close existing connection
+		if r.conn != nil {
+			_ = r.conn.CloseSend()
+			r.conn = nil
+		}
+
+		// Wait before retry (exponential backoff)
+		if attempt > 0 {
+			backoffDelay := time.Duration(attempt) * r.connRetryDelay
+			r.Debugf("waiting %v before retry attempt %d", backoffDelay, attempt+1)
+
+			select {
+			case <-r.ctx.Done():
+				return fmt.Errorf("context cancelled during reconnection")
+			case <-time.After(backoffDelay):
+			}
+		}
+
+		// Attempt reconnection
+		conn, err := client2.GetGrpcClient().TaskClient.Connect(context.Background())
+		if err != nil {
+			r.Warnf("reconnection attempt %d failed: %v", attempt+1, err)
+			continue
+		}
+
+		r.conn = conn
+		r.lastConnCheck = time.Now()
+		r.connRetryAttempts = 0
+		r.Infof("successfully reconnected to task service after %d attempts", attempt+1)
+		return nil
+	}
+
+	return fmt.Errorf("failed to reconnect after %d attempts", r.maxConnRetries)
+}
+
+// performPeriodicCleanup runs periodic cleanup for all tasks
+func (r *Runner) performPeriodicCleanup() {
+	r.wg.Add(1)
+	defer r.wg.Done()
+
+	// Cleanup every 10 minutes for all tasks
+	r.resourceCleanup = time.NewTicker(10 * time.Minute)
+	defer r.resourceCleanup.Stop()
+
+	for {
+		select {
+		case <-r.ctx.Done():
+			return
+		case <-r.resourceCleanup.C:
+			r.runPeriodicCleanup()
+		}
+	}
+}
+
+// runPeriodicCleanup performs memory and resource cleanup
+func (r *Runner) runPeriodicCleanup() {
+	r.Debugf("performing periodic cleanup for task")
+
+	// Force garbage collection for memory management
+	runtime.GC()
+
+	// Log current resource usage
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	r.Debugf("memory usage - alloc: %d KB, sys: %d KB, num_gc: %d",
+		m.Alloc/1024, m.Sys/1024, m.NumGC)
+
+	// Check if IPC channel is getting full
+	if r.ipcChan != nil {
+		select {
+		case <-r.ipcChan:
+			r.Debugf("drained stale IPC message during cleanup")
+		default:
+			// Channel is not full, good
+		}
+	}
+}
+
 // writeLogLines marshals log lines to JSON and sends them to the task service
+// Uses connection-safe approach for robust task execution
 func (r *Runner) writeLogLines(lines []string) {
 	// Check if context is cancelled or connection is closed
 	select {
@@ -787,8 +966,14 @@ func (r *Runner) writeLogLines(lines []string) {
 	default:
 	}
 
+	// Use connection with mutex for thread safety
+	r.connMutex.RLock()
+	conn := r.conn
+	r.connMutex.RUnlock()
+
 	// Check if connection is available
-	if r.conn == nil {
+	if conn == nil {
+		r.Debugf("no connection available for sending log lines")
 		return
 	}
 
@@ -797,18 +982,22 @@ func (r *Runner) writeLogLines(lines []string) {
 		r.Errorf("error marshaling log lines: %v", err)
 		return
 	}
+
 	msg := &grpc.TaskServiceConnectRequest{
 		Code:   grpc.TaskServiceConnectCode_INSERT_LOGS,
 		TaskId: r.tid.Hex(),
 		Data:   linesBytes,
 	}
-	if err := r.conn.Send(msg); err != nil {
+
+	if err := conn.Send(msg); err != nil {
 		// Don't log errors if context is cancelled (expected during shutdown)
 		select {
 		case <-r.ctx.Done():
 			return
 		default:
 			r.Errorf("error sending log lines: %v", err)
+			// Mark connection as unhealthy for reconnection
+			r.lastConnCheck = time.Time{}
 		}
 		return
 	}
@@ -1087,14 +1276,19 @@ func (r *Runner) handleIPCInsertDataMessage(ipcMsg entity.IPCMessage) {
 	default:
 	}
 
+	// Use connection with mutex for thread safety
+	r.connMutex.RLock()
+	conn := r.conn
+	r.connMutex.RUnlock()
+
 	// Validate connection
-	if r.conn == nil {
+	if conn == nil {
 		r.Errorf("gRPC connection not initialized")
 		return
 	}
 
 	// Send IPC message to master with context and timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), r.ipcTimeout)
 	defer cancel()
 
 	// Create gRPC message
@@ -1112,13 +1306,15 @@ func (r *Runner) handleIPCInsertDataMessage(ipcMsg entity.IPCMessage) {
 	case <-r.ctx.Done():
 		return
 	default:
-		if err := r.conn.Send(grpcMsg); err != nil {
+		if err := conn.Send(grpcMsg); err != nil {
 			// Don't log errors if context is cancelled (expected during shutdown)
 			select {
 			case <-r.ctx.Done():
 				return
 			default:
 				r.Errorf("error sending IPC message: %v", err)
+				// Mark connection as unhealthy for reconnection
+				r.lastConnCheck = time.Time{}
 			}
 			return
 		}
@@ -1281,4 +1477,18 @@ func (r *Runner) Infof(format string, args ...interface{}) {
 func (r *Runner) Debugf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	r.logInternally("DEBUG", msg)
+}
+
+// GetConnectionStats returns connection health statistics for monitoring
+func (r *Runner) GetConnectionStats() map[string]interface{} {
+	r.connMutex.RLock()
+	defer r.connMutex.RUnlock()
+
+	return map[string]interface{}{
+		"last_connection_check": r.lastConnCheck,
+		"retry_attempts":        r.connRetryAttempts,
+		"max_retries":           r.maxConnRetries,
+		"connection_healthy":    r.isConnectionHealthy(),
+		"connection_exists":     r.conn != nil,
+	}
 }

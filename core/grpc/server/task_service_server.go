@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	mongo3 "github.com/crawlab-team/crawlab/core/mongo"
 	"io"
 	"strings"
 	"sync"
+	"time"
+
+	mongo3 "github.com/crawlab-team/crawlab/core/mongo"
 
 	"github.com/crawlab-team/crawlab/core/constants"
 	"github.com/crawlab-team/crawlab/core/interfaces"
@@ -35,6 +37,11 @@ type TaskServiceServer struct {
 
 	// internals
 	subs map[primitive.ObjectID]grpc.TaskService_SubscribeServer
+
+	// cleanup mechanism
+	cleanupCtx    context.Context
+	cleanupCancel context.CancelFunc
+
 	interfaces.Logger
 }
 
@@ -50,21 +57,38 @@ func (svr TaskServiceServer) Subscribe(req *grpc.TaskServiceSubscribeRequest, st
 		return errors.New("invalid stream")
 	}
 
+	svr.Infof("task stream opened: %s", taskId.Hex())
+
 	// add stream
 	taskServiceMutex.Lock()
 	svr.subs[taskId] = stream
 	taskServiceMutex.Unlock()
 
-	// wait for stream to close
-	<-stream.Context().Done()
+	// ensure cleanup on exit
+	defer func() {
+		taskServiceMutex.Lock()
+		delete(svr.subs, taskId)
+		taskServiceMutex.Unlock()
+		svr.Infof("task stream closed: %s", taskId.Hex())
+	}()
 
-	// remove stream
-	taskServiceMutex.Lock()
-	delete(svr.subs, taskId)
-	taskServiceMutex.Unlock()
-	svr.Infof("task stream closed: %s", taskId.Hex())
+	// wait for stream to close with timeout protection
+	ctx := stream.Context()
 
-	return nil
+	// Create a context with timeout to prevent indefinite hanging
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 24*time.Hour)
+	defer cancel()
+
+	select {
+	case <-ctx.Done():
+		// Stream context cancelled normally
+		svr.Debugf("task stream context done: %s", taskId.Hex())
+		return ctx.Err()
+	case <-timeoutCtx.Done():
+		// Timeout reached - this prevents indefinite hanging
+		svr.Warnf("task stream timeout reached for task: %s", taskId.Hex())
+		return errors.New("stream timeout")
+	}
 }
 
 // Connect to task stream when a task runner in a node starts
@@ -75,22 +99,49 @@ func (svr TaskServiceServer) Connect(stream grpc.TaskService_ConnectServer) (err
 	var spiderId primitive.ObjectID
 	var taskId primitive.ObjectID
 
+	// Add timeout protection for the entire connection
+	ctx := stream.Context()
+
+	// Log connection start
+	svr.Debugf("task connect stream started")
+
+	defer func() {
+		if taskId != primitive.NilObjectID {
+			svr.Debugf("task connect stream ended for task: %s", taskId.Hex())
+		} else {
+			svr.Debugf("task connect stream ended")
+		}
+	}()
+
 	// continuously receive messages from the stream
 	for {
-		// receive next message from stream
+		// Check context cancellation before each receive
+		select {
+		case <-ctx.Done():
+			svr.Debugf("task connect stream context cancelled")
+			return ctx.Err()
+		default:
+		}
+
+		// receive next message from stream with timeout
 		msg, err := stream.Recv()
 		if err == io.EOF {
 			// stream has ended normally
+			svr.Debugf("task connect stream ended normally (EOF)")
 			return nil
 		}
 		if err != nil {
 			// handle graceful context cancellation
-			if strings.HasSuffix(err.Error(), "context canceled") {
+			if strings.HasSuffix(err.Error(), "context canceled") ||
+				strings.Contains(err.Error(), "context deadline exceeded") ||
+				strings.Contains(err.Error(), "transport is closing") {
+				svr.Debugf("task connect stream cancelled gracefully: %v", err)
 				return nil
 			}
-			// log other stream receive errors and continue
+			// log other stream receive errors
 			svr.Errorf("error receiving stream message: %v", err)
-			continue
+			// Return error instead of continuing to prevent infinite error loops
+			return err
 		}
 
 		// validate and parse the task ID from the message if not already set
@@ -100,6 +151,7 @@ func (svr TaskServiceServer) Connect(stream grpc.TaskService_ConnectServer) (err
 				svr.Errorf("invalid task id: %s", msg.TaskId)
 				continue
 			}
+			svr.Debugf("task connect stream set task id: %s", taskId.Hex())
 		}
 
 		// get spider id if not already set
@@ -149,8 +201,8 @@ func (svr TaskServiceServer) FetchTask(ctx context.Context, request *grpc.TaskSe
 	var tid primitive.ObjectID
 	opts := &mongo3.FindOptions{
 		Sort: bson.D{
-			{"priority", 1},
-			{"_id", 1},
+			{Key: "priority", Value: 1},
+			{Key: "_id", Value: 1},
 		},
 		Limit: 1,
 	}
@@ -302,6 +354,51 @@ func (svr TaskServiceServer) GetSubscribeStream(taskId primitive.ObjectID) (stre
 	return stream, ok
 }
 
+// cleanupStaleStreams periodically checks for and removes stale streams
+func (svr *TaskServiceServer) cleanupStaleStreams() {
+	ticker := time.NewTicker(10 * time.Minute) // Check every 10 minutes
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-svr.cleanupCtx.Done():
+			svr.Debugf("stream cleanup routine shutting down")
+			return
+		case <-ticker.C:
+			svr.performStreamCleanup()
+		}
+	}
+}
+
+// performStreamCleanup checks each stream and removes those that are no longer active
+func (svr *TaskServiceServer) performStreamCleanup() {
+	taskServiceMutex.Lock()
+	defer taskServiceMutex.Unlock()
+
+	var staleTaskIds []primitive.ObjectID
+
+	for taskId, stream := range svr.subs {
+		// Check if stream context is still active
+		select {
+		case <-stream.Context().Done():
+			// Stream is done, mark for removal
+			staleTaskIds = append(staleTaskIds, taskId)
+		default:
+			// Stream is still active, continue
+		}
+	}
+
+	// Remove stale streams
+	for _, taskId := range staleTaskIds {
+		delete(svr.subs, taskId)
+		svr.Infof("cleaned up stale stream for task: %s", taskId.Hex())
+	}
+
+	if len(staleTaskIds) > 0 {
+		svr.Infof("cleaned up %d stale streams", len(staleTaskIds))
+	}
+}
+
 func (svr TaskServiceServer) handleInsertData(taskId, spiderId primitive.ObjectID, msg *grpc.TaskServiceConnectRequest) (err error) {
 	var records []map[string]interface{}
 	err = json.Unmarshal(msg.Data, &records)
@@ -332,12 +429,46 @@ func (svr TaskServiceServer) saveTask(t *models.Task) (err error) {
 }
 
 func newTaskServiceServer() *TaskServiceServer {
-	return &TaskServiceServer{
-		cfgSvc:   nodeconfig.GetNodeConfigService(),
-		subs:     make(map[primitive.ObjectID]grpc.TaskService_SubscribeServer),
-		statsSvc: stats.GetTaskStatsService(),
-		Logger:   utils.NewLogger("GrpcTaskServiceServer"),
+	ctx, cancel := context.WithCancel(context.Background())
+
+	server := &TaskServiceServer{
+		cfgSvc:        nodeconfig.GetNodeConfigService(),
+		subs:          make(map[primitive.ObjectID]grpc.TaskService_SubscribeServer),
+		statsSvc:      stats.GetTaskStatsService(),
+		cleanupCtx:    ctx,
+		cleanupCancel: cancel,
+		Logger:        utils.NewLogger("GrpcTaskServiceServer"),
 	}
+
+	// Start the cleanup routine
+	go server.cleanupStaleStreams()
+
+	return server
+}
+
+// Stop gracefully shuts down the task service server
+func (svr *TaskServiceServer) Stop() error {
+	svr.Infof("stopping task service server...")
+
+	// Cancel cleanup routine
+	if svr.cleanupCancel != nil {
+		svr.cleanupCancel()
+	}
+
+	// Clean up all remaining streams
+	taskServiceMutex.Lock()
+	streamCount := len(svr.subs)
+	for taskId := range svr.subs {
+		delete(svr.subs, taskId)
+	}
+	taskServiceMutex.Unlock()
+
+	if streamCount > 0 {
+		svr.Infof("cleaned up %d remaining streams on shutdown", streamCount)
+	}
+
+	svr.Infof("task service server stopped")
+	return nil
 }
 
 var _taskServiceServer *TaskServiceServer
