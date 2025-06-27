@@ -312,8 +312,8 @@ func PostTaskCancel(c *gin.Context, params *PostTaskCancelParams) (response *Voi
 		return GetErrorVoidResponse(err)
 	}
 
-	// validate
-	if !utils.IsCancellable(t.Status) {
+	// validate - only check if task is cancellable when force is false
+	if !params.Force && !utils.IsCancellable(t.Status) {
 		return GetErrorVoidResponse(errors.New("task is not cancellable"))
 	}
 

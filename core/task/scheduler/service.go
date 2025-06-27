@@ -1,8 +1,12 @@
 package scheduler
 
 import (
+	"context"
 	errors2 "errors"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/crawlab-team/crawlab/core/constants"
 	"github.com/crawlab-team/crawlab/core/grpc/server"
 	"github.com/crawlab-team/crawlab/core/interfaces"
@@ -14,8 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongo2 "go.mongodb.org/mongo-driver/mongo"
-	"sync"
-	"time"
 )
 
 type Service struct {
@@ -116,22 +118,57 @@ func (svc *Service) cancelOnWorker(t *models.Task, by primitive.ObjectID, force 
 	// get subscribe stream
 	stream, ok := svc.svr.TaskSvr.GetSubscribeStream(t.Id)
 	if !ok {
-		err := fmt.Errorf("stream not found for task (%s)", t.Id.Hex())
-		svc.Errorf(err.Error())
-		t.Status = constants.TaskStatusAbnormal
-		t.Error = err.Error()
+		svc.Warnf("stream not found for task (%s), task may already be finished or connection lost", t.Id.Hex())
+		// Task might have finished or connection lost, mark as cancelled anyway
+		t.Status = constants.TaskStatusCancelled
+		t.Error = "cancel signal could not be delivered - stream not found"
 		return svc.SaveTask(t, by)
 	}
 
-	// send cancel request
-	err = stream.Send(&grpc.TaskServiceSubscribeResponse{
-		Code:   grpc.TaskServiceSubscribeCode_CANCEL,
-		TaskId: t.Id.Hex(),
-		Force:  force,
-	})
-	if err != nil {
-		svc.Errorf("failed to send cancel task (%s) request to worker: %v", t.Id.Hex(), err)
-		return err
+	// send cancel request with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Create a channel to handle the send operation
+	sendDone := make(chan error, 1)
+	go func() {
+		err := stream.Send(&grpc.TaskServiceSubscribeResponse{
+			Code:   grpc.TaskServiceSubscribeCode_CANCEL,
+			TaskId: t.Id.Hex(),
+			Force:  force,
+		})
+		sendDone <- err
+	}()
+
+	select {
+	case err = <-sendDone:
+		if err != nil {
+			svc.Errorf("failed to send cancel task (%s) request to worker: %v", t.Id.Hex(), err)
+			// If sending failed, still mark task as cancelled to avoid stuck state
+			t.Status = constants.TaskStatusCancelled
+			t.Error = fmt.Sprintf("cancel signal delivery failed: %v", err)
+			return svc.SaveTask(t, by)
+		}
+		svc.Infof("cancel signal sent for task (%s) with force=%v", t.Id.Hex(), force)
+	case <-ctx.Done():
+		svc.Errorf("timeout sending cancel request for task (%s)", t.Id.Hex())
+		// Mark as cancelled even if signal couldn't be delivered
+		t.Status = constants.TaskStatusCancelled
+		t.Error = "cancel signal delivery timeout"
+		return svc.SaveTask(t, by)
+	}
+
+	// For force cancellation, wait a bit and verify cancellation
+	if force {
+		time.Sleep(5 * time.Second)
+		// Re-fetch task to check current status
+		currentTask, fetchErr := service.NewModelService[models.Task]().GetById(t.Id)
+		if fetchErr == nil && currentTask.Status == constants.TaskStatusRunning {
+			svc.Warnf("task (%s) still running after force cancel, marking as cancelled", t.Id.Hex())
+			currentTask.Status = constants.TaskStatusCancelled
+			currentTask.Error = "forced cancellation - task was unresponsive"
+			return svc.SaveTask(currentTask, by)
+		}
 	}
 
 	return nil

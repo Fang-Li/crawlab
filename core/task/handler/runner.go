@@ -274,30 +274,66 @@ func (r *Runner) Run() (err error) {
 // Cancel terminates the running task. If force is true, the process will be killed immediately
 // without waiting for graceful shutdown.
 func (r *Runner) Cancel(force bool) (err error) {
+	r.Debugf("attempting to cancel task (force: %v)", force)
+
 	// Signal goroutines to stop
 	r.cancel()
 
-	// Kill process
-	r.Debugf("attempt to kill process[%d]", r.pid)
-	err = utils.KillProcess(r.cmd, force)
-	if err != nil {
-		r.Warnf("kill process error: %v", err)
+	// If force is not requested, try graceful termination first
+	if !force {
+		r.Debugf("attempting graceful termination of process[%d]", r.pid)
+		if err = utils.KillProcess(r.cmd, false); err != nil {
+			r.Warnf("graceful termination failed: %v, escalating to force", err)
+			force = true
+		} else {
+			// Wait for graceful termination with shorter timeout
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ctx.Done():
+					r.Warnf("graceful termination timeout, escalating to force")
+					force = true
+					goto forceKill
+				case <-ticker.C:
+					if !utils.ProcessIdExists(r.pid) {
+						r.Debugf("process[%d] terminated gracefully", r.pid)
+						return nil
+					}
+				}
+			}
+		}
 	}
 
-	// Create a context with timeout
+forceKill:
+	if force {
+		r.Debugf("force killing process[%d]", r.pid)
+		if err = utils.KillProcess(r.cmd, true); err != nil {
+			r.Errorf("force kill failed: %v", err)
+			return err
+		}
+	}
+
+	// Wait for process to be killed with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), r.svc.GetCancelTimeout())
 	defer cancel()
 
-	// Wait for process to be killed with context
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for task to stop")
+			r.Errorf("timeout waiting for task to stop after %v", r.svc.GetCancelTimeout())
+			// At this point, process might be completely stuck, log and return error
+			return fmt.Errorf("task cancellation timeout: process may be stuck")
 		case <-ticker.C:
 			if !utils.ProcessIdExists(r.pid) {
+				r.Debugf("process[%d] terminated successfully", r.pid)
 				return nil
 			}
 		}

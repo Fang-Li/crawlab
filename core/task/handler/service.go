@@ -64,6 +64,9 @@ func (svc *Service) Start() {
 	go svc.fetchAndRunTasks()
 
 	svc.Infof("Task handler service started")
+
+	// Start the stuck task cleanup routine
+	svc.startStuckTaskCleanup()
 }
 
 func (svc *Service) Stop() {
@@ -604,11 +607,39 @@ func (svc *Service) handleCancel(msg *grpc.TaskServiceSubscribeResponse, taskId 
 func (svc *Service) cancelTask(taskId primitive.ObjectID, force bool) (err error) {
 	r, err := svc.getRunner(taskId)
 	if err != nil {
-		return err
+		// Runner not found, task might already be finished
+		svc.Warnf("runner not found for task[%s]: %v", taskId.Hex(), err)
+		return nil
 	}
-	if err := r.Cancel(force); err != nil {
-		return err
+
+	// Attempt cancellation with timeout
+	cancelCtx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelFunc()
+
+	cancelDone := make(chan error, 1)
+	go func() {
+		cancelDone <- r.Cancel(force)
+	}()
+
+	select {
+	case err = <-cancelDone:
+		if err != nil {
+			svc.Errorf("failed to cancel task[%s]: %v", taskId.Hex(), err)
+			// If cancellation failed and force is not set, try force cancellation
+			if !force {
+				svc.Warnf("escalating to force cancellation for task[%s]", taskId.Hex())
+				return svc.cancelTask(taskId, true)
+			}
+			return err
+		}
+		svc.Infof("task[%s] cancelled successfully", taskId.Hex())
+	case <-cancelCtx.Done():
+		svc.Errorf("timeout cancelling task[%s], removing runner from pool", taskId.Hex())
+		// Remove runner from pool to prevent further issues
+		svc.runners.Delete(taskId)
+		return fmt.Errorf("task cancellation timeout")
 	}
+
 	return nil
 }
 
@@ -653,6 +684,79 @@ func (svc *Service) stopAllRunners() {
 		svc.Infof("All tasks stopped gracefully")
 	case <-time.After(30 * time.Second):
 		svc.Warnf("Some tasks did not stop within timeout")
+	}
+}
+
+func (svc *Service) startStuckTaskCleanup() {
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-svc.ctx.Done():
+				svc.Debugf("stuck task cleanup routine shutting down")
+				return
+			case <-ticker.C:
+				svc.checkAndCleanupStuckTasks()
+			}
+		}
+	}()
+}
+
+// checkAndCleanupStuckTasks checks for tasks that have been trying to cancel for too long
+func (svc *Service) checkAndCleanupStuckTasks() {
+	defer func() {
+		if r := recover(); r != nil {
+			svc.Errorf("panic in stuck task cleanup: %v", r)
+		}
+	}()
+
+	var stuckTasks []primitive.ObjectID
+
+	// Check all running tasks
+	svc.runners.Range(func(key, value interface{}) bool {
+		taskId, ok := key.(primitive.ObjectID)
+		if !ok {
+			return true
+		}
+
+		// Get task from database to check its state
+		t, err := svc.GetTaskById(taskId)
+		if err != nil {
+			svc.Errorf("failed to get task[%s] during stuck cleanup: %v", taskId.Hex(), err)
+			return true
+		}
+
+		// Check if task has been in cancelling state too long (15+ minutes)
+		if t.Status == constants.TaskStatusCancelled && time.Since(t.UpdatedAt) > 15*time.Minute {
+			svc.Warnf("detected stuck cancelled task[%s], will force cleanup", taskId.Hex())
+			stuckTasks = append(stuckTasks, taskId)
+		}
+
+		return true
+	})
+
+	// Force cleanup stuck tasks
+	for _, taskId := range stuckTasks {
+		svc.Infof("force cleaning up stuck task[%s]", taskId.Hex())
+
+		// Remove from runners map
+		svc.runners.Delete(taskId)
+
+		// Update task status to indicate it was force cleaned
+		t, err := svc.GetTaskById(taskId)
+		if err == nil {
+			t.Status = constants.TaskStatusCancelled
+			t.Error = "Task was stuck in cancelling state and was force cleaned up"
+			if updateErr := svc.UpdateTask(t); updateErr != nil {
+				svc.Errorf("failed to update stuck task[%s] status: %v", taskId.Hex(), updateErr)
+			}
+		}
+	}
+
+	if len(stuckTasks) > 0 {
+		svc.Infof("cleaned up %d stuck tasks", len(stuckTasks))
 	}
 }
 
