@@ -26,3 +26,8 @@ export * from './task';
 export * from './tree';
 export * from './validate';
 export * from './notification';
+export * from './time';
+export * from './icon';
+export * from './dependency';
+export * from './base64';
+export * from './autoprobe';

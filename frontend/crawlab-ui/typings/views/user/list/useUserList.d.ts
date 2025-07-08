@@ -1,8 +1,9 @@
 declare const useUserList: () => {
     selectableFunction: (row: User) => boolean;
     navActions?: import("vue").Ref<ListActionGroup[]>;
-    tableColumns?: import("vue").Ref<TableColumns<any>> | undefined;
-    tableData: import("vue").Ref<TableData<any>>;
+    tableLoading: import("vue").Ref<boolean>;
+    tableColumns?: import("vue").Ref<TableColumns<User>, TableColumns<User>> | undefined;
+    tableData: import("vue").Ref<TableData<User>, TableData<User>>;
     tableTotal: import("vue").Ref<number>;
     tablePagination: import("vue").Ref<TablePagination>;
     tableListFilter: import("vue").Ref<FilterConditionData[]>;

@@ -1,42 +1,16 @@
-declare let __VLS_typeProps: {
-  options?: SelectOption[];
-  placeholder?: string;
+type __VLS_Props = {
+    options?: SelectOption[];
+    placeholder?: string;
 };
-type __VLS_PublicProps = {
-  modelValue?: string[];
-} & typeof __VLS_typeProps;
-declare const _default: import('vue').DefineComponent<
-  __VLS_TypePropsToOption<__VLS_PublicProps>,
-  {},
-  unknown,
-  {},
-  {},
-  import('vue').ComponentOptionsMixin,
-  import('vue').ComponentOptionsMixin,
-  {
-    'update:modelValue': (modelValue: string[]) => void;
-    change: (value: string[]) => void;
-  },
-  string,
-  import('vue').PublicProps,
-  Readonly<
-    import('vue').ExtractPropTypes<__VLS_TypePropsToOption<__VLS_PublicProps>>
-  > & {
+type __VLS_PublicProps = __VLS_Props & {
+    modelValue?: string[];
+};
+declare const _default: import("vue").DefineComponent<__VLS_PublicProps, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
+    "update:modelValue": (value: string[]) => any;
+} & {
+    change: (value: string[]) => any;
+}, string, import("vue").PublicProps, Readonly<__VLS_PublicProps> & Readonly<{
     onChange?: ((value: string[]) => any) | undefined;
-    'onUpdate:modelValue'?: ((modelValue: string[]) => any) | undefined;
-  },
-  {},
-  {}
->;
+    "onUpdate:modelValue"?: ((value: string[]) => any) | undefined;
+}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;
-type __VLS_NonUndefinedable<T> = T extends undefined ? never : T;
-type __VLS_TypePropsToOption<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K>
-    ? {
-        type: import('vue').PropType<__VLS_NonUndefinedable<T[K]>>;
-      }
-    : {
-        type: import('vue').PropType<T[K]>;
-        required: true;
-      };
-};

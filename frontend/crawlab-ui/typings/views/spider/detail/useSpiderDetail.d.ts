@@ -1,46 +1,55 @@
 declare const useSpiderDetail: () => {
-  saveFile: () => Promise<void>;
-  navItems: import('vue').ComputedRef<NavItem<BaseModel>[]>;
-  activeId: import('vue').ComputedRef<string>;
-  navSidebar: import('vue').Ref<{
-    scroll: (id: string) => void;
-  } | null>;
-  navActions: import('vue').Ref<{
-    getHeight: () => string;
-  } | null>;
-  showActionsToggleTooltip: import('vue').Ref<boolean>;
-  tabs: import('vue').ComputedRef<
-    {
-      title: string;
-      disabled: boolean;
-      id: string;
-      subtitle?: string;
-      data?: any;
-      icon?: string[] | string;
-      tooltip?: string;
-      emphasis?: boolean;
-      style?: any;
-      badge?: string | number;
-      badgeType?: BasicType;
-      label?: string;
-      value?: any;
-      children?: NavItem<any>[] | undefined;
-      path?: string;
-    }[]
-  >;
-  activeTabName: import('vue').ComputedRef<string>;
-  sidebarCollapsed: import('vue').ComputedRef<boolean>;
-  actionsCollapsed: import('vue').ComputedRef<boolean>;
-  contentContainerStyle: import('vue').ComputedRef<{
-    height: string;
-  }>;
-  getForm: () => Promise<Promise<any>>;
-  onNavSidebarSelect: (item: NavItem) => Promise<void>;
-  onNavSidebarToggle: (value: boolean) => void;
-  onActionsToggle: () => void;
-  onNavTabsSelect: (tabName: string) => Promise<void>;
-  onNavTabsToggle: () => void;
-  onBack: () => Promise<void>;
-  onSave: () => Promise<void>;
+    listDir: (id: string, path: string) => Promise<ResponseWithData<FileNavItem[]>>;
+    listRootDir: (id: string) => Promise<ResponseWithData<FileNavItem[]>>;
+    getFile: (id: string, path: string) => Promise<ResponseWithData<string>>;
+    getFileInfo: (id: string, path: string) => Promise<ResponseWithData<FileNavItem>>;
+    saveFile: (id: string, path: string, data: string) => Promise<Response>;
+    saveFileBinary: (id: string, path: string, file: File) => Promise<Response>;
+    saveFilesBinary: (id: string, files: {
+        path: string;
+        file: File;
+    }[], targetDirectory?: string) => Promise<Response>;
+    saveDir: (id: string, path: string) => Promise<Response>;
+    renameFile: (id: string, path: string, new_path: string) => Promise<Response>;
+    deleteFile: (id: string, path: string) => Promise<Response>;
+    copyFile: (id: string, path: string, new_path: string) => Promise<Response>;
+    fileContent: import("vue").ComputedRef<string>;
+    getById: (id: string) => Promise<ResponseWithData<unknown>>;
+    create: (form: unknown) => Promise<ResponseWithData<unknown>>;
+    updateById: (id: string, form: unknown) => Promise<ResponseWithData<unknown>>;
+    deleteById: (id: string) => Promise<Response>;
+    getList: (params?: ListRequestParams) => Promise<ResponseWithListData<unknown>>;
+    createList: (data: unknown[]) => Promise<ResponseWithListData<unknown>>;
+    updateList: (ids: string[], data: unknown, fields: string[]) => Promise<Response>;
+    deleteList: (ids: string[]) => Promise<Response>;
+    navItems: import("vue").ComputedRef<NavItem<Spider>[]>;
+    activeId: import("vue").ComputedRef<string>;
+    showActionsToggleTooltip: import("vue").Ref<boolean, boolean>;
+    navLoading: import("vue").Ref<boolean, boolean>;
+    onNavSelect: (id: string) => Promise<void>;
+    tabs: import("vue").ComputedRef<{
+        title: string;
+        disabled: boolean;
+        id: string;
+        subtitle?: string;
+        data?: any;
+        icon?: Icon;
+        iconSpinning?: boolean;
+        tooltip?: string;
+        emphasis?: boolean;
+        style?: any;
+        badge?: string | number;
+        badgeType?: BasicType;
+        label?: string;
+        value?: any;
+        children?: NavItem<any>[] | undefined;
+        path?: string;
+        level?: number;
+    }[]>;
+    activeTabName: import("vue").ComputedRef<string>;
+    getForm: () => Promise<any>;
+    onNavTabsSelect: (tabName: string) => Promise<void>;
+    onBack: () => Promise<void>;
+    onSave: () => Promise<void>;
 };
 export default useSpiderDetail;

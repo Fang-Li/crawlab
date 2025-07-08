@@ -1,1 +1,1 @@
-export declare const getMd5: (text: string) => string;
+export declare const getMd5: (value: any) => string;

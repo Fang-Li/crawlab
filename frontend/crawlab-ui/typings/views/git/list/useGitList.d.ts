@@ -1,7 +1,10 @@
 declare const useGitList: () => {
+    selectableFunction: TableSelectableFunction<Git>;
+    rowKeyFunction: TableRowKeyFunction<Git>;
     navActions?: import("vue").Ref<ListActionGroup[]>;
-    tableColumns?: import("vue").Ref<TableColumns<any>> | undefined;
-    tableData: import("vue").Ref<TableData<any>>;
+    tableLoading: import("vue").Ref<boolean>;
+    tableColumns?: import("vue").Ref<TableColumns<Git>, TableColumns<Git>> | undefined;
+    tableData: import("vue").Ref<TableData<Git>, TableData<Git>>;
     tableTotal: import("vue").Ref<number>;
     tablePagination: import("vue").Ref<TablePagination>;
     tableListFilter: import("vue").Ref<FilterConditionData[]>;

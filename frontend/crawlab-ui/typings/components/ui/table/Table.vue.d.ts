@@ -1,170 +1,78 @@
-declare function __VLS_template(): {
-  'actions-prefix'?(_: {}): any;
-  'actions-suffix'?(_: {}): any;
+import { CellCls, CellStyle, ColumnStyle } from 'element-plus';
+import { ColumnCls } from 'element-plus/es/components/table/src/table/defaults';
+type __VLS_Slots = {
+    empty?: void;
+    'actions-prefix'?: void;
+    'actions-suffix'?: void;
 };
-
-declare const __VLS_component: import('vue').DefineComponent<
-  __VLS_WithDefaults<
-    __VLS_TypePropsToOption<{
-      data: TableData;
-      columns: TableColumn[];
-      selectedColumnKeys?: string[];
-      total?: number;
-      page?: number;
-      pageSize?: number;
-      rowKey?: string | ((row: any) => string);
-      selectable?: boolean;
-      visibleButtons?: BuiltInTableActionButtonName[];
-      hideFooter?: boolean;
-      selectableFunction?: TableSelectableFunction;
-      paginationLayout?: string;
-      loading?: boolean;
-      paginationPosition?: TablePaginationPosition;
-      height?: string | number;
-      maxHeight?: string | number;
-      embedded?: boolean;
-      border?: boolean;
-      fit?: boolean;
-      emptyText?: string;
-    }>,
-    {
-      data: () => never[];
-      columns: () => never[];
-      selectedColumnKeys: () => never[];
-      total: number;
-      page: number;
-      pageSize: number;
-      rowKey: string;
-      visibleButtons: () => never[];
-      paginationLayout: string;
-      paginationPosition: string;
-      border: boolean;
-    }
-  >,
-  {
-    clearSelection: () => void;
-    checkAll: () => void;
-  },
-  unknown,
-  {},
-  {},
-  import('vue').ComponentOptionsMixin,
-  import('vue').ComponentOptionsMixin,
-  {
-    edit: (data: TableData<TableAnyRowData>) => void;
-    delete: (data: TableData<TableAnyRowData>) => void;
-    export: (data: TableData<TableAnyRowData>) => void;
-    'header-change': (
-      data: TableColumn<any>,
-      sort: SortData,
-      filter: FilterConditionData[]
-    ) => void;
-    'pagination-change': (data: TablePagination) => void;
-    'selection-change': (data: TableData<TableAnyRowData>) => void;
-  },
-  string,
-  import('vue').PublicProps,
-  Readonly<
-    import('vue').ExtractPropTypes<
-      __VLS_WithDefaults<
-        __VLS_TypePropsToOption<{
-          data: TableData;
-          columns: TableColumn[];
-          selectedColumnKeys?: string[];
-          total?: number;
-          page?: number;
-          pageSize?: number;
-          rowKey?: string | ((row: any) => string);
-          selectable?: boolean;
-          visibleButtons?: BuiltInTableActionButtonName[];
-          hideFooter?: boolean;
-          selectableFunction?: TableSelectableFunction;
-          paginationLayout?: string;
-          loading?: boolean;
-          paginationPosition?: TablePaginationPosition;
-          height?: string | number;
-          maxHeight?: string | number;
-          embedded?: boolean;
-          border?: boolean;
-          fit?: boolean;
-          emptyText?: string;
-        }>,
-        {
-          data: () => never[];
-          columns: () => never[];
-          selectedColumnKeys: () => never[];
-          total: number;
-          page: number;
-          pageSize: number;
-          rowKey: string;
-          visibleButtons: () => never[];
-          paginationLayout: string;
-          paginationPosition: string;
-          border: boolean;
-        }
-      >
-    >
-  > & {
-    onDelete?: ((data: TableData<TableAnyRowData>) => any) | undefined;
-    onEdit?: ((data: TableData<TableAnyRowData>) => any) | undefined;
-    onExport?: ((data: TableData<TableAnyRowData>) => any) | undefined;
-    'onPagination-change'?: ((data: TablePagination) => any) | undefined;
-    'onHeader-change'?:
-      | ((
-          data: TableColumn<any>,
-          sort: SortData,
-          filter: FilterConditionData[]
-        ) => any)
-      | undefined;
-    'onSelection-change'?:
-      | ((data: TableData<TableAnyRowData>) => any)
-      | undefined;
-  },
-  {
+type __VLS_Props = {
+    loading?: boolean;
     data: TableData;
     columns: TableColumn[];
-    total: number;
+    selectedColumnKeys?: string[];
+    total?: number;
+    page?: number;
+    pageSize?: number;
+    pageSizes?: number[];
+    paginationLayout?: string;
+    paginationPosition?: TablePaginationPosition;
+    rowKey?: string | ((row: any) => string);
+    selectable?: boolean;
+    visibleButtons?: BuiltInTableActionButtonName[];
+    hideFooter?: boolean;
+    selectableFunction?: TableSelectableFunction;
+    height?: string | number;
+    maxHeight?: string | number;
+    embedded?: boolean;
+    border?: boolean;
+    fit?: boolean;
+    emptyText?: string;
+    rowClassName?: ColumnCls<any>;
+    rowStyle?: ColumnStyle<any>;
+    cellClassName?: CellCls<any>;
+    cellStyle?: CellStyle<any>;
+    headerRowClassName?: ColumnCls<any>;
+    headerRowStyle?: ColumnStyle<any>;
+    headerCellClassName?: CellCls<any>;
+    headerCellStyle?: CellStyle<any>;
+    stickyHeader?: boolean;
+    hideDefaultActions?: boolean;
+};
+declare const __VLS_component: import("vue").DefineComponent<__VLS_Props, {
+    clearSelection: () => void;
+    checkAll: () => void;
+}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {} & {
+    edit: (data: TableData<TableAnyRowData>) => any;
+    delete: (data: TableData<TableAnyRowData>) => any;
+    export: (data: TableData<TableAnyRowData>) => any;
+    "selection-change": (data: TableData<TableAnyRowData>) => any;
+    "pagination-change": (data: TablePagination) => any;
+    "header-change": (data: TableColumn<any>, sort: SortData, filter: FilterConditionData[]) => any;
+}, string, import("vue").PublicProps, Readonly<__VLS_Props> & Readonly<{
+    onEdit?: ((data: TableData<TableAnyRowData>) => any) | undefined;
+    onDelete?: ((data: TableData<TableAnyRowData>) => any) | undefined;
+    onExport?: ((data: TableData<TableAnyRowData>) => any) | undefined;
+    "onSelection-change"?: ((data: TableData<TableAnyRowData>) => any) | undefined;
+    "onPagination-change"?: ((data: TablePagination) => any) | undefined;
+    "onHeader-change"?: ((data: TableColumn<any>, sort: SortData, filter: FilterConditionData[]) => any) | undefined;
+}>, {
+    data: TableData;
+    columns: TableColumn[];
     page: number;
-    visibleButtons: BuiltInTableActionButtonName[];
     rowKey: string | ((row: any) => string);
+    visibleButtons: BuiltInTableActionButtonName[];
+    total: number;
     pageSize: number;
-    selectedColumnKeys: string[];
     paginationLayout: string;
+    selectedColumnKeys: string[];
     paginationPosition: TablePaginationPosition;
     border: boolean;
-  },
-  {}
->;
-declare const _default: __VLS_WithTemplateSlots<
-  typeof __VLS_component,
-  ReturnType<typeof __VLS_template>
->;
+    stickyHeader: boolean;
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
+declare const _default: __VLS_WithSlots<typeof __VLS_component, __VLS_Slots>;
 export default _default;
-type __VLS_WithDefaults<P, D> = {
-  [K in keyof Pick<P, keyof P>]: K extends keyof D
-    ? __VLS_Prettify<
-        P[K] & {
-          default: D[K];
-        }
-      >
-    : P[K];
-};
-type __VLS_Prettify<T> = {
-  [K in keyof T]: T[K];
-} & {};
-type __VLS_WithTemplateSlots<T, S> = T & {
-  new (): {
-    $slots: S;
-  };
-};
-type __VLS_NonUndefinedable<T> = T extends undefined ? never : T;
-type __VLS_TypePropsToOption<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K>
-    ? {
-        type: import('vue').PropType<__VLS_NonUndefinedable<T[K]>>;
-      }
-    : {
-        type: import('vue').PropType<T[K]>;
-        required: true;
-      };
+type __VLS_WithSlots<T, S> = T & {
+    new (): {
+        $slots: S;
+    };
 };

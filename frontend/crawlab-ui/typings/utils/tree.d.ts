@@ -1,9 +1,3 @@
-type HandleNodeFn<T> = (
-  parentNode: TreeNode<T>,
-  node: TreeNode<T>
-) => TreeNode<T>;
-export declare const normalizeTree: <T = any>(
-  nodes: TreeNode<T>[],
-  handleNodeFn?: HandleNodeFn<T>
-) => T[];
+type HandleNodeFn<T extends TreeNode> = (parentNode: T, node: T) => T;
+export declare const normalizeTree: <T extends TreeNode>(nodes: T[], handleNodeFn?: HandleNodeFn<T>) => T[];
 export {};

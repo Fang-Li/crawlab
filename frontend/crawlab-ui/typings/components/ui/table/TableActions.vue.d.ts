@@ -1,88 +1,70 @@
-declare function __VLS_template(): {
-  prefix?(_: {}): any;
-  suffix?(_: {}): any;
-};
-
-declare const __VLS_component: import('vue').DefineComponent<
-  __VLS_WithDefaults<
-    __VLS_TypePropsToOption<{
-      selection: TableData;
-      visibleButtons: BuiltInTableActionButtonName[];
-    }>,
-    {
-      selection: () => never[];
-      visibleButtons: () => never[];
-    }
-  >,
-  {},
-  unknown,
-  {},
-  {},
-  import('vue').ComponentOptionsMixin,
-  import('vue').ComponentOptionsMixin,
-  {
-    edit: () => void;
-    delete: () => void;
-    export: () => void;
-    'customize-columns': () => void;
-  },
-  string,
-  import('vue').PublicProps,
-  Readonly<
-    import('vue').ExtractPropTypes<
-      __VLS_WithDefaults<
-        __VLS_TypePropsToOption<{
-          selection: TableData;
-          visibleButtons: BuiltInTableActionButtonName[];
-        }>,
-        {
-          selection: () => never[];
-          visibleButtons: () => never[];
-        }
-      >
-    >
-  > & {
-    onDelete?: (() => any) | undefined;
-    onEdit?: (() => any) | undefined;
-    onExport?: (() => any) | undefined;
-    'onCustomize-columns'?: (() => any) | undefined;
-  },
-  {
-    visibleButtons: BuiltInTableActionButtonName[];
+import { ACTION_DELETE, ACTION_EDIT } from '@/constants/action';
+import { TABLE_ACTION_CUSTOMIZE_COLUMNS, TABLE_ACTION_EXPORT } from '@/constants/table';
+type __VLS_Props = {
     selection: TableData;
-  },
-  {}
->;
-declare const _default: __VLS_WithTemplateSlots<
-  typeof __VLS_component,
-  ReturnType<typeof __VLS_template>
->;
+    visibleButtons: BuiltInTableActionButtonName[];
+    hide?: boolean;
+};
+declare const t: (path: string, number?: number | null, args?: Record<string, any>) => string;
+declare const onEdit: () => void;
+declare const onDelete: () => Promise<void>;
+declare const onExport: () => void;
+declare const onCustomizeColumns: () => void;
+declare const showButton: (name: string) => boolean;
+declare const target: () => string;
+declare const conditions: () => FilterConditionData[];
+declare const __VLS_ctx: InstanceType<__VLS_PickNotAny<typeof __VLS_self, new () => {}>>;
+declare var __VLS_1: {}, __VLS_35: {};
+type __VLS_Slots = __VLS_PrettifyGlobal<__VLS_OmitStringIndex<typeof __VLS_ctx.$slots> & {
+    prefix?: (props: typeof __VLS_1) => any;
+} & {
+    suffix?: (props: typeof __VLS_35) => any;
+}>;
+declare const __VLS_self: import("vue").DefineComponent<__VLS_Props, {
+    ACTION_DELETE: typeof ACTION_DELETE;
+    ACTION_EDIT: typeof ACTION_EDIT;
+    TABLE_ACTION_CUSTOMIZE_COLUMNS: typeof TABLE_ACTION_CUSTOMIZE_COLUMNS;
+    TABLE_ACTION_EXPORT: typeof TABLE_ACTION_EXPORT;
+    t: typeof t;
+    onEdit: typeof onEdit;
+    onDelete: typeof onDelete;
+    onExport: typeof onExport;
+    onCustomizeColumns: typeof onCustomizeColumns;
+    showButton: typeof showButton;
+    target: typeof target;
+    conditions: typeof conditions;
+}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {} & {
+    edit: () => any;
+    delete: () => any;
+    export: () => any;
+    "customize-columns": () => any;
+}, string, import("vue").PublicProps, Readonly<__VLS_Props> & Readonly<{
+    onEdit?: (() => any) | undefined;
+    onDelete?: (() => any) | undefined;
+    onExport?: (() => any) | undefined;
+    "onCustomize-columns"?: (() => any) | undefined;
+}>, {
+    selection: TableData;
+    visibleButtons: BuiltInTableActionButtonName[];
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
+declare const __VLS_component: import("vue").DefineComponent<__VLS_Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {} & {
+    edit: () => any;
+    delete: () => any;
+    export: () => any;
+    "customize-columns": () => any;
+}, string, import("vue").PublicProps, Readonly<__VLS_Props> & Readonly<{
+    onEdit?: (() => any) | undefined;
+    onDelete?: (() => any) | undefined;
+    onExport?: (() => any) | undefined;
+    "onCustomize-columns"?: (() => any) | undefined;
+}>, {
+    selection: TableData;
+    visibleButtons: BuiltInTableActionButtonName[];
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
+declare const _default: __VLS_WithSlots<typeof __VLS_component, __VLS_Slots>;
 export default _default;
-type __VLS_WithDefaults<P, D> = {
-  [K in keyof Pick<P, keyof P>]: K extends keyof D
-    ? __VLS_Prettify<
-        P[K] & {
-          default: D[K];
-        }
-      >
-    : P[K];
-};
-type __VLS_Prettify<T> = {
-  [K in keyof T]: T[K];
-} & {};
-type __VLS_WithTemplateSlots<T, S> = T & {
-  new (): {
-    $slots: S;
-  };
-};
-type __VLS_NonUndefinedable<T> = T extends undefined ? never : T;
-type __VLS_TypePropsToOption<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K>
-    ? {
-        type: import('vue').PropType<__VLS_NonUndefinedable<T[K]>>;
-      }
-    : {
-        type: import('vue').PropType<T[K]>;
-        required: true;
-      };
+type __VLS_WithSlots<T, S> = T & {
+    new (): {
+        $slots: S;
+    };
 };

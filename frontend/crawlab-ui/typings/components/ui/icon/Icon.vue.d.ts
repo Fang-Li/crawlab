@@ -1,71 +1,16 @@
-declare const _default: import('vue').DefineComponent<
-  __VLS_WithDefaults<
-    __VLS_TypePropsToOption<{
-      icon: Icon;
-      spinning?: boolean;
-      size?: IconSize;
-      color?: string;
-      alt?: string;
-    }>,
-    {
-      size: string;
-    }
-  >,
-  {},
-  unknown,
-  {},
-  {},
-  import('vue').ComponentOptionsMixin,
-  import('vue').ComponentOptionsMixin,
-  {
-    click: (event: MouseEvent) => void;
-  },
-  string,
-  import('vue').PublicProps,
-  Readonly<
-    import('vue').ExtractPropTypes<
-      __VLS_WithDefaults<
-        __VLS_TypePropsToOption<{
-          icon: Icon;
-          spinning?: boolean;
-          size?: IconSize;
-          color?: string;
-          alt?: string;
-        }>,
-        {
-          size: string;
-        }
-      >
-    >
-  > & {
+type __VLS_Props = {
+    icon: Icon;
+    spinning?: boolean;
+    size?: IconSize;
+    color?: string;
+    alt?: string;
+    class?: string;
+};
+declare const _default: import("vue").DefineComponent<__VLS_Props, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {} & {
+    click: (event: MouseEvent) => any;
+}, string, import("vue").PublicProps, Readonly<__VLS_Props> & Readonly<{
     onClick?: ((event: MouseEvent) => any) | undefined;
-  },
-  {
+}>, {
     size: IconSize;
-  },
-  {}
->;
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;
-type __VLS_WithDefaults<P, D> = {
-  [K in keyof Pick<P, keyof P>]: K extends keyof D
-    ? __VLS_Prettify<
-        P[K] & {
-          default: D[K];
-        }
-      >
-    : P[K];
-};
-type __VLS_Prettify<T> = {
-  [K in keyof T]: T[K];
-} & {};
-type __VLS_NonUndefinedable<T> = T extends undefined ? never : T;
-type __VLS_TypePropsToOption<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K>
-    ? {
-        type: import('vue').PropType<__VLS_NonUndefinedable<T[K]>>;
-      }
-    : {
-        type: import('vue').PropType<T[K]>;
-        required: true;
-      };
-};

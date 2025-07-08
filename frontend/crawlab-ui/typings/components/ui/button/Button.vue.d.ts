@@ -1,91 +1,42 @@
-interface ButtonProps {
-  tooltip?: string;
-  type?: BasicType;
-  size?: BasicSize;
-  round?: boolean;
-  circle?: boolean;
-  plain?: boolean;
-  disabled?: boolean;
-  isIcon?: boolean;
-  loading?: boolean;
-  onClick?: () => void;
-  className?: string;
-  id?: string;
-  noMargin?: boolean;
-}
-
-declare function __VLS_template(): {
-  default?(_: {}): any;
-};
-
-declare const __VLS_component: import('vue').DefineComponent<
-  __VLS_WithDefaults<
-    __VLS_TypePropsToOption<ButtonProps>,
-    {
-      type: string;
-      size: string;
-    }
-  >,
-  {},
-  unknown,
-  {},
-  {},
-  import('vue').ComponentOptionsMixin,
-  import('vue').ComponentOptionsMixin,
-  {
-    click: (event: Event) => void;
-  },
-  string,
-  import('vue').PublicProps,
-  Readonly<
-    import('vue').ExtractPropTypes<
-      __VLS_WithDefaults<
-        __VLS_TypePropsToOption<ButtonProps>,
-        {
-          type: string;
-          size: string;
-        }
-      >
-    >
-  > & {
+import type { ButtonProps, ButtonEmits } from './types';
+declare const emit: ButtonEmits;
+declare const cls: import("vue").ComputedRef<string>;
+declare const __VLS_ctx: InstanceType<__VLS_PickNotAny<typeof __VLS_self, new () => {}>>;
+declare var __VLS_16: {};
+type __VLS_Slots = __VLS_PrettifyGlobal<__VLS_OmitStringIndex<typeof __VLS_ctx.$slots> & {
+    default?: (props: typeof __VLS_16) => any;
+}>;
+declare const __VLS_self: import("vue").DefineComponent<ButtonProps, {
+    emit: typeof emit;
+    cls: typeof cls;
+}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {} & {
+    click: (event: Event) => any;
+    mouseenter: (event: Event) => any;
+    mouseleave: (event: Event) => any;
+}, string, import("vue").PublicProps, Readonly<ButtonProps> & Readonly<{
     onClick?: ((event: Event) => any) | undefined;
-  },
-  {
+    onMouseenter?: ((event: Event) => any) | undefined;
+    onMouseleave?: ((event: Event) => any) | undefined;
+}>, {
     type: BasicType;
     size: BasicSize;
-  },
-  {}
->;
-declare const _default: __VLS_WithTemplateSlots<
-  typeof __VLS_component,
-  ReturnType<typeof __VLS_template>
->;
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
+declare const __VLS_component: import("vue").DefineComponent<ButtonProps, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {} & {
+    click: (event: Event) => any;
+    mouseenter: (event: Event) => any;
+    mouseleave: (event: Event) => any;
+}, string, import("vue").PublicProps, Readonly<ButtonProps> & Readonly<{
+    onClick?: ((event: Event) => any) | undefined;
+    onMouseenter?: ((event: Event) => any) | undefined;
+    onMouseleave?: ((event: Event) => any) | undefined;
+}>, {
+    type: BasicType;
+    size: BasicSize;
+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
+declare const _default: __VLS_WithSlots<typeof __VLS_component, __VLS_Slots>;
 export default _default;
-type __VLS_WithDefaults<P, D> = {
-  [K in keyof Pick<P, keyof P>]: K extends keyof D
-    ? __VLS_Prettify<
-        P[K] & {
-          default: D[K];
-        }
-      >
-    : P[K];
-};
-type __VLS_Prettify<T> = {
-  [K in keyof T]: T[K];
-} & {};
-type __VLS_WithTemplateSlots<T, S> = T & {
-  new (): {
-    $slots: S;
-  };
-};
-type __VLS_NonUndefinedable<T> = T extends undefined ? never : T;
-type __VLS_TypePropsToOption<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K>
-    ? {
-        type: import('vue').PropType<__VLS_NonUndefinedable<T[K]>>;
-      }
-    : {
-        type: import('vue').PropType<T[K]>;
-        required: true;
-      };
+type __VLS_WithSlots<T, S> = T & {
+    new (): {
+        $slots: S;
+    };
 };

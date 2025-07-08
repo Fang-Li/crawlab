@@ -1,8 +1,8 @@
 declare const useSpiderList: () => {
-    tableActionsPrefix: import("vue").ComputedRef<ListActionButton[]>;
     navActions?: import("vue").Ref<ListActionGroup[]>;
-    tableColumns?: import("vue").Ref<TableColumns<any>> | undefined;
-    tableData: import("vue").Ref<TableData<any>>;
+    tableLoading: import("vue").Ref<boolean>;
+    tableColumns?: import("vue").Ref<TableColumns<Spider>, TableColumns<Spider>> | undefined;
+    tableData: import("vue").Ref<TableData<Spider>, TableData<Spider>>;
     tableTotal: import("vue").Ref<number>;
     tablePagination: import("vue").Ref<TablePagination>;
     tableListFilter: import("vue").Ref<FilterConditionData[]>;

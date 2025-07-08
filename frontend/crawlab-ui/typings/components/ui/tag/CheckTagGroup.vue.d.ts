@@ -1,42 +1,9 @@
-export interface CheckTagGroupProps {
-  modelValue: string[];
-  options: SelectOption[];
-  disabled?: boolean;
-  className?: string;
-}
-
-declare const _default: import('vue').DefineComponent<
-  __VLS_TypePropsToOption<CheckTagGroupProps>,
-  {},
-  unknown,
-  {},
-  {},
-  import('vue').ComponentOptionsMixin,
-  import('vue').ComponentOptionsMixin,
-  {
-    'update:model-value': (value: string[]) => void;
-    change: (value: string[]) => void;
-  },
-  string,
-  import('vue').PublicProps,
-  Readonly<
-    import('vue').ExtractPropTypes<__VLS_TypePropsToOption<CheckTagGroupProps>>
-  > & {
+import type { CheckTagGroupProps } from './types';
+declare const _default: import("vue").DefineComponent<CheckTagGroupProps, {}, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {} & {
+    change: (value: string[]) => any;
+    "update:model-value": (value: string[]) => any;
+}, string, import("vue").PublicProps, Readonly<CheckTagGroupProps> & Readonly<{
     onChange?: ((value: string[]) => any) | undefined;
-    'onUpdate:model-value'?: ((value: string[]) => any) | undefined;
-  },
-  {},
-  {}
->;
+    "onUpdate:model-value"?: ((value: string[]) => any) | undefined;
+}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, false, {}, any>;
 export default _default;
-type __VLS_NonUndefinedable<T> = T extends undefined ? never : T;
-type __VLS_TypePropsToOption<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K>
-    ? {
-        type: import('vue').PropType<__VLS_NonUndefinedable<T[K]>>;
-      }
-    : {
-        type: import('vue').PropType<T[K]>;
-        required: true;
-      };
-};

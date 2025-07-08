@@ -8,7 +8,6 @@ declare const useRequest: () => {
     put: <T = any, R = ResponseWithData<T>, PM = any>(url: string, data?: T, params?: PM, opts?: AxiosRequestConfig) => Promise<R>;
     del: <T = any, R = ResponseWithData<T>, PM = any>(url: string, data?: T, params?: PM, opts?: AxiosRequestConfig) => Promise<R>;
     getList: <T = any>(url: string, params?: ListRequestParams, opts?: AxiosRequestConfig) => Promise<ResponseWithListData<any>>;
-    getAll: <T = any>(url: string, opts?: AxiosRequestConfig) => Promise<ResponseWithListData<any>>;
     postList: <T = any, R = ResponseWithListData<any>, PM = any>(url: string, data?: T[], params?: PM, opts?: AxiosRequestConfig) => Promise<R>;
     putList: <T = any, R = Response, PM = any>(url: string, data?: BatchRequestPayloadWithJsonStringData, params?: PM, opts?: AxiosRequestConfig) => Promise<R>;
     delList: <T = any, R = Response, PM = any>(url: string, data?: BatchRequestPayload, params?: PM, opts?: AxiosRequestConfig) => Promise<R>;
