@@ -41,15 +41,19 @@ type GrpcClient struct {
 	MetricClient           grpc2.MetricServiceClient
 
 	// Add new fields for state management
-	state          connectivity.State
-	stateMux       sync.RWMutex
-	reconnect      chan struct{}
-	
+	state     connectivity.State
+	stateMux  sync.RWMutex
+	reconnect chan struct{}
+
 	// Circuit breaker fields
 	failureCount   int
 	lastFailure    time.Time
 	circuitBreaker bool
 	cbMux          sync.RWMutex
+
+	// Reconnection control
+	reconnecting bool
+	reconnectMux sync.Mutex
 }
 
 func (c *GrpcClient) Start() {
@@ -133,7 +137,7 @@ func (c *GrpcClient) IsClosed() (res bool) {
 func (c *GrpcClient) monitorState() {
 	idleStartTime := time.Time{}
 	idleGracePeriod := 30 * time.Second // Allow IDLE state for 30 seconds before considering it a problem
-	
+
 	for {
 		select {
 		case <-c.stop:
@@ -179,8 +183,8 @@ func (c *GrpcClient) monitorState() {
 			}
 
 			// Check if IDLE state has exceeded grace period
-			if current == connectivity.Idle && !idleStartTime.IsZero() && 
-			   time.Since(idleStartTime) > idleGracePeriod && !c.isCircuitBreakerOpen() {
+			if current == connectivity.Idle && !idleStartTime.IsZero() &&
+				time.Since(idleStartTime) > idleGracePeriod && !c.isCircuitBreakerOpen() {
 				c.Warnf("connection has been IDLE for %v, triggering reconnection", time.Since(idleStartTime))
 				select {
 				case c.reconnect <- struct{}{}:
@@ -215,13 +219,23 @@ func (c *GrpcClient) connect() (err error) {
 				c.Errorf("reconnection loop panic: %v", r)
 			}
 		}()
-		
+
 		for {
 			select {
 			case <-c.stop:
 				c.Debugf("reconnection loop stopping")
 				return
 			case <-c.reconnect:
+				// Check if we're already reconnecting to avoid multiple attempts
+				c.reconnectMux.Lock()
+				if c.reconnecting {
+					c.Debugf("reconnection already in progress, skipping")
+					c.reconnectMux.Unlock()
+					continue
+				}
+				c.reconnecting = true
+				c.reconnectMux.Unlock()
+
 				if !c.stopped && !c.isCircuitBreakerOpen() {
 					c.Infof("attempting to reconnect to %s", c.address)
 					if err := c.doConnect(); err != nil {
@@ -235,6 +249,11 @@ func (c *GrpcClient) connect() (err error) {
 				} else if c.isCircuitBreakerOpen() {
 					c.Debugf("circuit breaker is open, skipping reconnection attempt")
 				}
+
+				// Reset reconnecting flag
+				c.reconnectMux.Lock()
+				c.reconnecting = false
+				c.reconnectMux.Unlock()
 			}
 		}
 	}()
@@ -246,7 +265,7 @@ func (c *GrpcClient) connect() (err error) {
 func (c *GrpcClient) isCircuitBreakerOpen() bool {
 	c.cbMux.RLock()
 	defer c.cbMux.RUnlock()
-	
+
 	// Circuit breaker opens after 5 consecutive failures
 	if c.failureCount >= 5 {
 		// Auto-recover after 1 minute
@@ -314,7 +333,7 @@ func (c *GrpcClient) doConnect() (err error) {
 		// wait for connection to be ready with shorter timeout for faster failure detection
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		
+
 		// Wait for state to change from connecting
 		for c.conn.GetState() == connectivity.Connecting {
 			if !c.conn.WaitForStateChange(ctx, connectivity.Connecting) {
@@ -330,30 +349,30 @@ func (c *GrpcClient) doConnect() (err error) {
 
 		// success
 		c.Infof("connected to %s", c.address)
-		
+
 		// Register services after successful connection
 		c.register()
 
 		return nil
 	}
-	
+
 	// Configure backoff with more reasonable settings
 	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = 1 * time.Second  // Start with shorter interval
-	b.MaxInterval = 30 * time.Second     // Cap the max interval
-	b.MaxElapsedTime = 5 * time.Minute   // Reduce max retry time
-	b.Multiplier = 1.5                   // Gentler exponential growth
-	
+	b.InitialInterval = 1 * time.Second // Start with shorter interval
+	b.MaxInterval = 30 * time.Second    // Cap the max interval
+	b.MaxElapsedTime = 5 * time.Minute  // Reduce max retry time
+	b.Multiplier = 1.5                  // Gentler exponential growth
+
 	n := func(err error, duration time.Duration) {
 		c.Errorf("failed to connect to %s: %v, retrying in %s", c.address, err, duration)
 	}
-	
+
 	err = backoff.RetryNotify(op, b, n)
 	if err != nil {
 		c.recordFailure()
 		return err
 	}
-	
+
 	c.recordSuccess()
 	return nil
 }

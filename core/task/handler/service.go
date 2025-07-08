@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 	"sync"
 	"time"
 
@@ -57,6 +58,9 @@ func (svc *Service) Start() {
 	// Initialize tickers
 	svc.fetchTicker = time.NewTicker(svc.fetchInterval)
 	svc.reportTicker = time.NewTicker(svc.reportInterval)
+
+	// Start goroutine monitoring
+	svc.startGoroutineMonitoring()
 
 	// Start background goroutines with WaitGroup tracking
 	svc.wg.Add(2)
@@ -112,6 +116,38 @@ func (svc *Service) Stop() {
 	}
 
 	svc.Infof("Task handler service stopped")
+}
+
+func (svc *Service) startGoroutineMonitoring() {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				svc.Errorf("[TaskHandler] goroutine monitoring panic: %v", r)
+			}
+		}()
+
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		initialCount := runtime.NumGoroutine()
+		svc.Infof("[TaskHandler] initial goroutine count: %d", initialCount)
+
+		for {
+			select {
+			case <-svc.ctx.Done():
+				svc.Infof("[TaskHandler] goroutine monitoring shutting down")
+				return
+			case <-ticker.C:
+				currentCount := runtime.NumGoroutine()
+				if currentCount > initialCount+50 { // Alert if 50+ more goroutines than initial
+					svc.Warnf("[TaskHandler] potential goroutine leak detected - current: %d, initial: %d, diff: %d",
+						currentCount, initialCount, currentCount-initialCount)
+				} else {
+					svc.Debugf("[TaskHandler] goroutine count: %d (initial: %d)", currentCount, initialCount)
+				}
+			}
+		}
+	}()
 }
 
 func (svc *Service) Run(taskId primitive.ObjectID) (err error) {
@@ -526,31 +562,43 @@ func (svc *Service) handleStreamMessages(taskId primitive.ObjectID, stream grpc.
 			// Set deadline for receive operation
 			ctx, cancel := context.WithTimeout(context.Background(), streamTimeout)
 
-			// Use a goroutine to handle the blocking Recv call
-			msgCh := make(chan *grpc.TaskServiceSubscribeResponse, 1)
-			errCh := make(chan error, 1)
+			// Create a buffered channel to receive the result
+			result := make(chan struct {
+				msg *grpc.TaskServiceSubscribeResponse
+				err error
+			}, 1)
 
+			// Use a single goroutine to handle the blocking Recv call
 			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						svc.Errorf("task[%s] stream recv goroutine panic: %v", taskId.Hex(), r)
+					}
+				}()
+
 				msg, err := stream.Recv()
-				if err != nil {
-					errCh <- err
-				} else {
-					msgCh <- msg
+				select {
+				case result <- struct {
+					msg *grpc.TaskServiceSubscribeResponse
+					err error
+				}{msg, err}:
+				case <-ctx.Done():
+					// Context cancelled, don't send result
 				}
 			}()
 
 			select {
-			case msg := <-msgCh:
+			case res := <-result:
 				cancel()
-				svc.processStreamMessage(taskId, msg)
-			case err := <-errCh:
-				cancel()
-				if errors.Is(err, io.EOF) {
-					svc.Infof("task[%s] received EOF, stream closed", taskId.Hex())
+				if res.err != nil {
+					if errors.Is(res.err, io.EOF) {
+						svc.Infof("task[%s] received EOF, stream closed", taskId.Hex())
+						return
+					}
+					svc.Errorf("task[%s] stream error: %v", taskId.Hex(), res.err)
 					return
 				}
-				svc.Errorf("task[%s] stream error: %v", taskId.Hex(), err)
-				return
+				svc.processStreamMessage(taskId, res.msg)
 			case <-ctx.Done():
 				cancel()
 				svc.Warnf("task[%s] stream receive timeout", taskId.Hex())
@@ -570,7 +618,8 @@ func (svc *Service) processStreamMessage(taskId primitive.ObjectID, msg *grpc.Ta
 	switch msg.Code {
 	case grpc.TaskServiceSubscribeCode_CANCEL:
 		svc.Infof("task[%s] received cancel signal", taskId.Hex())
-		go svc.handleCancel(msg, taskId)
+		// Handle cancel synchronously to avoid goroutine accumulation
+		svc.handleCancel(msg, taskId)
 	default:
 		svc.Debugf("task[%s] received unknown stream message code: %v", taskId.Hex(), msg.Code)
 	}
