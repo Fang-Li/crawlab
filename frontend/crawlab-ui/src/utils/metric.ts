@@ -84,6 +84,11 @@ export const getAllMetricGroups = (): MetricGroup[] => [
     label: t('components.metric.metrics.used_disk'),
     metrics: ['used_disk'],
   },
+  {
+    name: 'goroutine_count',
+    label: t('components.metric.metrics.goroutine_count'),
+    metrics: ['goroutine_count'],
+  },
 ];
 
 export const getMetricUnitLabel = (metricName: string) => {
@@ -95,6 +100,8 @@ export const getMetricUnitLabel = (metricName: string) => {
     return 'GB';
   } else if (metricName.endsWith('_memory')) {
     return 'MB';
+  } else if (metricName === 'goroutine_count') {
+    return '';
   } else {
     return 'MB';
   }

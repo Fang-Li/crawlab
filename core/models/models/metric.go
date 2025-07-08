@@ -22,4 +22,5 @@ type Metric struct {
 	DiskWriteBytesRate   float32            `json:"disk_write_bytes_rate" bson:"disk_write_bytes_rate" description:"Disk write bytes rate"`
 	NetworkBytesSentRate float32            `json:"network_bytes_sent_rate" bson:"network_bytes_sent_rate" description:"Network bytes sent rate"`
 	NetworkBytesRecvRate float32            `json:"network_bytes_recv_rate" bson:"network_bytes_recv_rate" description:"Network bytes recv rate"`
+	GoroutineCount       int32              `json:"goroutine_count" bson:"goroutine_count" description:"Current goroutine count"`
 }

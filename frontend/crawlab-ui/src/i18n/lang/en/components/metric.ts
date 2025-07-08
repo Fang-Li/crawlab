@@ -16,6 +16,7 @@ const metric: LComponentsMetric = {
     disk_write_bytes_rate: 'Disk Write IO',
     network_bytes_sent_rate: 'Network Sent IO',
     network_bytes_recv_rate: 'Network Recv IO',
+    goroutine_count: 'Goroutine Count',
     connections: 'Connections',
     query_per_second: 'Queries/sec',
     cache_hit_ratio: 'Cache Hit Ratio',

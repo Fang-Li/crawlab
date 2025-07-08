@@ -16,6 +16,7 @@ const metric: LComponentsMetric = {
     disk_write_bytes_rate: '磁盘写入 IO',
     network_bytes_sent_rate: '网络发送 IO',
     network_bytes_recv_rate: '网络接收 IO',
+    goroutine_count: '协程数量',
     connections: '连接数',
     query_per_second: '查询数/秒',
     cache_hit_ratio: '缓存命中率',

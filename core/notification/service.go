@@ -2,12 +2,13 @@ package notification
 
 import (
 	"fmt"
-	"github.com/crawlab-team/crawlab/core/interfaces"
-	"github.com/crawlab-team/crawlab/core/utils"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/crawlab-team/crawlab/core/interfaces"
+	"github.com/crawlab-team/crawlab/core/utils"
 
 	"github.com/crawlab-team/crawlab/core/constants"
 	"github.com/crawlab-team/crawlab/core/entity"
@@ -471,6 +472,8 @@ func (svc *Service) getFormattedMetricValue(metricName string, m *models.Metric)
 		return fmt.Sprintf("%.2fMB/s", m.NetworkBytesSentRate/(1024*1024))
 	case "network_bytes_recv_rate":
 		return fmt.Sprintf("%.2fMB/s", m.NetworkBytesRecvRate/(1024*1024))
+	case "goroutine_count":
+		return fmt.Sprintf("%d", m.GoroutineCount)
 	default:
 		return "N/A"
 	}

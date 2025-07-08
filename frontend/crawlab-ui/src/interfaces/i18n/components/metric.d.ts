@@ -21,6 +21,7 @@ interface LComponentsMetric {
     cache_hit_ratio: string;
     replication_lag: string;
     lock_wait_time: string;
+    goroutine_count: string;
   };
   groups: {
     disk_io_bytes_rate: string;
