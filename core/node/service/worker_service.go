@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/crawlab-team/crawlab/core/controllers"
-	"github.com/gin-gonic/gin"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/crawlab-team/crawlab/core/controllers"
+	"github.com/gin-gonic/gin"
 
 	"github.com/crawlab-team/crawlab/core/models/models"
 
@@ -85,7 +86,11 @@ func (svc *WorkerService) register() {
 	op := func() (err error) {
 		ctx, cancel := client.GetGrpcClient().Context()
 		defer cancel()
-		_, err = client.GetGrpcClient().NodeClient.Register(ctx, &grpc.NodeServiceRegisterRequest{
+		nodeClient, err := client.GetGrpcClient().GetNodeClient()
+		if err != nil {
+			return fmt.Errorf("failed to get node client: %v", err)
+		}
+		_, err = nodeClient.Register(ctx, &grpc.NodeServiceRegisterRequest{
 			NodeKey:    svc.cfgSvc.GetNodeKey(),
 			NodeName:   svc.cfgSvc.GetNodeName(),
 			MaxRunners: int32(svc.cfgSvc.GetMaxRunners()),
@@ -152,7 +157,12 @@ func (svc *WorkerService) subscribe() {
 		// Use backoff for connection attempts
 		operation := func() error {
 			svc.Debugf("attempting to subscribe to master")
-			stream, err := client.GetGrpcClient().NodeClient.Subscribe(context.Background(), &grpc.NodeServiceSubscribeRequest{
+			nodeClient, err := client.GetGrpcClient().GetNodeClient()
+			if err != nil {
+				svc.Errorf("failed to get node client: %v", err)
+				return err
+			}
+			stream, err := nodeClient.Subscribe(context.Background(), &grpc.NodeServiceSubscribeRequest{
 				NodeKey: svc.cfgSvc.GetNodeKey(),
 			})
 			if err != nil {
@@ -199,7 +209,12 @@ func (svc *WorkerService) subscribe() {
 func (svc *WorkerService) sendHeartbeat() {
 	ctx, cancel := context.WithTimeout(context.Background(), svc.heartbeatInterval)
 	defer cancel()
-	_, err := client.GetGrpcClient().NodeClient.SendHeartbeat(ctx, &grpc.NodeServiceSendHeartbeatRequest{
+	nodeClient, err := client.GetGrpcClient().GetNodeClient()
+	if err != nil {
+		svc.Errorf("failed to get node client: %v", err)
+		return
+	}
+	_, err = nodeClient.SendHeartbeat(ctx, &grpc.NodeServiceSendHeartbeatRequest{
 		NodeKey: svc.cfgSvc.GetNodeKey(),
 	})
 	if err != nil {

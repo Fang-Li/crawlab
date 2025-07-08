@@ -885,7 +885,12 @@ func (r *Runner) initConnection() (err error) {
 	r.connMutex.Lock()
 	defer r.connMutex.Unlock()
 
-	r.conn, err = client2.GetGrpcClient().TaskClient.Connect(context.Background())
+	taskClient, err := client2.GetGrpcClient().GetTaskClient()
+	if err != nil {
+		r.Errorf("failed to get task client: %v", err)
+		return err
+	}
+	r.conn, err = taskClient.Connect(context.Background())
 	if err != nil {
 		r.Errorf("error connecting to task service: %v", err)
 		return err
@@ -1004,7 +1009,12 @@ func (r *Runner) reconnectWithRetry() error {
 		}
 
 		// Attempt reconnection
-		conn, err := client2.GetGrpcClient().TaskClient.Connect(context.Background())
+		taskClient, err := client2.GetGrpcClient().GetTaskClient()
+		if err != nil {
+			r.Warnf("reconnection attempt %d failed to get task client: %v", attempt+1, err)
+			continue
+		}
+		conn, err := taskClient.Connect(context.Background())
 		if err != nil {
 			r.Warnf("reconnection attempt %d failed: %v", attempt+1, err)
 			continue
@@ -1162,7 +1172,12 @@ func (r *Runner) sendNotification() {
 		NodeKey: r.svc.GetNodeConfigService().GetNodeKey(),
 		TaskId:  r.tid.Hex(),
 	}
-	_, err := client2.GetGrpcClient().TaskClient.SendNotification(context.Background(), req)
+	taskClient, err := client2.GetGrpcClient().GetTaskClient()
+	if err != nil {
+		r.Errorf("failed to get task client: %v", err)
+		return
+	}
+	_, err = taskClient.SendNotification(context.Background(), req)
 	if err != nil {
 		r.Errorf("error sending notification: %v", err)
 		return

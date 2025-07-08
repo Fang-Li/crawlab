@@ -405,7 +405,11 @@ func (svc *Service) updateNodeStatus() (err error) {
 func (svc *Service) fetchTask() (tid primitive.ObjectID, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), svc.fetchTimeout)
 	defer cancel()
-	res, err := svc.c.TaskClient.FetchTask(ctx, &grpc.TaskServiceFetchTaskRequest{
+	taskClient, err := svc.c.GetTaskClient()
+	if err != nil {
+		return primitive.NilObjectID, fmt.Errorf("failed to get task client: %v", err)
+	}
+	res, err := taskClient.FetchTask(ctx, &grpc.TaskServiceFetchTaskRequest{
 		NodeKey: svc.cfgSvc.GetNodeKey(),
 	})
 	if err != nil {
@@ -496,7 +500,11 @@ func (svc *Service) subscribeTask(taskId primitive.ObjectID) (stream grpc.TaskSe
 	req := &grpc.TaskServiceSubscribeRequest{
 		TaskId: taskId.Hex(),
 	}
-	stream, err = svc.c.TaskClient.Subscribe(ctx, req)
+	taskClient, err := svc.c.GetTaskClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task client: %v", err)
+	}
+	stream, err = taskClient.Subscribe(ctx, req)
 	if err != nil {
 		svc.Errorf("failed to subscribe task[%s]: %v", taskId.Hex(), err)
 		return nil, err

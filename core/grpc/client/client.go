@@ -17,28 +17,47 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-type GrpcClient struct {
-	// dependencies
-	nodeCfgSvc interfaces.NodeConfigService
+// GrpcClient provides a robust gRPC client with connection management and client registration.
+//
+// The client handles connection lifecycle and ensures that gRPC service clients are properly
+// initialized before use. All client fields are private and can only be accessed through
+// safe getter methods that ensure registration before returning clients.
+//
+// Example usage:
+//   client := GetGrpcClient()
+//
+//   // Safe access pattern - always use getter methods
+//   nodeClient, err := client.GetNodeClient()
+//   if err != nil {
+//       return fmt.Errorf("failed to get node client: %v", err)
+//   }
+//   resp, err := nodeClient.Register(ctx, req)
+//
+//   // Alternative with timeout
+//   taskClient, err := client.GetTaskClientWithTimeout(5 * time.Second)
+//   if err != nil {
+//       return fmt.Errorf("failed to get task client: %v", err)
+//   }
+//   resp, err := taskClient.Connect(ctx)
 
+type GrpcClient struct {
 	// settings
 	address string
 	timeout time.Duration
 
 	// internals
 	conn    *grpc.ClientConn
-	err     error
 	once    sync.Once
 	stopped bool
 	stop    chan struct{}
 	interfaces.Logger
 
-	// clients
-	NodeClient             grpc2.NodeServiceClient
-	TaskClient             grpc2.TaskServiceClient
-	ModelBaseServiceClient grpc2.ModelBaseServiceClient
-	DependencyClient       grpc2.DependencyServiceClient
-	MetricClient           grpc2.MetricServiceClient
+	// clients (private to enforce safe access through getter methods)
+	nodeClient             grpc2.NodeServiceClient
+	taskClient             grpc2.TaskServiceClient
+	modelBaseServiceClient grpc2.ModelBaseServiceClient
+	dependencyClient       grpc2.DependencyServiceClient
+	metricClient           grpc2.MetricServiceClient
 
 	// Add new fields for state management
 	state     connectivity.State
@@ -46,14 +65,17 @@ type GrpcClient struct {
 	reconnect chan struct{}
 
 	// Circuit breaker fields
-	failureCount   int
-	lastFailure    time.Time
-	circuitBreaker bool
-	cbMux          sync.RWMutex
+	failureCount int
+	lastFailure  time.Time
+	cbMux        sync.RWMutex
 
 	// Reconnection control
 	reconnecting bool
 	reconnectMux sync.Mutex
+
+	// Registration status
+	registered    bool
+	registeredMux sync.RWMutex
 }
 
 func (c *GrpcClient) Start() {
@@ -76,6 +98,7 @@ func (c *GrpcClient) Start() {
 func (c *GrpcClient) Stop() (err error) {
 	// set stopped flag
 	c.stopped = true
+	c.setRegistered(false)
 	c.stop <- struct{}{}
 	c.Infof("stopped")
 
@@ -111,11 +134,14 @@ func (c *GrpcClient) WaitForReady() {
 }
 
 func (c *GrpcClient) register() {
-	c.NodeClient = grpc2.NewNodeServiceClient(c.conn)
-	c.ModelBaseServiceClient = grpc2.NewModelBaseServiceClient(c.conn)
-	c.TaskClient = grpc2.NewTaskServiceClient(c.conn)
-	c.DependencyClient = grpc2.NewDependencyServiceClient(c.conn)
-	c.MetricClient = grpc2.NewMetricServiceClient(c.conn)
+	c.nodeClient = grpc2.NewNodeServiceClient(c.conn)
+	c.modelBaseServiceClient = grpc2.NewModelBaseServiceClient(c.conn)
+	c.taskClient = grpc2.NewTaskServiceClient(c.conn)
+	c.dependencyClient = grpc2.NewDependencyServiceClient(c.conn)
+	c.metricClient = grpc2.NewMetricServiceClient(c.conn)
+
+	// Mark as registered
+	c.setRegistered(true)
 }
 
 func (c *GrpcClient) Context() (ctx context.Context, cancel context.CancelFunc) {
@@ -125,6 +151,10 @@ func (c *GrpcClient) Context() (ctx context.Context, cancel context.CancelFunc) 
 func (c *GrpcClient) IsReady() (res bool) {
 	state := c.conn.GetState()
 	return c.conn != nil && state == connectivity.Ready
+}
+
+func (c *GrpcClient) IsReadyAndRegistered() (res bool) {
+	return c.IsReady() && c.IsRegistered()
 }
 
 func (c *GrpcClient) IsClosed() (res bool) {
@@ -209,6 +239,192 @@ func (c *GrpcClient) getState() connectivity.State {
 	c.stateMux.RLock()
 	defer c.stateMux.RUnlock()
 	return c.state
+}
+
+func (c *GrpcClient) setRegistered(registered bool) {
+	c.registeredMux.Lock()
+	defer c.registeredMux.Unlock()
+	c.registered = registered
+}
+
+func (c *GrpcClient) IsRegistered() bool {
+	c.registeredMux.RLock()
+	defer c.registeredMux.RUnlock()
+	return c.registered
+}
+
+func (c *GrpcClient) WaitForRegistered() {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if c.IsRegistered() {
+				c.Debugf("client is now registered")
+				return
+			}
+		case <-c.stop:
+			c.Errorf("client has stopped while waiting for registration")
+			return
+		}
+	}
+}
+
+// Safe client getters that ensure registration before returning clients
+// These methods will wait for registration to complete or return an error if the client is stopped
+
+func (c *GrpcClient) GetNodeClient() (grpc2.NodeServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		c.Debugf("waiting for node client registration")
+		c.WaitForRegistered()
+		if c.stopped {
+			return nil, fmt.Errorf("grpc client stopped while waiting for registration")
+		}
+	}
+	return c.nodeClient, nil
+}
+
+func (c *GrpcClient) GetTaskClient() (grpc2.TaskServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		c.Debugf("waiting for task client registration")
+		c.WaitForRegistered()
+		if c.stopped {
+			return nil, fmt.Errorf("grpc client stopped while waiting for registration")
+		}
+	}
+	return c.taskClient, nil
+}
+
+func (c *GrpcClient) GetModelBaseServiceClient() (grpc2.ModelBaseServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		c.Debugf("waiting for model base service client registration")
+		c.WaitForRegistered()
+		if c.stopped {
+			return nil, fmt.Errorf("grpc client stopped while waiting for registration")
+		}
+	}
+	return c.modelBaseServiceClient, nil
+}
+
+func (c *GrpcClient) GetDependencyClient() (grpc2.DependencyServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		c.Debugf("waiting for dependency client registration")
+		c.WaitForRegistered()
+		if c.stopped {
+			return nil, fmt.Errorf("grpc client stopped while waiting for registration")
+		}
+	}
+	return c.dependencyClient, nil
+}
+
+func (c *GrpcClient) GetMetricClient() (grpc2.MetricServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		c.Debugf("waiting for metric client registration")
+		c.WaitForRegistered()
+		if c.stopped {
+			return nil, fmt.Errorf("grpc client stopped while waiting for registration")
+		}
+	}
+	return c.metricClient, nil
+}
+
+// Safe client getters with timeout - these methods will wait up to the specified timeout
+// for registration to complete before returning an error
+
+func (c *GrpcClient) GetNodeClientWithTimeout(timeout time.Duration) (grpc2.NodeServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		if err := c.waitForRegisteredWithTimeout(timeout); err != nil {
+			return nil, fmt.Errorf("failed to get node client: %w", err)
+		}
+	}
+	return c.nodeClient, nil
+}
+
+func (c *GrpcClient) GetTaskClientWithTimeout(timeout time.Duration) (grpc2.TaskServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		if err := c.waitForRegisteredWithTimeout(timeout); err != nil {
+			return nil, fmt.Errorf("failed to get task client: %w", err)
+		}
+	}
+	return c.taskClient, nil
+}
+
+func (c *GrpcClient) GetModelBaseServiceClientWithTimeout(timeout time.Duration) (grpc2.ModelBaseServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		if err := c.waitForRegisteredWithTimeout(timeout); err != nil {
+			return nil, fmt.Errorf("failed to get model base service client: %w", err)
+		}
+	}
+	return c.modelBaseServiceClient, nil
+}
+
+func (c *GrpcClient) GetDependencyClientWithTimeout(timeout time.Duration) (grpc2.DependencyServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		if err := c.waitForRegisteredWithTimeout(timeout); err != nil {
+			return nil, fmt.Errorf("failed to get dependency client: %w", err)
+		}
+	}
+	return c.dependencyClient, nil
+}
+
+func (c *GrpcClient) GetMetricClientWithTimeout(timeout time.Duration) (grpc2.MetricServiceClient, error) {
+	if c.stopped {
+		return nil, fmt.Errorf("grpc client is stopped")
+	}
+	if !c.IsRegistered() {
+		if err := c.waitForRegisteredWithTimeout(timeout); err != nil {
+			return nil, fmt.Errorf("failed to get metric client: %w", err)
+		}
+	}
+	return c.metricClient, nil
+}
+
+func (c *GrpcClient) waitForRegisteredWithTimeout(timeout time.Duration) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if c.IsRegistered() {
+				c.Debugf("client is now registered")
+				return nil
+			}
+		case <-timer.C:
+			return fmt.Errorf("timeout waiting for client registration after %v", timeout)
+		case <-c.stop:
+			return fmt.Errorf("client has stopped while waiting for registration")
+		}
+	}
 }
 
 func (c *GrpcClient) connect() (err error) {
@@ -299,6 +515,9 @@ func (c *GrpcClient) recordSuccess() {
 
 func (c *GrpcClient) doConnect() (err error) {
 	op := func() error {
+		// Mark as not registered during connection attempt
+		c.setRegistered(false)
+
 		// Close existing connection if any
 		if c.conn != nil {
 			if err := c.conn.Close(); err != nil {
@@ -378,13 +597,15 @@ func (c *GrpcClient) doConnect() (err error) {
 }
 
 func newGrpcClient() (c *GrpcClient) {
-	return &GrpcClient{
+	client := &GrpcClient{
 		address: utils.GetGrpcAddress(),
 		timeout: 10 * time.Second,
 		stop:    make(chan struct{}),
 		Logger:  utils.NewLogger("GrpcClient"),
 		state:   connectivity.Idle,
 	}
+
+	return client
 }
 
 var _client *GrpcClient
