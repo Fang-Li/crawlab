@@ -2,6 +2,9 @@ package service
 
 import (
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/apex/log"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/crawlab-team/crawlab/core/constants"
@@ -21,8 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongo2 "go.mongodb.org/mongo-driver/mongo"
-	"sync"
-	"time"
 )
 
 type MasterService struct {
@@ -42,10 +43,8 @@ type MasterService struct {
 }
 
 func (svc *MasterService) Start() {
-	// start grpc server
-	if err := svc.server.Start(); err != nil {
-		panic(err)
-	}
+	// gRPC server is now started earlier in main.go to avoid race conditions
+	// No need to start it here anymore
 
 	// register to db
 	if err := svc.Register(); err != nil {

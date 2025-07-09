@@ -146,7 +146,7 @@ func newMongoClient(_opts *ClientOptions) (c *mongo.Client, err error) {
 	}
 	b := backoff.NewExponentialBackOff()
 	n := func(err error, duration time.Duration) {
-		logger.Errorf("connect to mongo error: %v. retrying in %s", err, duration)
+		logger.Errorf("connect to mongo error: %v. retrying in %.1fs", err, duration.Seconds())
 	}
 	err = backoff.RetryNotify(op, b, n)
 	if err != nil {
