@@ -1,6 +1,6 @@
 module github.com/crawlab-team/crawlab/core
 
-go 1.22
+go 1.23.0
 
 replace (
 	github.com/crawlab-team/crawlab/db => ../db
@@ -44,7 +44,7 @@ require (
 	github.com/upper/db/v4 v4.6.0
 	go.mongodb.org/mongo-driver v1.15.1
 	go.uber.org/dig v1.10.0
-	golang.org/x/oauth2 v0.21.0
+	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.189.0
 	google.golang.org/grpc v1.65.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
