@@ -67,15 +67,15 @@ func (svc *Service) List(path string) (files []entity.FsFileInfo, err error) {
 		}
 
 		if parentDir := filepath.Dir(p); parentDir != p && dirMap[parentDir] != nil {
-			dirMap[parentDir].Children = append(dirMap[parentDir].Children, *fi)
+			dirMap[parentDir].Children = append(dirMap[parentDir].Children, fi)
 		}
 
 		return nil
 	})
 
 	if rootInfo, ok := dirMap[fullPath]; ok {
-		for _, info := range rootInfo.GetChildren() {
-			files = append(files, info)
+		for _, info := range rootInfo.Children {
+			files = append(files, *info)
 		}
 	}
 
