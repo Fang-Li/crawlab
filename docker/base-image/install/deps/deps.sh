@@ -19,7 +19,10 @@ apt-get install -y \
     iputils-ping \
     nginx \
     jq \
-    net-tools
+    net-tools \
+    fonts-wqy-zenhei \
+    fonts-noto-cjk \
+    fontconfig
 
 # Add source /etc/profile to ~/.bashrc
 echo "source /etc/profile" >> ~/.bashrc

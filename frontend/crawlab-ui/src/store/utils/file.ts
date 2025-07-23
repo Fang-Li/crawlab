@@ -74,8 +74,8 @@ export const getBaseFileStoreActions = <S extends BaseFileStoreState>(
       { commit }: StoreActionContext<S>,
       { id, path }: FileRequestPayload
     ) => {
-      const res = await get(`${endpoint}/${id}/files/list`, { path });
-      const navItems = res.data as FileNavItem[];
+      const res = await get<any, ResponseWithData<FileNavItem[]>>(`${endpoint}/${id}/files/list`, { path });
+      const navItems = res.data || [];
       commit('setFileNavItems', navItems);
       return res;
     },

@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/crawlab-team/crawlab/core/entity"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -427,6 +428,27 @@ func PostSpiderSaveFiles(c *gin.Context, params *PostSpiderSaveFilesParams) (res
 		return GetErrorVoidResponse(err)
 	}
 	return PostBaseFileSaveMany(filepath.Join(rootPath, params.TargetDirectory), form)
+}
+
+// PostSpiderSaveFilesGin handles saving multiple files to a spider's directory via Gin context TODO: temporary solution
+func PostSpiderSaveFilesGin(c *gin.Context) {
+	targetDirectory := c.PostForm("targetDirectory")
+	rootPath, err := getSpiderRootPathByContext(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err = PostBaseFileSaveMany(filepath.Join(rootPath, targetDirectory), form)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	HandleSuccessWithData(c, nil)
 }
 
 type PostSpiderSaveDirParams struct {

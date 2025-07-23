@@ -318,13 +318,14 @@ func InitRoutes(app *gin.Engine) (err error) {
 			Description: "Save a spider file",
 			HandlerFunc: PostSpiderSaveFile,
 		},
-		{
-			Method:      http.MethodPost,
-			Path:        "/:id/files/save/batch",
-			Name:        "Save Spider Files",
-			Description: "Save multiple spider files",
-			HandlerFunc: PostSpiderSaveFiles,
-		},
+		// TODO: temporarily disabled due to compatibility issue
+		//{
+		//	Method:      http.MethodPost,
+		//	Path:        "/:id/files/save/batch",
+		//	Name:        "Save Spider Files",
+		//	Description: "Save multiple spider files",
+		//	HandlerFunc: PostSpiderSaveFiles,
+		//},
 		{
 			Method:      http.MethodPost,
 			Path:        "/:id/files/save/dir",
@@ -375,6 +376,7 @@ func InitRoutes(app *gin.Engine) (err error) {
 			HandlerFunc: GetSpiderResults,
 		},
 	}...))
+	groups.AuthGroup.GinRouterGroup().POST("/spiders/:id/files/save/batch", PostSpiderSaveFilesGin) // TODO: temporarily use this due to compatibility issue
 	RegisterController(groups.AuthGroup.Group("", "Schedules", "APIs for schedules management"), "/schedules", NewController[models.Schedule]([]Action{
 		{
 			Method:      http.MethodGet,

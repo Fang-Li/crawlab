@@ -174,7 +174,7 @@ func (svc *Service) fetchAndRunTasks() {
 		case <-svc.fetchTicker.C:
 			// Use a separate context with timeout for each operation
 			if err := svc.processFetchCycle(); err != nil {
-				svc.Debugf("fetch cycle error: %v", err)
+				//svc.Debugf("fetch cycle error: %v", err)
 			}
 		}
 	}
