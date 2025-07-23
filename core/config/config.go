@@ -50,7 +50,9 @@ func (c *Config) Init() {
 	if err := viper.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
-			c.Warn("No config file found. Using default values.")
+			if c.Logger != nil {
+				c.Warn("No config file found. Using default values.")
+			}
 		}
 	}
 
@@ -61,7 +63,9 @@ func (c *Config) Init() {
 func (c *Config) WatchConfig() {
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		c.Infof("Config file changed: %s", e.Name)
+		if c.Logger != nil {
+			c.Infof("Config file changed: %s", e.Name)
+		}
 	})
 }
 
@@ -87,9 +91,13 @@ func (c *Config) initLogLevel() {
 func (c *Config) loadDotEnv() {
 	// Try to load .env file, but don't fail if it doesn't exist
 	if err := godotenv.Load(); err != nil {
-		c.Debug("No .env file found or unable to load .env file")
+		if c.Logger != nil {
+			c.Debug("No .env file found or unable to load .env file")
+		}
 	} else {
-		c.Info("Loaded .env file successfully")
+		if c.Logger != nil {
+			c.Info("Loaded .env file successfully")
+		}
 	}
 }
 
