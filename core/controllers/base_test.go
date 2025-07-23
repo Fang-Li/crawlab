@@ -46,6 +46,8 @@ var TestUserId primitive.ObjectID
 // SetupTestDB sets up the test database
 func SetupTestDB() {
 	viper.Set("mongo.db", "testdb")
+	viper.Set("node.master", true) // Configure as master node for tests
+	
 	modelSvc := service.NewModelService[models.User]()
 	u := models.User{
 		Username: "admin",
