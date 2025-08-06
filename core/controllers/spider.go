@@ -214,20 +214,18 @@ func DeleteSpiderById(_ *gin.Context, params *DeleteByIdParams) (response *Respo
 		return GetErrorResponse[models.Spider](err)
 	}
 
+	// Delete spider directory synchronously to prevent goroutine leaks
 	if !s.GitId.IsZero() {
-		go func() {
-			// delete spider directory
-			fsSvc, err := getSpiderFsSvcById(s.Id)
-			if err != nil {
-				logger.Errorf("failed to get spider fs service: %v", err)
-				return
-			}
+		// delete spider directory
+		fsSvc, err := getSpiderFsSvcById(s.Id)
+		if err != nil {
+			logger.Errorf("failed to get spider fs service: %v", err)
+		} else {
 			err = fsSvc.Delete(".")
 			if err != nil {
 				logger.Errorf("failed to delete spider directory: %v", err)
-				return
 			}
-		}()
+		}
 	}
 
 	return GetDataResponse(models.Spider{})
@@ -323,34 +321,39 @@ func DeleteSpiderList(_ *gin.Context, params *DeleteSpiderListParams) (response 
 		return GetErrorResponse[models.Spider](err)
 	}
 
-	// Delete spider directories
-	go func() {
-		wg := sync.WaitGroup{}
-		wg.Add(len(spiders))
-		for i := range spiders {
-			go func(s *models.Spider) {
-				defer wg.Done()
-
-				// Skip spider with git
-				if !s.GitId.IsZero() {
-					return
-				}
-
-				// Delete spider directory
-				fsSvc, err := getSpiderFsSvcById(s.Id)
-				if err != nil {
-					logger.Errorf("failed to get spider fs service: %v", err)
-					return
-				}
-				err = fsSvc.Delete(".")
-				if err != nil {
-					logger.Errorf("failed to delete spider directory: %v", err)
-					return
-				}
-			}(&spiders[i])
+	// Delete spider directories synchronously to prevent goroutine leaks
+	wg := sync.WaitGroup{}
+	semaphore := make(chan struct{}, 5) // Limit concurrent operations
+	
+	for i := range spiders {
+		// Skip spider with git
+		if !spiders[i].GitId.IsZero() {
+			continue
 		}
-		wg.Wait()
-	}()
+
+		wg.Add(1)
+		semaphore <- struct{}{} // Acquire semaphore
+		
+		func(s *models.Spider) {
+			defer func() {
+				<-semaphore // Release semaphore
+				wg.Done()
+			}()
+
+			// Delete spider directory
+			fsSvc, err := getSpiderFsSvcById(s.Id)
+			if err != nil {
+				logger.Errorf("failed to get spider fs service: %v", err)
+				return
+			}
+			err = fsSvc.Delete(".")
+			if err != nil {
+				logger.Errorf("failed to delete spider directory: %v", err)
+				return
+			}
+		}(&spiders[i])
+	}
+	wg.Wait()
 
 	return GetDataResponse(models.Spider{})
 }

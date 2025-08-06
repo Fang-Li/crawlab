@@ -112,6 +112,9 @@ type GrpcClient struct {
 	healthClient       grpc_health_v1.HealthClient
 	healthCheckEnabled bool
 	healthCheckMux     sync.RWMutex
+
+	// Goroutine management
+	wg sync.WaitGroup
 }
 
 func (c *GrpcClient) Start() {
@@ -131,11 +134,18 @@ func (c *GrpcClient) Start() {
 			// Don't fatal here, let reconnection handle it
 		}
 
-		// start monitoring after connection attempt
-		go c.monitorState()
+		// start monitoring after connection attempt with proper tracking
+		c.wg.Add(2) // Track both monitoring goroutines
+		go func() {
+			defer c.wg.Done()
+			c.monitorState()
+		}()
 
 		// start health monitoring
-		go c.startHealthMonitor()
+		go func() {
+			defer c.wg.Done()
+			c.startHealthMonitor()
+		}()
 	})
 }
 
@@ -155,6 +165,21 @@ func (c *GrpcClient) Stop() error {
 	select {
 	case c.stop <- struct{}{}:
 	default:
+	}
+
+	// Wait for goroutines to finish
+	done := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
+
+	// Give goroutines time to finish gracefully, then force stop
+	select {
+	case <-done:
+		c.Debugf("all goroutines stopped gracefully")
+	case <-time.After(10 * time.Second):
+		c.Warnf("some goroutines did not stop gracefully within timeout")
 	}
 
 	// Close connection

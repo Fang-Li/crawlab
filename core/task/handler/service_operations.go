@@ -11,6 +11,7 @@ import (
 	"github.com/crawlab-team/crawlab/core/interfaces"
 	"github.com/crawlab-team/crawlab/grpc"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	grpc2 "google.golang.org/grpc"
 )
 
 // Service operations for task management
@@ -92,10 +93,8 @@ func (svc *Service) executeTask(taskId primitive.ObjectID) (err error) {
 	return err
 }
 
-// subscribeTask attempts to subscribe to task stream
-func (svc *Service) subscribeTask(taskId primitive.ObjectID) (stream grpc.TaskService_SubscribeClient, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+// subscribeTaskWithContext attempts to subscribe to task stream with provided context
+func (svc *Service) subscribeTaskWithContext(ctx context.Context, taskId primitive.ObjectID) (stream grpc.TaskService_SubscribeClient, err error) {
 	req := &grpc.TaskServiceSubscribeRequest{
 		TaskId: taskId.Hex(),
 	}
@@ -103,7 +102,13 @@ func (svc *Service) subscribeTask(taskId primitive.ObjectID) (stream grpc.TaskSe
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task client: %v", err)
 	}
-	stream, err = taskClient.Subscribe(ctx, req)
+
+	// Use call options to ensure proper cancellation behavior
+	opts := []grpc2.CallOption{
+		grpc2.WaitForReady(false), // Don't wait for connection if not ready
+	}
+
+	stream, err = taskClient.Subscribe(ctx, req, opts...)
 	if err != nil {
 		svc.Errorf("failed to subscribe task[%s]: %v", taskId.Hex(), err)
 		return nil, err

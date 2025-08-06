@@ -59,7 +59,10 @@ func (svr TaskServiceServer) Subscribe(req *grpc.TaskServiceSubscribeRequest, st
 
 	svr.Infof("task stream opened: %s", taskId.Hex())
 
-	// add stream
+	// Create a context based on client stream
+	ctx := stream.Context()
+
+	// add stream and track cancellation function
 	taskServiceMutex.Lock()
 	svr.subs[taskId] = stream
 	taskServiceMutex.Unlock()
@@ -72,22 +75,34 @@ func (svr TaskServiceServer) Subscribe(req *grpc.TaskServiceSubscribeRequest, st
 		svr.Infof("task stream closed: %s", taskId.Hex())
 	}()
 
-	// wait for stream to close with timeout protection
-	ctx := stream.Context()
+	// send periodic heartbeat to detect client disconnection and check for task completion
+	heartbeatTicker := time.NewTicker(10 * time.Second) // More frequent for faster completion detection
+	defer heartbeatTicker.Stop()
 
-	// Create a context with timeout to prevent indefinite hanging
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 24*time.Hour)
-	defer cancel()
+	for {
+		select {
+		case <-ctx.Done():
+			// Stream context cancelled normally (client disconnected or task finished)
+			svr.Debugf("task stream context done: %s", taskId.Hex())
+			return ctx.Err()
 
-	select {
-	case <-ctx.Done():
-		// Stream context cancelled normally
-		svr.Debugf("task stream context done: %s", taskId.Hex())
-		return ctx.Err()
-	case <-timeoutCtx.Done():
-		// Timeout reached - this prevents indefinite hanging
-		svr.Warnf("task stream timeout reached for task: %s", taskId.Hex())
-		return errors.New("stream timeout")
+		case <-heartbeatTicker.C:
+			// Check if task has finished and close stream if so
+			if svr.isTaskFinished(taskId) {
+				svr.Infof("task[%s] finished, closing stream", taskId.Hex())
+				return nil
+			}
+
+			// Check if the context is still valid
+			select {
+			case <-ctx.Done():
+				svr.Debugf("task stream context cancelled during heartbeat check: %s", taskId.Hex())
+				return ctx.Err()
+			default:
+				// Context is still valid, continue
+				svr.Debugf("task stream heartbeat check passed: %s", taskId.Hex())
+			}
+		}
 	}
 }
 
@@ -469,6 +484,18 @@ func (svr *TaskServiceServer) Stop() error {
 
 	svr.Infof("task service server stopped")
 	return nil
+}
+
+// isTaskFinished checks if a task has completed execution
+func (svr TaskServiceServer) isTaskFinished(taskId primitive.ObjectID) bool {
+	task, err := service.NewModelService[models.Task]().GetById(taskId)
+	if err != nil {
+		svr.Debugf("error checking task[%s] status: %v", taskId.Hex(), err)
+		return false
+	}
+
+	// Task is finished if it's not in pending or running state
+	return task.Status != constants.TaskStatusPending && task.Status != constants.TaskStatusRunning
 }
 
 var _taskServiceServer *TaskServiceServer
