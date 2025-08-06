@@ -1,0 +1,223 @@
+/*
+ * Copyright (c) 2025. Core Digital Limited
+ * 版权所有 (c) 2025. 重庆科锐数研科技有限公司 (Core Digital Limited)
+ * All rights reserved. 保留所有权利。
+ *
+ * 该软件由 重庆科锐数研科技有限公司 (Core Digital Limited) 开发，未经明确书面许可，任何人不得使用、复制、修改或分发该软件的任何部分。
+ * This software is developed by Core Digital Limited. No one is permitted to use, copy, modify, or distribute this software without explicit written permission.
+ *
+ * 许可证：
+ * 该软件仅供授权使用。授权用户有权在授权范围内使用、复制、修改和分发该软件。
+ * License:
+ * This software is for authorized use only. Authorized users are permitted to use, copy, modify, and distribute this software within the scope of their authorization.
+ *
+ * 免责声明：
+ * 该软件按"原样"提供，不附带任何明示或暗示的担保，包括但不限于对适销性和适用于特定目的的担保。在任何情况下，版权持有者或其许可方对因使用该软件而产生的任何损害或其他责任概不负责。
+ * Disclaimer:
+ * This software is provided "as is," without any express or implied warranties, including but not limited to warranties of merchantability and fitness for a particular purpose. In no event shall the copyright holder or its licensors be liable for any damages or other liability arising from the use of this software.
+ */
+
+package handler
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/crawlab-team/crawlab/core/constants"
+	"github.com/crawlab-team/crawlab/core/entity"
+	"github.com/crawlab-team/crawlab/grpc"
+)
+
+// handleIPC processes incoming IPC messages from the child process
+// Messages are converted to JSON and written to the child process's stdin
+func (r *Runner) handleIPC() {
+	r.wg.Add(1)
+	defer r.wg.Done()
+
+	for msg := range r.ipcChan {
+		// Convert message to JSON
+		jsonData, err := json.Marshal(msg)
+		if err != nil {
+			r.Errorf("error marshaling IPC message: %v", err)
+			continue
+		}
+
+		// Write to child process's stdin
+		_, err = fmt.Fprintln(r.stdinPipe, string(jsonData))
+		if err != nil {
+			r.Errorf("error writing to child process: %v", err)
+		}
+	}
+}
+
+// SetIPCHandler sets the handler for incoming IPC messages
+func (r *Runner) SetIPCHandler(handler func(entity.IPCMessage)) {
+	r.ipcHandler = handler
+}
+
+// startIPCReader continuously reads IPC messages from the child process's stdout
+// Messages are parsed and either handled by the IPC handler or written to logs
+func (r *Runner) startIPCReader() {
+	r.wg.Add(2) // Add 2 to wait group for both stdout and stderr readers
+
+	// Start stdout reader
+	go func() {
+		defer r.wg.Done()
+		r.readOutput(r.readerStdout, true) // true for stdout
+	}()
+
+	// Start stderr reader
+	go func() {
+		defer r.wg.Done()
+		r.readOutput(r.readerStderr, false) // false for stderr
+	}()
+}
+
+// handleIPCInsertDataMessage converts the IPC message payload to JSON and sends it to the master node
+func (r *Runner) handleIPCInsertDataMessage(ipcMsg entity.IPCMessage) {
+	if ipcMsg.Payload == nil {
+		r.Errorf("empty payload in IPC message")
+		return
+	}
+
+	// Convert payload to data to be inserted
+	var records []map[string]interface{}
+
+	switch payload := ipcMsg.Payload.(type) {
+	case []interface{}: // Handle array of objects
+		records = make([]map[string]interface{}, 0, len(payload))
+		for i, item := range payload {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				records = append(records, itemMap)
+			} else {
+				r.Errorf("invalid record at index %d: %v", i, item)
+				continue
+			}
+		}
+	case []map[string]interface{}: // Handle direct array of maps
+		records = payload
+	case map[string]interface{}: // Handle single object
+		records = []map[string]interface{}{payload}
+	case interface{}: // Handle generic interface
+		if itemMap, ok := payload.(map[string]interface{}); ok {
+			records = []map[string]interface{}{itemMap}
+		} else {
+			r.Errorf("invalid payload type: %T", payload)
+			return
+		}
+	default:
+		r.Errorf("unsupported payload type: %T, value: %v", payload, ipcMsg.Payload)
+		return
+	}
+
+	// Validate records
+	if len(records) == 0 {
+		r.Warnf("no valid records to insert")
+		return
+	}
+
+	// Marshal data with error handling
+	data, err := json.Marshal(records)
+	if err != nil {
+		r.Errorf("error marshaling records: %v", err)
+		return
+	}
+
+	// Check if context is cancelled or connection is closed
+	select {
+	case <-r.ctx.Done():
+		return
+	default:
+	}
+
+	// Use connection with mutex for thread safety
+	r.connMutex.RLock()
+	conn := r.conn
+	r.connMutex.RUnlock()
+
+	// Validate connection
+	if conn == nil {
+		r.Errorf("gRPC connection not initialized")
+		return
+	}
+
+	// Send IPC message to master with context and timeout
+	ctx, cancel := context.WithTimeout(context.Background(), r.ipcTimeout)
+	defer cancel()
+
+	// Create gRPC message
+	grpcMsg := &grpc.TaskServiceConnectRequest{
+		Code:   grpc.TaskServiceConnectCode_INSERT_DATA,
+		TaskId: r.tid.Hex(),
+		Data:   data,
+	}
+
+	// Use context for sending
+	select {
+	case <-ctx.Done():
+		r.Errorf("timeout sending IPC message")
+		return
+	case <-r.ctx.Done():
+		return
+	default:
+		if err := conn.Send(grpcMsg); err != nil {
+			// Don't log errors if context is cancelled (expected during shutdown)
+			select {
+			case <-r.ctx.Done():
+				return
+			default:
+				r.Errorf("error sending IPC message: %v", err)
+				// Mark connection as unhealthy for reconnection
+				r.lastConnCheck = time.Time{}
+			}
+			return
+		}
+	}
+}
+
+func (r *Runner) readOutput(reader *bufio.Reader, isStdout bool) {
+	scanner := bufio.NewScanner(reader)
+	for {
+		select {
+		case <-r.ctx.Done():
+			// Context cancelled, stop reading
+			return
+		default:
+			// Scan the next line
+			if !scanner.Scan() {
+				return
+			}
+
+			// Get the line
+			line := scanner.Text()
+
+			// Trim the line
+			line = strings.TrimRight(line, "\n\r")
+
+			// For stdout, try to parse as IPC message first
+			if isStdout {
+				var ipcMsg entity.IPCMessage
+				if err := json.Unmarshal([]byte(line), &ipcMsg); err == nil && ipcMsg.IPC {
+					if r.ipcHandler != nil {
+						r.ipcHandler(ipcMsg)
+					} else {
+						// Default handler (insert data)
+						if ipcMsg.Type == "" || ipcMsg.Type == constants.IPCMessageData {
+							r.handleIPCInsertDataMessage(ipcMsg)
+						} else {
+							r.Warnf("no IPC handler set for message: %v", ipcMsg)
+						}
+					}
+					continue
+				}
+			}
+
+			// If not an IPC message or from stderr, treat as log
+			r.writeLogLines([]string{line})
+		}
+	}
+}
