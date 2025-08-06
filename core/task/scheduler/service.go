@@ -28,14 +28,61 @@ type Service struct {
 	// settings
 	interval time.Duration
 
-	// internals
+	// internals for lifecycle management
+	ctx     context.Context
+	cancel  context.CancelFunc
+	stopped bool
+	mu      sync.RWMutex
+	wg      sync.WaitGroup
+
 	interfaces.Logger
 }
 
 func (svc *Service) Start() {
+	// Initialize context for graceful shutdown
+	svc.ctx, svc.cancel = context.WithCancel(context.Background())
+
+	// Start background goroutines with proper tracking
+	svc.wg.Add(2)
 	go svc.initTaskStatus()
 	go svc.cleanupTasks()
+
+	svc.Infof("Task scheduler service started")
 	utils.DefaultWait()
+}
+
+func (svc *Service) Stop() {
+	svc.mu.Lock()
+	if svc.stopped {
+		svc.mu.Unlock()
+		return
+	}
+	svc.stopped = true
+	svc.mu.Unlock()
+
+	svc.Infof("Stopping task scheduler service...")
+
+	// Cancel context to signal all goroutines to stop
+	if svc.cancel != nil {
+		svc.cancel()
+	}
+
+	// Wait for all background goroutines to finish
+	done := make(chan struct{})
+	go func() {
+		svc.wg.Wait()
+		close(done)
+	}()
+
+	// Give goroutines time to finish gracefully, then force stop
+	select {
+	case <-done:
+		svc.Infof("All goroutines stopped gracefully")
+	case <-time.After(30 * time.Second):
+		svc.Warnf("Some goroutines did not stop gracefully within timeout")
+	}
+
+	svc.Infof("Task scheduler service stopped")
 }
 
 func (svc *Service) Enqueue(t *models.Task, by primitive.ObjectID) (t2 *models.Task, err error) {
@@ -192,6 +239,13 @@ func (svc *Service) SaveTask(t *models.Task, by primitive.ObjectID) (err error) 
 
 // initTaskStatus initialize task status of existing tasks
 func (svc *Service) initTaskStatus() {
+	defer svc.wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			svc.Errorf("initTaskStatus panic recovered: %v", r)
+		}
+	}()
+
 	// set status of running tasks as TaskStatusAbnormal
 	runningTasks, err := service.NewModelService[models.Task]().GetMany(bson.M{
 		"status": bson.M{
@@ -209,15 +263,37 @@ func (svc *Service) initTaskStatus() {
 		svc.Errorf("failed to get running tasks: %v", err)
 		return
 	}
+
+	// Use bounded worker pool for task updates
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, 10) // Limit concurrent updates
+
 	for _, t := range runningTasks {
-		go func(t *models.Task) {
-			t.Status = constants.TaskStatusAbnormal
-			if err := svc.SaveTask(t, primitive.NilObjectID); err != nil {
-				svc.Errorf("failed to set task status as TaskStatusAbnormal: %s", t.Id.Hex())
-				return
-			}
-		}(&t)
+		select {
+		case <-svc.ctx.Done():
+			svc.Infof("initTaskStatus stopped by context")
+			return
+		case semaphore <- struct{}{}:
+			wg.Add(1)
+			go func(task models.Task) {
+				defer func() {
+					<-semaphore
+					wg.Done()
+					if r := recover(); r != nil {
+						svc.Errorf("task status update panic for task %s: %v", task.Id.Hex(), r)
+					}
+				}()
+
+				task.Status = constants.TaskStatusAbnormal
+				if err := svc.SaveTask(&task, primitive.NilObjectID); err != nil {
+					svc.Errorf("failed to set task status as TaskStatusAbnormal: %s", task.Id.Hex())
+				}
+			}(t)
+		}
 	}
+
+	wg.Wait()
+	svc.Infof("initTaskStatus completed")
 }
 
 func (svc *Service) isMasterNode(t *models.Task) (ok bool, err error) {
@@ -239,41 +315,67 @@ func (svc *Service) isMasterNode(t *models.Task) (ok bool, err error) {
 }
 
 func (svc *Service) cleanupTasks() {
+	defer svc.wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			svc.Errorf("cleanupTasks panic recovered: %v", r)
+		}
+	}()
+
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+
 	for {
-		// task stats over 30 days ago
-		taskStats, err := service.NewModelService[models.TaskStat]().GetMany(bson.M{
-			"created_at": bson.M{
-				"$lt": time.Now().Add(-30 * 24 * time.Hour),
-			},
-		}, nil)
-		if err != nil {
-			time.Sleep(30 * time.Minute)
-			continue
+		select {
+		case <-svc.ctx.Done():
+			svc.Infof("cleanupTasks stopped by context")
+			return
+		case <-ticker.C:
+			svc.performCleanup()
+		}
+	}
+}
+
+func (svc *Service) performCleanup() {
+	defer func() {
+		if r := recover(); r != nil {
+			svc.Errorf("performCleanup panic recovered: %v", r)
+		}
+	}()
+
+	// task stats over 30 days ago
+	taskStats, err := service.NewModelService[models.TaskStat]().GetMany(bson.M{
+		"created_at": bson.M{
+			"$lt": time.Now().Add(-30 * 24 * time.Hour),
+		},
+	}, nil)
+	if err != nil {
+		svc.Errorf("failed to get old task stats: %v", err)
+		return
+	}
+
+	// task ids
+	var ids []primitive.ObjectID
+	for _, ts := range taskStats {
+		ids = append(ids, ts.Id)
+	}
+
+	if len(ids) > 0 {
+		// remove tasks
+		if err := service.NewModelService[models.Task]().DeleteMany(bson.M{
+			"_id": bson.M{"$in": ids},
+		}); err != nil {
+			svc.Warnf("failed to remove tasks: %v", err)
 		}
 
-		// task ids
-		var ids []primitive.ObjectID
-		for _, ts := range taskStats {
-			ids = append(ids, ts.Id)
+		// remove task stats
+		if err := service.NewModelService[models.TaskStat]().DeleteMany(bson.M{
+			"_id": bson.M{"$in": ids},
+		}); err != nil {
+			svc.Warnf("failed to remove task stats: %v", err)
 		}
 
-		if len(ids) > 0 {
-			// remove tasks
-			if err := service.NewModelService[models.Task]().DeleteMany(bson.M{
-				"_id": bson.M{"$in": ids},
-			}); err != nil {
-				svc.Warnf("failed to remove tasks: %v", err)
-			}
-
-			// remove task stats
-			if err := service.NewModelService[models.TaskStat]().DeleteMany(bson.M{
-				"_id": bson.M{"$in": ids},
-			}); err != nil {
-				svc.Warnf("failed to remove task stats: %v", err)
-			}
-		}
-
-		time.Sleep(30 * time.Minute)
+		svc.Infof("cleaned up %d old tasks", len(ids))
 	}
 }
 

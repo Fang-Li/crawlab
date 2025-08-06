@@ -37,6 +37,7 @@ interface LComponentsMetric {
     y: string;
   };
   timeRanges: {
+    '15m': string;
     '1h': string;
     '24h': string;
     '7d': string;

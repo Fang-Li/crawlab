@@ -26,11 +26,26 @@ type Service struct {
 func (svc *Service) Send(s *models.NotificationSetting, args ...any) {
 	title := s.Title
 
+	// Use bounded goroutine pool to prevent unlimited goroutine creation
+	const maxWorkers = 5
 	wg := sync.WaitGroup{}
-	wg.Add(len(s.ChannelIds))
+	semaphore := make(chan struct{}, maxWorkers)
+
 	for _, chId := range s.ChannelIds {
+		wg.Add(1)
+
+		// Acquire semaphore
+		semaphore <- struct{}{}
+
 		go func(chId primitive.ObjectID) {
-			defer wg.Done()
+			defer func() {
+				<-semaphore // Release semaphore
+				wg.Done()
+				if r := recover(); r != nil {
+					svc.Errorf("[NotificationService] channel handler panic for %s: %v", chId.Hex(), r)
+				}
+			}()
+
 			ch, err := service.NewModelService[models.NotificationChannel]().GetById(chId)
 			if err != nil {
 				svc.Errorf("[NotificationService] get channel error: %v", err)
@@ -62,8 +77,8 @@ func (svc *Service) SendMail(s *models.NotificationSetting, ch *models.Notificat
 		svc.Errorf("[NotificationService] send mail error: %v", err)
 	}
 
-	// save request
-	go svc.saveRequest(r, err)
+	// save request synchronously to avoid unbounded goroutines
+	svc.saveRequest(r, err)
 }
 
 func (svc *Service) SendIM(ch *models.NotificationChannel, title, content string) {
@@ -76,8 +91,8 @@ func (svc *Service) SendIM(ch *models.NotificationChannel, title, content string
 		svc.Errorf("[NotificationService] send mobile notification error: %v", err)
 	}
 
-	// save request
-	go svc.saveRequest(r, err)
+	// save request synchronously to avoid unbounded goroutines
+	svc.saveRequest(r, err)
 }
 
 func (svc *Service) SendTestMessage(locale string, ch *models.NotificationChannel, toMail []string) (err error) {
@@ -126,8 +141,8 @@ func (svc *Service) SendTestMessage(locale string, ch *models.NotificationChanne
 		return fmt.Errorf("unsupported notification channel type: %s", ch.Type)
 	}
 
-	// Save request
-	go svc.saveRequest(r, err)
+	// Save request synchronously to avoid unbounded goroutines
+	svc.saveRequest(r, err)
 
 	return err
 }
@@ -361,21 +376,21 @@ func (svc *Service) geContentWithVariables(template string, variables []entity.N
 
 func (svc *Service) getVariableData(args ...any) (vd VariableData) {
 	for _, arg := range args {
-		switch arg.(type) {
+		switch arg := arg.(type) {
 		case *models.Task:
-			vd.Task = arg.(*models.Task)
+			vd.Task = arg
 		case *models.TaskStat:
-			vd.TaskStat = arg.(*models.TaskStat)
+			vd.TaskStat = arg
 		case *models.Spider:
-			vd.Spider = arg.(*models.Spider)
+			vd.Spider = arg
 		case *models.Node:
-			vd.Node = arg.(*models.Node)
+			vd.Node = arg
 		case *models.Schedule:
-			vd.Schedule = arg.(*models.Schedule)
+			vd.Schedule = arg
 		case *models.NotificationAlert:
-			vd.Alert = arg.(*models.NotificationAlert)
+			vd.Alert = arg
 		case *models.Metric:
-			vd.Metric = arg.(*models.Metric)
+			vd.Metric = arg
 		}
 	}
 	return vd
@@ -383,7 +398,7 @@ func (svc *Service) getVariableData(args ...any) (vd VariableData) {
 
 func (svc *Service) parseTemplateVariables(template string) (variables []entity.NotificationVariable) {
 	// regex pattern
-	regex := regexp.MustCompile("\\$\\{(\\w+):(\\w+)}")
+	regex := regexp.MustCompile(`\$\{(\w+):(\w+)\}`)
 
 	// find all matches
 	matches := regex.FindAllStringSubmatch(template, -1)
@@ -500,21 +515,42 @@ func (svc *Service) SendNodeNotification(node *models.Node) {
 		return
 	}
 
+	// Use bounded goroutine pool for node notifications
+	const maxWorkers = 3
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, maxWorkers)
+
 	for _, s := range settings {
-		// send notification
-		switch s.Trigger {
-		case constants.NotificationTriggerNodeStatusChange:
-			go svc.Send(&s, args...)
-		case constants.NotificationTriggerNodeOnline:
-			if node.Status == constants.NodeStatusOnline {
-				go svc.Send(&s, args...)
+		wg.Add(1)
+
+		// Acquire semaphore
+		semaphore <- struct{}{}
+
+		go func(setting models.NotificationSetting) {
+			defer func() {
+				<-semaphore // Release semaphore
+				wg.Done()
+				if r := recover(); r != nil {
+					svc.Errorf("[NotificationService] node notification panic for setting %s: %v", setting.Id.Hex(), r)
+				}
+			}()
+
+			// send notification
+			switch setting.Trigger {
+			case constants.NotificationTriggerNodeStatusChange:
+				svc.Send(&setting, args...)
+			case constants.NotificationTriggerNodeOnline:
+				if node.Status == constants.NodeStatusOnline {
+					svc.Send(&setting, args...)
+				}
+			case constants.NotificationTriggerNodeOffline:
+				if node.Status == constants.NodeStatusOffline {
+					svc.Send(&setting, args...)
+				}
 			}
-		case constants.NotificationTriggerNodeOffline:
-			if node.Status == constants.NodeStatusOffline {
-				go svc.Send(&s, args...)
-			}
-		}
+		}(s)
 	}
+	wg.Wait()
 }
 
 func (svc *Service) createRequestMail(s *models.NotificationSetting, ch *models.NotificationChannel, title, content string) (res *models.NotificationRequest, err error) {

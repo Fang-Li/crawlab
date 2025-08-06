@@ -1752,9 +1752,7 @@ func (r *Runner) checkForZombieProcesses() {
 		// Process exists, check if it's a zombie
 		if proc, err := process.NewProcess(int32(r.pid)); err == nil {
 			if status, err := proc.Status(); err == nil {
-				// Status returns a string, check if it indicates zombie
-				statusStr := string(status)
-				if statusStr == "Z" || statusStr == "zombie" {
+				if status == "Z" || status == "zombie" {
 					r.Warnf("detected zombie process %d for task %s", r.pid, r.tid.Hex())
 					go r.cleanupOrphanedProcesses()
 				}

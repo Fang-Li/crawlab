@@ -30,8 +30,8 @@ const t = translate;
 const { activeId } = useDetail(props.ns);
 
 const timeRange = ref<string>(props.defaultTimeRange || '1h');
-const timeRanges = ['1h', '24h', '7d', '30d'];
-const timeUnits = ['5m', '1h', '6h', '1d'];
+const timeRanges = ['15m', '1h', '24h', '7d', '30d'];
+const timeUnits = ['1m', '5m', '1h', '6h', '1d'];
 const timeRangeOptions = computed<any[]>(() => {
   return timeRanges.map((value, index) => {
     const label = t('components.metric.timeRanges.' + value);

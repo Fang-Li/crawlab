@@ -45,7 +45,145 @@ type Service struct {
 	fetchTicker  *time.Ticker
 	reportTicker *time.Ticker
 
+	// worker pool for bounded task execution
+	workerPool *TaskWorkerPool
+	maxWorkers int
+
+	// stream manager for leak-free stream handling
+	streamManager *StreamManager
+
 	interfaces.Logger
+}
+
+// StreamManager manages task streams without goroutine leaks
+type StreamManager struct {
+	streams      sync.Map // map[primitive.ObjectID]*TaskStream
+	ctx          context.Context
+	cancel       context.CancelFunc
+	wg           sync.WaitGroup
+	service      *Service
+	messageQueue chan *StreamMessage
+	maxStreams   int
+}
+
+// TaskStream represents a single task's stream
+type TaskStream struct {
+	taskId     primitive.ObjectID
+	stream     grpc.TaskService_SubscribeClient
+	ctx        context.Context
+	cancel     context.CancelFunc
+	lastActive time.Time
+	mu         sync.RWMutex
+}
+
+// StreamMessage represents a message from a stream
+type StreamMessage struct {
+	taskId primitive.ObjectID
+	msg    *grpc.TaskServiceSubscribeResponse
+	err    error
+}
+
+// taskRequest represents a task execution request
+type taskRequest struct {
+	taskId primitive.ObjectID
+}
+
+// TaskWorkerPool manages a bounded pool of workers for task execution
+type TaskWorkerPool struct {
+	workers   int
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
+	taskQueue chan taskRequest
+	service   *Service
+}
+
+func NewTaskWorkerPool(workers int, service *Service) *TaskWorkerPool {
+	ctx, cancel := context.WithCancel(context.Background())
+	// Use a more generous queue size to handle task bursts
+	// Queue size is workers * 5 to allow for better buffering
+	queueSize := workers * 5
+	if queueSize < 50 {
+		queueSize = 50 // Minimum queue size
+	}
+
+	return &TaskWorkerPool{
+		workers:   workers,
+		ctx:       ctx,
+		cancel:    cancel,
+		taskQueue: make(chan taskRequest, queueSize),
+		service:   service,
+	}
+}
+
+func (pool *TaskWorkerPool) Start() {
+	for i := 0; i < pool.workers; i++ {
+		pool.wg.Add(1)
+		go pool.worker(i)
+	}
+}
+
+func (pool *TaskWorkerPool) Stop() {
+	pool.cancel()
+	close(pool.taskQueue)
+	pool.wg.Wait()
+}
+
+func (pool *TaskWorkerPool) SubmitTask(taskId primitive.ObjectID) error {
+	req := taskRequest{
+		taskId: taskId,
+	}
+
+	select {
+	case pool.taskQueue <- req:
+		pool.service.Debugf("task[%s] queued for parallel execution, queue usage: %d/%d",
+			taskId.Hex(), len(pool.taskQueue), cap(pool.taskQueue))
+		return nil // Return immediately - task will execute in parallel
+	case <-pool.ctx.Done():
+		return fmt.Errorf("worker pool is shutting down")
+	default:
+		queueLen := len(pool.taskQueue)
+		queueCap := cap(pool.taskQueue)
+		pool.service.Warnf("task queue is full (%d/%d), consider increasing task.workers configuration",
+			queueLen, queueCap)
+		return fmt.Errorf("task queue is full (%d/%d), consider increasing task.workers configuration",
+			queueLen, queueCap)
+	}
+}
+
+func (pool *TaskWorkerPool) worker(workerID int) {
+	defer pool.wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			pool.service.Errorf("worker %d panic recovered: %v", workerID, r)
+		}
+	}()
+
+	pool.service.Debugf("worker %d started", workerID)
+
+	for {
+		select {
+		case <-pool.ctx.Done():
+			pool.service.Debugf("worker %d shutting down", workerID)
+			return
+		case req, ok := <-pool.taskQueue:
+			if !ok {
+				pool.service.Debugf("worker %d: task queue closed", workerID)
+				return
+			}
+
+			// Execute task asynchronously - each worker handles one task at a time
+			// but multiple workers can process different tasks simultaneously
+			pool.service.Debugf("worker %d processing task[%s]", workerID, req.taskId.Hex())
+			err := pool.service.executeTask(req.taskId)
+			if err != nil {
+				pool.service.Errorf("worker %d failed to execute task[%s]: %v",
+					workerID, req.taskId.Hex(), err)
+			} else {
+				pool.service.Debugf("worker %d completed task[%s]", workerID, req.taskId.Hex())
+			}
+		}
+	}
 }
 
 func (svc *Service) Start() {
@@ -59,7 +197,14 @@ func (svc *Service) Start() {
 	svc.fetchTicker = time.NewTicker(svc.fetchInterval)
 	svc.reportTicker = time.NewTicker(svc.reportInterval)
 
-	// Start goroutine monitoring
+	// Initialize and start worker pool
+	svc.workerPool = NewTaskWorkerPool(svc.maxWorkers, svc)
+	svc.workerPool.Start()
+
+	// Initialize and start stream manager
+	svc.streamManager.Start()
+
+	// Start goroutine monitoring (adds to WaitGroup internally)
 	svc.startGoroutineMonitoring()
 
 	// Start background goroutines with WaitGroup tracking
@@ -67,9 +212,10 @@ func (svc *Service) Start() {
 	go svc.reportStatus()
 	go svc.fetchAndRunTasks()
 
-	svc.Infof("Task handler service started")
+	queueSize := cap(svc.workerPool.taskQueue)
+	svc.Infof("Task handler service started with %d workers and queue size %d", svc.maxWorkers, queueSize)
 
-	// Start the stuck task cleanup routine
+	// Start the stuck task cleanup routine (adds to WaitGroup internally)
 	svc.startStuckTaskCleanup()
 }
 
@@ -87,6 +233,16 @@ func (svc *Service) Stop() {
 	// Cancel context to signal all goroutines to stop
 	if svc.cancel != nil {
 		svc.cancel()
+	}
+
+	// Stop worker pool first
+	if svc.workerPool != nil {
+		svc.workerPool.Stop()
+	}
+
+	// Stop stream manager
+	if svc.streamManager != nil {
+		svc.streamManager.Stop()
 	}
 
 	// Stop tickers to prevent new tasks
@@ -119,7 +275,9 @@ func (svc *Service) Stop() {
 }
 
 func (svc *Service) startGoroutineMonitoring() {
+	svc.wg.Add(1) // Track goroutine monitoring in WaitGroup
 	go func() {
+		defer svc.wg.Done()
 		defer func() {
 			if r := recover(); r != nil {
 				svc.Errorf("[TaskHandler] goroutine monitoring panic: %v", r)
@@ -217,7 +375,7 @@ func (svc *Service) processFetchCycle() error {
 		return fmt.Errorf("no task available")
 	}
 
-	// run task
+	// run task - now using worker pool instead of unlimited goroutines
 	if err := svc.runTask(tid); err != nil {
 		// Handle task error
 		t, getErr := svc.GetTaskById(tid)
@@ -432,65 +590,64 @@ func (svc *Service) runTask(taskId primitive.ObjectID) (err error) {
 		return err
 	}
 
+	// Use worker pool for bounded task execution
+	return svc.workerPool.SubmitTask(taskId)
+}
+
+// executeTask is the actual task execution logic called by worker pool
+func (svc *Service) executeTask(taskId primitive.ObjectID) (err error) {
+	// attempt to get runner from pool
+	_, ok := svc.runners.Load(taskId)
+	if ok {
+		err = fmt.Errorf("task[%s] already exists", taskId.Hex())
+		svc.Errorf("execute task error: %v", err)
+		return err
+	}
+
 	// create a new task runner
 	r, err := newTaskRunner(taskId, svc)
 	if err != nil {
 		err = fmt.Errorf("failed to create task runner: %v", err)
-		svc.Errorf("run task error: %v", err)
+		svc.Errorf("execute task error: %v", err)
 		return err
 	}
 
 	// add runner to pool
 	svc.addRunner(taskId, r)
 
-	// create a goroutine to run task with proper cleanup
-	go func() {
-		defer func() {
-			if rec := recover(); rec != nil {
-				svc.Errorf("task[%s] panic recovered: %v", taskId.Hex(), rec)
-			}
-			// Always cleanup runner from pool
-			svc.deleteRunner(taskId)
-		}()
-
-		// Create task-specific context for better cancellation control
-		taskCtx, taskCancel := context.WithCancel(svc.ctx)
-		defer taskCancel()
-
-		// get subscription stream with retry logic
-		stopCh := make(chan struct{}, 1)
-		stream, err := svc.subscribeTaskWithRetry(taskCtx, r.GetTaskId(), 3)
-		if err == nil {
-			// create a goroutine to handle stream messages
-			go svc.handleStreamMessages(r.GetTaskId(), stream, stopCh)
-		} else {
-			svc.Errorf("failed to subscribe task[%s] after retries: %v", r.GetTaskId().Hex(), err)
-			svc.Warnf("task[%s] will not be able to receive stream messages", r.GetTaskId().Hex())
+	// Ensure cleanup always happens
+	defer func() {
+		if rec := recover(); rec != nil {
+			svc.Errorf("task[%s] panic recovered: %v", taskId.Hex(), rec)
 		}
-
-		// run task process (blocking) error or finish after task runner ends
-		if err := r.Run(); err != nil {
-			switch {
-			case errors.Is(err, constants.ErrTaskError):
-				svc.Errorf("task[%s] finished with error: %v", r.GetTaskId().Hex(), err)
-			case errors.Is(err, constants.ErrTaskCancelled):
-				svc.Infof("task[%s] cancelled", r.GetTaskId().Hex())
-			default:
-				svc.Errorf("task[%s] finished with unknown error: %v", r.GetTaskId().Hex(), err)
-			}
-		} else {
-			svc.Infof("task[%s] finished successfully", r.GetTaskId().Hex())
-		}
-
-		// send stopCh signal to stream message handler
-		select {
-		case stopCh <- struct{}{}:
-		default:
-			// Channel already closed or full
-		}
+		// Always cleanup runner from pool and stream
+		svc.deleteRunner(taskId)
+		svc.streamManager.RemoveTaskStream(taskId)
 	}()
 
-	return nil
+	// Add task to stream manager for cancellation support
+	if err := svc.streamManager.AddTaskStream(r.GetTaskId()); err != nil {
+		svc.Warnf("failed to add task[%s] to stream manager: %v", r.GetTaskId().Hex(), err)
+		svc.Warnf("task[%s] will not be able to receive cancellation messages", r.GetTaskId().Hex())
+	} else {
+		svc.Debugf("task[%s] added to stream manager for cancellation support", r.GetTaskId().Hex())
+	}
+
+	// run task process (blocking) error or finish after task runner ends
+	if err := r.Run(); err != nil {
+		switch {
+		case errors.Is(err, constants.ErrTaskError):
+			svc.Errorf("task[%s] finished with error: %v", r.GetTaskId().Hex(), err)
+		case errors.Is(err, constants.ErrTaskCancelled):
+			svc.Infof("task[%s] cancelled", r.GetTaskId().Hex())
+		default:
+			svc.Errorf("task[%s] finished with unknown error: %v", r.GetTaskId().Hex(), err)
+		}
+	} else {
+		svc.Infof("task[%s] finished successfully", r.GetTaskId().Hex())
+	}
+
+	return err
 }
 
 // subscribeTask attempts to subscribe to task stream
@@ -540,6 +697,77 @@ func (svc *Service) subscribeTaskWithRetry(ctx context.Context, taskId primitive
 	}
 
 	return nil, fmt.Errorf("failed to subscribe after %d retries: %w", maxRetries, err)
+}
+
+func (svc *Service) handleStreamMessagesSync(ctx context.Context, taskId primitive.ObjectID, stream grpc.TaskService_SubscribeClient) {
+	defer func() {
+		if r := recover(); r != nil {
+			svc.Errorf("handleStreamMessagesSync[%s] panic recovered: %v", taskId.Hex(), r)
+		}
+		// Ensure stream is properly closed
+		if stream != nil {
+			if err := stream.CloseSend(); err != nil {
+				svc.Debugf("task[%s] failed to close stream: %v", taskId.Hex(), err)
+			}
+		}
+	}()
+
+	svc.Debugf("task[%s] starting synchronous stream message handling", taskId.Hex())
+
+	for {
+		select {
+		case <-ctx.Done():
+			svc.Debugf("task[%s] stream handler stopped by context", taskId.Hex())
+			return
+		case <-svc.ctx.Done():
+			svc.Debugf("task[%s] stream handler stopped by service context", taskId.Hex())
+			return
+		default:
+			// Set a reasonable timeout for stream receive
+			recvCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+
+			// Create a done channel to handle the recv operation
+			done := make(chan struct {
+				msg *grpc.TaskServiceSubscribeResponse
+				err error
+			}, 1)
+
+			// Use a goroutine only for the blocking recv call, but ensure it's cleaned up
+			go func() {
+				defer cancel()
+				msg, err := stream.Recv()
+				select {
+				case done <- struct {
+					msg *grpc.TaskServiceSubscribeResponse
+					err error
+				}{msg, err}:
+				case <-recvCtx.Done():
+					// Timeout occurred, abandon this receive
+				}
+			}()
+
+			select {
+			case result := <-done:
+				cancel() // Clean up the context
+				if result.err != nil {
+					if errors.Is(result.err, io.EOF) {
+						svc.Infof("task[%s] received EOF, stream closed", taskId.Hex())
+						return
+					}
+					svc.Errorf("task[%s] stream error: %v", taskId.Hex(), result.err)
+					return
+				}
+				svc.processStreamMessage(taskId, result.msg)
+			case <-recvCtx.Done():
+				cancel()
+				// Timeout on receive - continue to next iteration
+				svc.Debugf("task[%s] stream receive timeout", taskId.Hex())
+			case <-ctx.Done():
+				cancel()
+				return
+			}
+		}
+	}
 }
 
 func (svc *Service) handleStreamMessages(taskId primitive.ObjectID, stream grpc.TaskService_SubscribeClient, stopCh chan struct{}) {
@@ -714,12 +942,26 @@ func (svc *Service) stopAllRunners() {
 		return true
 	})
 
-	// Cancel all runners with timeout
+	// Cancel all runners with bounded concurrency to prevent goroutine explosion
+	const maxConcurrentCancellations = 10
 	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, maxConcurrentCancellations)
+
 	for _, taskId := range runnerIds {
 		wg.Add(1)
+
+		// Acquire semaphore to limit concurrent cancellations
+		semaphore <- struct{}{}
+
 		go func(tid primitive.ObjectID) {
-			defer wg.Done()
+			defer func() {
+				<-semaphore // Release semaphore
+				wg.Done()
+				if r := recover(); r != nil {
+					svc.Errorf("stopAllRunners panic for task[%s]: %v", tid.Hex(), r)
+				}
+			}()
+
 			if err := svc.cancelTask(tid, false); err != nil {
 				svc.Errorf("failed to cancel task[%s]: %v", tid.Hex(), err)
 				// Force cancel after timeout
@@ -745,7 +987,15 @@ func (svc *Service) stopAllRunners() {
 }
 
 func (svc *Service) startStuckTaskCleanup() {
+	svc.wg.Add(1) // Track this goroutine in the WaitGroup
 	go func() {
+		defer svc.wg.Done() // Ensure WaitGroup is decremented
+		defer func() {
+			if r := recover(); r != nil {
+				svc.Errorf("startStuckTaskCleanup panic recovered: %v", r)
+			}
+		}()
+
 		ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
 		defer ticker.Stop()
 
@@ -817,6 +1067,222 @@ func (svc *Service) checkAndCleanupStuckTasks() {
 	}
 }
 
+func NewStreamManager(service *Service) *StreamManager {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &StreamManager{
+		ctx:          ctx,
+		cancel:       cancel,
+		service:      service,
+		messageQueue: make(chan *StreamMessage, 100), // Buffered channel for messages
+		maxStreams:   50,                             // Limit concurrent streams
+	}
+}
+
+func (sm *StreamManager) Start() {
+	sm.wg.Add(2)
+	go sm.messageProcessor()
+	go sm.streamCleaner()
+}
+
+func (sm *StreamManager) Stop() {
+	sm.cancel()
+	close(sm.messageQueue)
+
+	// Close all active streams
+	sm.streams.Range(func(key, value interface{}) bool {
+		if ts, ok := value.(*TaskStream); ok {
+			ts.Close()
+		}
+		return true
+	})
+
+	sm.wg.Wait()
+}
+
+func (sm *StreamManager) AddTaskStream(taskId primitive.ObjectID) error {
+	// Check if we're at the stream limit
+	streamCount := 0
+	sm.streams.Range(func(key, value interface{}) bool {
+		streamCount++
+		return true
+	})
+
+	if streamCount >= sm.maxStreams {
+		return fmt.Errorf("stream limit reached (%d)", sm.maxStreams)
+	}
+
+	// Create new stream
+	stream, err := sm.service.subscribeTask(taskId)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to task stream: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(sm.ctx)
+	taskStream := &TaskStream{
+		taskId:     taskId,
+		stream:     stream,
+		ctx:        ctx,
+		cancel:     cancel,
+		lastActive: time.Now(),
+	}
+
+	sm.streams.Store(taskId, taskStream)
+
+	// Start listening for messages in a single goroutine per stream
+	sm.wg.Add(1)
+	go sm.streamListener(taskStream)
+
+	return nil
+}
+
+func (sm *StreamManager) RemoveTaskStream(taskId primitive.ObjectID) {
+	if value, ok := sm.streams.LoadAndDelete(taskId); ok {
+		if ts, ok := value.(*TaskStream); ok {
+			ts.Close()
+		}
+	}
+}
+
+func (sm *StreamManager) streamListener(ts *TaskStream) {
+	defer sm.wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			sm.service.Errorf("stream listener panic for task[%s]: %v", ts.taskId.Hex(), r)
+		}
+		ts.Close()
+		sm.streams.Delete(ts.taskId)
+	}()
+
+	sm.service.Debugf("stream listener started for task[%s]", ts.taskId.Hex())
+
+	for {
+		select {
+		case <-ts.ctx.Done():
+			sm.service.Debugf("stream listener stopped for task[%s]", ts.taskId.Hex())
+			return
+		case <-sm.ctx.Done():
+			return
+		default:
+			msg, err := ts.stream.Recv()
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					sm.service.Debugf("stream EOF for task[%s]", ts.taskId.Hex())
+					return
+				}
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+					return
+				}
+				sm.service.Errorf("stream error for task[%s]: %v", ts.taskId.Hex(), err)
+				return
+			}
+
+			// Update last active time
+			ts.mu.Lock()
+			ts.lastActive = time.Now()
+			ts.mu.Unlock()
+
+			// Send message to processor
+			select {
+			case sm.messageQueue <- &StreamMessage{
+				taskId: ts.taskId,
+				msg:    msg,
+				err:    nil,
+			}:
+			case <-ts.ctx.Done():
+				return
+			case <-sm.ctx.Done():
+				return
+			default:
+				sm.service.Warnf("message queue full, dropping message for task[%s]", ts.taskId.Hex())
+			}
+		}
+	}
+}
+
+func (sm *StreamManager) messageProcessor() {
+	defer sm.wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			sm.service.Errorf("message processor panic: %v", r)
+		}
+	}()
+
+	sm.service.Debugf("stream message processor started")
+
+	for {
+		select {
+		case <-sm.ctx.Done():
+			sm.service.Debugf("stream message processor shutting down")
+			return
+		case msg, ok := <-sm.messageQueue:
+			if !ok {
+				return
+			}
+			sm.processMessage(msg)
+		}
+	}
+}
+
+func (sm *StreamManager) processMessage(streamMsg *StreamMessage) {
+	if streamMsg.err != nil {
+		sm.service.Errorf("stream message error for task[%s]: %v", streamMsg.taskId.Hex(), streamMsg.err)
+		return
+	}
+
+	// Process the actual message
+	sm.service.processStreamMessage(streamMsg.taskId, streamMsg.msg)
+}
+
+func (sm *StreamManager) streamCleaner() {
+	defer sm.wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			sm.service.Errorf("stream cleaner panic: %v", r)
+		}
+	}()
+
+	ticker := time.NewTicker(2 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-sm.ctx.Done():
+			return
+		case <-ticker.C:
+			sm.cleanupInactiveStreams()
+		}
+	}
+}
+
+func (sm *StreamManager) cleanupInactiveStreams() {
+	now := time.Now()
+	inactiveThreshold := 10 * time.Minute
+
+	sm.streams.Range(func(key, value interface{}) bool {
+		taskId := key.(primitive.ObjectID)
+		ts := value.(*TaskStream)
+
+		ts.mu.RLock()
+		lastActive := ts.lastActive
+		ts.mu.RUnlock()
+
+		if now.Sub(lastActive) > inactiveThreshold {
+			sm.service.Debugf("cleaning up inactive stream for task[%s]", taskId.Hex())
+			sm.RemoveTaskStream(taskId)
+		}
+
+		return true
+	})
+}
+
+func (ts *TaskStream) Close() {
+	ts.cancel()
+	if ts.stream != nil {
+		_ = ts.stream.CloseSend()
+	}
+}
+
 func newTaskHandlerService() *Service {
 	// service
 	svc := &Service{
@@ -824,6 +1290,7 @@ func newTaskHandlerService() *Service {
 		fetchTimeout:   15 * time.Second,
 		reportInterval: 5 * time.Second,
 		cancelTimeout:  60 * time.Second,
+		maxWorkers:     utils.GetTaskWorkers(), // Use configurable worker count
 		mu:             sync.RWMutex{},
 		runners:        sync.Map{},
 		Logger:         utils.NewLogger("TaskHandlerService"),
@@ -834,6 +1301,9 @@ func newTaskHandlerService() *Service {
 
 	// grpc client
 	svc.c = grpcclient.GetGrpcClient()
+
+	// initialize stream manager
+	svc.streamManager = NewStreamManager(svc)
 
 	return svc
 }

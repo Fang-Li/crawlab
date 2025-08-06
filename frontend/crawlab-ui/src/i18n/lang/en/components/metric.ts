@@ -37,6 +37,7 @@ const metric: LComponentsMetric = {
     y: 'yr',
   },
   timeRanges: {
+    '15m': 'Past 15 Minutes',
     '1h': 'Past 1 Hour',
     '24h': 'Past 24 Hours',
     '7d': 'Past 7 Days',

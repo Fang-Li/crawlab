@@ -28,7 +28,8 @@ const (
 	DefaultApiAllowHeaders     = "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
 	DefaultApiPort             = 8080
 	DefaultApiPath             = "/api"
-	DefaultNodeMaxRunners      = 0 // 0 means no limit
+	DefaultNodeMaxRunners      = 0  // 0 means no limit
+	DefaultTaskWorkers         = 30 // Default number of task workers
 	DefaultInstallRoot         = "/app/install"
 	DefaultInstallEnvs         = ""
 	MetadataConfigDirName      = ".crawlab"
@@ -239,6 +240,13 @@ func GetNodeMaxRunners() int {
 		return res
 	}
 	return DefaultNodeMaxRunners
+}
+
+func GetTaskWorkers() int {
+	if res := viper.GetInt("task.workers"); res != 0 {
+		return res
+	}
+	return DefaultTaskWorkers
 }
 
 func GetMetadataConfigPath() string {

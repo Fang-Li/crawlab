@@ -37,6 +37,7 @@ const metric: LComponentsMetric = {
     y: '年',
   },
   timeRanges: {
+    '15m': '过去 15 分钟',
     '1h': '过去 1 小时',
     '24h': '过去 24 小时',
     '7d': '过去 7 天',
