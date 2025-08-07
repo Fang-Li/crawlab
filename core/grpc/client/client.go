@@ -230,8 +230,11 @@ func (c *GrpcClient) Context() (ctx context.Context, cancel context.CancelFunc) 
 }
 
 func (c *GrpcClient) IsReady() (res bool) {
+	if c.conn == nil {
+		return false
+	}
 	state := c.conn.GetState()
-	return c.conn != nil && state == connectivity.Ready
+	return state == connectivity.Ready
 }
 
 func (c *GrpcClient) IsReadyAndRegistered() (res bool) {
@@ -602,8 +605,12 @@ func (c *GrpcClient) getClientWithContext(ctx context.Context, getter func() int
 }
 
 func (c *GrpcClient) connect() error {
-	// Use a separate goroutine for reconnection handling
-	go c.handleReconnections()
+	// Start reconnection handling goroutine with proper tracking
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		c.handleReconnections()
+	}()
 
 	// Initial connection attempt
 	return c.doConnect()

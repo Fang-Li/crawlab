@@ -162,13 +162,29 @@ func (sm *StreamManager) streamListener(ts *TaskStream) {
 				err error
 			}, 1)
 
-			// Start receive operation in a separate goroutine
+			// Start receive operation in a separate goroutine with proper cleanup
 			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						sm.service.Errorf("stream recv goroutine panic for task[%s]: %v", ts.taskId.Hex(), r)
+					}
+				}()
+				
 				msg, err := ts.stream.Recv()
-				resultChan <- struct {
+				
+				// Use select to ensure we don't block if the main goroutine has exited
+				select {
+				case resultChan <- struct {
 					msg *grpc.TaskServiceSubscribeResponse
 					err error
-				}{msg, err}
+				}{msg, err}:
+				case <-ts.ctx.Done():
+					// Parent context cancelled, just return without sending
+					return
+				case <-sm.ctx.Done():
+					// Manager context cancelled, just return without sending  
+					return
+				}
 			}()
 
 			// Wait for result, timeout, or cancellation
