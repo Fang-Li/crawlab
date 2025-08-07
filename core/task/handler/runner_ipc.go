@@ -145,8 +145,8 @@ func (r *Runner) handleIPCInsertDataMessage(ipcMsg entity.IPCMessage) {
 		return
 	}
 
-	// Send IPC message to master with context and timeout
-	ctx, cancel := context.WithTimeout(context.Background(), r.ipcTimeout)
+	// Send IPC message to master with context and timeout - use runner's context
+	ctx, cancel := context.WithTimeout(r.ctx, r.ipcTimeout)
 	defer cancel()
 
 	// Create gRPC message

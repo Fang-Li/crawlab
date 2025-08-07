@@ -72,8 +72,8 @@ func newTaskRunner(id primitive.ObjectID, svc *Service) (r *Runner, err error) {
 		}
 	}
 
-	// Initialize context and done channel
-	r.ctx, r.cancel = context.WithCancel(context.Background())
+	// Initialize context and done channel - use service context for proper cancellation chain
+	r.ctx, r.cancel = context.WithCancel(svc.ctx)
 	r.done = make(chan struct{})
 
 	// initialize task runner
@@ -297,7 +297,7 @@ func (r *Runner) Cancel(force bool) (err error) {
 			force = true
 		} else {
 			// Wait for graceful termination with shorter timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, cancel := context.WithTimeout(r.ctx, 15*time.Second)
 			defer cancel()
 
 			ticker := time.NewTicker(500 * time.Millisecond)
@@ -329,7 +329,7 @@ forceKill:
 	}
 
 	// Wait for process to be killed with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), r.svc.GetCancelTimeout())
+	ctx, cancel := context.WithTimeout(r.ctx, r.svc.GetCancelTimeout())
 	defer cancel()
 
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -731,11 +731,17 @@ func (r *Runner) sendNotification() {
 		r.Errorf("failed to get task client: %v", err)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.ctx, 10*time.Second)
+	
+	// Use independent context for async notification - prevents cancellation due to task lifecycle
+	// This ensures notifications are sent even if the task runner is being cleaned up
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	
 	_, err = taskClient.SendNotification(ctx, req)
 	if err != nil {
-		r.Errorf("error sending notification: %v", err)
+		if !errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			r.Errorf("error sending notification: %v", err)
+		}
 		return
 	}
 }

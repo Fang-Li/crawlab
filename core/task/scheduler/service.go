@@ -172,8 +172,8 @@ func (svc *Service) cancelOnWorker(t *models.Task, by primitive.ObjectID, force 
 		return svc.SaveTask(t, by)
 	}
 
-	// send cancel request with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// send cancel request with timeout - use service context
+	ctx, cancel := context.WithTimeout(svc.ctx, 30*time.Second)
 	defer cancel()
 
 	// Create a channel to handle the send operation

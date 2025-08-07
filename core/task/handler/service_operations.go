@@ -58,7 +58,7 @@ func (svc *Service) executeTask(taskId primitive.ObjectID) (err error) {
 	// add runner to pool
 	svc.addRunner(taskId, r)
 
-	// Ensure cleanup always happens
+	// Ensure cleanup always happens - CRITICAL for preventing goroutine leaks
 	defer func() {
 		if rec := recover(); rec != nil {
 			svc.Errorf("task[%s] panic recovered: %v", taskId.Hex(), rec)
@@ -163,8 +163,8 @@ func (svc *Service) cancelTask(taskId primitive.ObjectID, force bool) (err error
 		return nil
 	}
 
-	// Attempt cancellation with timeout
-	cancelCtx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
+	// Attempt cancellation with timeout - use service context
+	cancelCtx, cancelFunc := context.WithTimeout(svc.ctx, 30*time.Second)
 	defer cancelFunc()
 
 	cancelDone := make(chan error, 1)

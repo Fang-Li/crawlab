@@ -23,27 +23,40 @@ func (r *Runner) configurePythonPath() {
 	pyenvBinPath := pyenvRoot + "/bin"
 
 	// Configure global pyenv path
-	_ = os.Setenv("PYENV_ROOT", pyenvRoot)
-	_ = os.Setenv("PATH", pyenvShimsPath+":"+os.Getenv("PATH"))
-	_ = os.Setenv("PATH", pyenvBinPath+":"+os.Getenv("PATH"))
+	r.cmd.Env = append(r.cmd.Env, "PYENV_ROOT="+pyenvRoot)
+
+	// Update PATH with pyenv paths
+	currentPath := r.getEnvFromCmd("PATH")
+	if currentPath == "" {
+		currentPath = os.Getenv("PATH")
+	}
+	newPath := pyenvBinPath + ":" + pyenvShimsPath + ":" + currentPath
+	r.setEnvInCmd("PATH", newPath)
 }
 
 // configureNodePath sets up the Node.js environment paths, handling both nvm and default installations
 func (r *Runner) configureNodePath() {
 	// Configure nvm-based Node.js paths
-	envPath := os.Getenv("PATH")
+	currentPath := r.getEnvFromCmd("PATH")
+	if currentPath == "" {
+		currentPath = os.Getenv("PATH")
+	}
 
 	// Configure global node_modules path
 	nodePath := utils.GetNodeModulesPath()
-	if !strings.Contains(envPath, nodePath) {
-		_ = os.Setenv("PATH", nodePath+":"+envPath)
+	if !strings.Contains(currentPath, nodePath) {
+		currentPath = nodePath + ":" + currentPath
+		r.setEnvInCmd("PATH", currentPath)
 	}
-	_ = os.Setenv("NODE_PATH", nodePath)
+	r.cmd.Env = append(r.cmd.Env, "NODE_PATH="+nodePath)
 
 	// Configure global node_bin path
 	nodeBinPath := utils.GetNodeBinPath()
-	if !strings.Contains(envPath, nodeBinPath) {
-		_ = os.Setenv("PATH", nodeBinPath+":"+os.Getenv("PATH"))
+	// Get the updated PATH after the node_modules path was added
+	updatedPath := r.getEnvFromCmd("PATH")
+	if !strings.Contains(updatedPath, nodeBinPath) {
+		newPath := nodeBinPath + ":" + updatedPath
+		r.setEnvInCmd("PATH", newPath)
 	}
 }
 
@@ -51,7 +64,7 @@ func (r *Runner) configureGoPath() {
 	// Configure global go path
 	goPath := utils.GetGoPath()
 	if goPath != "" {
-		_ = os.Setenv("GOPATH", goPath)
+		r.cmd.Env = append(r.cmd.Env, "GOPATH="+goPath)
 	}
 }
 
@@ -60,6 +73,9 @@ func (r *Runner) configureGoPath() {
 // - Crawlab-specific variables
 // - Global environment variables from the system
 func (r *Runner) configureEnv() {
+	// Default envs - initialize first so configuration functions can modify them
+	r.cmd.Env = os.Environ()
+
 	// Configure Python path
 	r.configurePythonPath()
 
@@ -68,9 +84,6 @@ func (r *Runner) configureEnv() {
 
 	// Configure Go path
 	r.configureGoPath()
-
-	// Default envs
-	r.cmd.Env = os.Environ()
 
 	// Remove CRAWLAB_ prefixed environment variables
 	for i := 0; i < len(r.cmd.Env); i++ {
@@ -176,4 +189,32 @@ func (r *Runner) configureCmd() (err error) {
 	r.ipcChan = make(chan entity.IPCMessage)
 
 	return nil
+}
+
+// getEnvFromCmd retrieves an environment variable value from r.cmd.Env
+func (r *Runner) getEnvFromCmd(key string) string {
+	prefix := key + "="
+	for _, env := range r.cmd.Env {
+		if after, ok := strings.CutPrefix(env, prefix); ok {
+			return after
+		}
+	}
+	return ""
+}
+
+// setEnvInCmd sets or updates an environment variable in r.cmd.Env
+func (r *Runner) setEnvInCmd(key, value string) {
+	envVar := key + "=" + value
+	prefix := key + "="
+
+	// Check if the environment variable already exists and update it
+	for i, env := range r.cmd.Env {
+		if strings.HasPrefix(env, prefix) {
+			r.cmd.Env[i] = envVar
+			return
+		}
+	}
+
+	// If not found, append it
+	r.cmd.Env = append(r.cmd.Env, envVar)
 }

@@ -41,7 +41,8 @@ type StreamMessage struct {
 }
 
 func NewStreamManager(service *Service) *StreamManager {
-	ctx, cancel := context.WithCancel(context.Background())
+	// Use service context for proper cancellation chain
+	ctx, cancel := context.WithCancel(service.ctx)
 	return &StreamManager{
 		ctx:          ctx,
 		cancel:       cancel,

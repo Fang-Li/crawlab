@@ -24,7 +24,8 @@ type TaskWorkerPool struct {
 }
 
 func NewTaskWorkerPool(workers int, service *Service) *TaskWorkerPool {
-	ctx, cancel := context.WithCancel(context.Background())
+	// Use service context for proper cancellation chain
+	ctx, cancel := context.WithCancel(service.ctx)
 	// Use a more generous queue size to handle task bursts
 	// Queue size is workers * 5 to allow for better buffering
 	queueSize := workers * 5

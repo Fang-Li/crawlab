@@ -376,6 +376,10 @@ func (svc *Service) updateNodeStatus() (err error) {
 	// set available runners
 	n.CurrentRunners = svc.getRunnerCount()
 
+	// Log goroutine count for leak monitoring 
+	currentGoroutines := runtime.NumGoroutine()
+	svc.Debugf("Node status update - runners: %d, goroutines: %d", n.CurrentRunners, currentGoroutines)
+
 	// save node
 	n.SetUpdated(n.CreatedBy)
 	if svc.cfgSvc.IsMaster() {
@@ -391,7 +395,8 @@ func (svc *Service) updateNodeStatus() (err error) {
 }
 
 func (svc *Service) fetchTask() (tid primitive.ObjectID, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), svc.fetchTimeout)
+	// Use service context with timeout for fetch operation
+	ctx, cancel := context.WithTimeout(svc.ctx, svc.fetchTimeout)
 	defer cancel()
 	taskClient, err := svc.c.GetTaskClient()
 	if err != nil {
