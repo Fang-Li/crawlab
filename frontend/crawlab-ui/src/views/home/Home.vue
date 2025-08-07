@@ -320,52 +320,42 @@ defineOptions({ name: 'ClHome' });
 <template>
   <el-scrollbar>
     <div class="home">
-      <el-row class="row-overview-metrics">
-        <el-col
-          v-for="(m, i) in metrics"
-          :key="i"
-          :span="24 / Math.min(metrics.length, 4)"
-        >
-          <cl-metric
-            :icon="m.icon"
-            :title="m.name"
-            :value="m.value"
-            :clickable="!!m.path"
-            :color="getColor(m)"
-            @click="onMetricClick(m)"
-          />
-        </el-col>
-      </el-row>
-      <el-row class="row-line-chart">
+      <div class="row-overview-metrics">
+        <cl-metric
+          v-for="m in metrics"
+          :icon="m.icon"
+          :title="m.name"
+          :value="m.value"
+          :clickable="!!m.path"
+          :color="getColor(m)"
+          @click="onMetricClick(m)"
+        />
+      </div>
+
+      <div class="row-line-chart">
         <cl-chart
           type="line"
           :data="dailyChartData"
           :options="dailyChartOptions"
         />
-      </el-row>
-      <el-row class="row-pie-chart">
-        <el-col :span="8">
-          <cl-chart
-            type="pie"
-            :data="tasksByStatusChartData"
-            :options="tasksByStatusChartOptions"
-          />
-        </el-col>
-        <el-col :span="8">
-          <cl-chart
-            type="pie"
-            :data="tasksByNodeChartData"
-            :options="tasksByNodeChartOptions"
-          />
-        </el-col>
-        <el-col :span="8">
-          <cl-chart
-            type="pie"
-            :data="tasksBySpiderChartData"
-            :options="tasksBySpiderChartOptions"
-          />
-        </el-col>
-      </el-row>
+      </div>
+      <div class="row-pie-chart">
+        <cl-chart
+          type="pie"
+          :data="tasksByStatusChartData"
+          :options="tasksByStatusChartOptions"
+        />
+        <cl-chart
+          type="pie"
+          :data="tasksByNodeChartData"
+          :options="tasksByNodeChartOptions"
+        />
+        <cl-chart
+          type="pie"
+          :data="tasksBySpiderChartData"
+          :options="tasksBySpiderChartOptions"
+        />
+      </div>
     </div>
   </el-scrollbar>
 </template>
@@ -373,23 +363,45 @@ defineOptions({ name: 'ClHome' });
 <style scoped>
 .home {
   background: white;
-  min-height: calc(
-    100vh - var(--cl-header-height) - var(--cl-tabs-view-height)
-  );
   padding: 20px;
 
   .row-overview-metrics {
-    display: flex;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
+    display: grid;
+    margin-bottom: 12px;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (min-width: 1280px) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   .row-line-chart {
     height: 400px;
+    margin-bottom: 12px;
   }
 
   .row-pie-chart {
-    height: 400px;
+    display: grid;
+    margin-bottom: 12px;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 1280px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 }
 </style>

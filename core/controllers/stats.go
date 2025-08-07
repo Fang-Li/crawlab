@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"errors"
+	"time"
+
 	"github.com/crawlab-team/crawlab/core/models/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 
 	"github.com/crawlab-team/crawlab/core/constants"
 	"github.com/crawlab-team/crawlab/core/entity"
@@ -189,20 +190,20 @@ type GetStatsTaskResponse struct {
 }
 
 type GetStatsTaskResponseByStatusItem struct {
-	Status string `json:"status"`
-	Tasks  int    `json:"tasks"`
+	Status string `json:"status" bson:"status"`
+	Tasks  int    `json:"tasks" bson:"tasks"`
 }
 type GetStatsTaskResponseByNodeItem struct {
-	NodeId   primitive.ObjectID `json:"node_id"`
-	Node     models.Node        `json:"node"`
-	NodeName string             `json:"node_name"`
-	Tasks    int                `json:"tasks"`
+	NodeId   primitive.ObjectID `json:"node_id" bson:"node_id"`
+	Node     models.Node        `json:"node" bson:"node"`
+	NodeName string             `json:"node_name" bson:"node_name"`
+	Tasks    int                `json:"tasks" bson:"tasks"`
 }
 type GetStatsTaskResponseBySpiderItem struct {
-	SpiderId   primitive.ObjectID `json:"spider_id"`
-	Spider     models.Spider      `json:"spider"`
-	SpiderName string             `json:"spider_name"`
-	Tasks      int                `json:"tasks"`
+	SpiderId   primitive.ObjectID `json:"spider_id" bson:"spider_id"`
+	Spider     models.Spider      `json:"spider" bson:"spider"`
+	SpiderName string             `json:"spider_name" bson:"spider_name"`
+	Tasks      int                `json:"tasks" bson:"tasks"`
 }
 
 func GetStatsTasks(_ *gin.Context, params *GetStatsTasksParams) (response *Response[GetStatsTaskResponse], err error) {
@@ -280,7 +281,7 @@ func getTaskStatsByNode(query bson.M) (data []GetStatsTaskResponseByNodeItem, er
 		{{
 			"$project",
 			bson.M{
-				"node_id":   "$node_id",
+				"node_id":   "$_id",
 				"node":      bson.M{"$arrayElemAt": bson.A{"$_n", 0}},
 				"node_name": bson.M{"$arrayElemAt": bson.A{"$_n.name", 0}},
 				"tasks":     "$tasks",
@@ -315,7 +316,7 @@ func getTaskStatsBySpider(query bson.M) (data []GetStatsTaskResponseBySpiderItem
 		{{
 			"$project",
 			bson.M{
-				"spider_id":   "$spider_id",
+				"spider_id":   "$_id",
 				"spider":      bson.M{"$arrayElemAt": bson.A{"$_s", 0}},
 				"spider_name": bson.M{"$arrayElemAt": bson.A{"$_s.name", 0}},
 				"tasks":       "$tasks",
