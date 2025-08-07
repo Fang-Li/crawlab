@@ -54,9 +54,6 @@ type Service struct {
 }
 
 func (svc *Service) Start() {
-	// Initialize context for graceful shutdown
-	svc.ctx, svc.cancel = context.WithCancel(context.Background())
-
 	// wait for grpc client ready
 	grpcclient.GetGrpcClient().WaitForReady()
 
@@ -376,7 +373,7 @@ func (svc *Service) updateNodeStatus() (err error) {
 	// set available runners
 	n.CurrentRunners = svc.getRunnerCount()
 
-	// Log goroutine count for leak monitoring 
+	// Log goroutine count for leak monitoring
 	currentGoroutines := runtime.NumGoroutine()
 	svc.Debugf("Node status update - runners: %d, goroutines: %d", n.CurrentRunners, currentGoroutines)
 
@@ -509,6 +506,9 @@ func newTaskHandlerService() *Service {
 		runners:        sync.Map{},
 		Logger:         utils.NewLogger("TaskHandlerService"),
 	}
+
+	// Initialize context for graceful shutdown
+	svc.ctx, svc.cancel = context.WithCancel(context.Background())
 
 	// dependency injection
 	svc.cfgSvc = nodeconfig.GetNodeConfigService()
