@@ -34,6 +34,7 @@ type MasterService struct {
 	taskHandlerSvc   *handler.Service
 	scheduleSvc      *schedule.Service
 	systemSvc        *system.Service
+	healthSvc        *HealthService
 
 	// settings
 	monitorInterval time.Duration
@@ -50,6 +51,18 @@ func (svc *MasterService) Start() {
 	if err := svc.Register(); err != nil {
 		panic(err)
 	}
+
+	// start health service
+	go svc.healthSvc.Start(func() bool {
+		// Master-specific health check: verify gRPC server and core services are running
+		return svc.server != nil && 
+			svc.taskSchedulerSvc != nil && 
+			svc.taskHandlerSvc != nil && 
+			svc.scheduleSvc != nil
+	})
+
+	// mark as ready after registration
+	svc.healthSvc.SetReady(true)
 
 	// create indexes
 	go common.InitIndexes()
@@ -80,6 +93,9 @@ func (svc *MasterService) Wait() {
 func (svc *MasterService) Stop() {
 	_ = svc.server.Stop()
 	svc.taskHandlerSvc.Stop()
+	if svc.healthSvc != nil {
+		svc.healthSvc.Stop()
+	}
 	svc.Infof("master[%s] service has stopped", svc.cfgSvc.GetNodeKey())
 }
 
@@ -304,6 +320,7 @@ func newMasterService() *MasterService {
 		taskHandlerSvc:   handler.GetTaskHandlerService(),
 		scheduleSvc:      schedule.GetScheduleService(),
 		systemSvc:        system.GetSystemService(),
+		healthSvc:        GetHealthService(),
 		Logger:           utils.NewLogger("MasterService"),
 	}
 }
