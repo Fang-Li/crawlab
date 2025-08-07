@@ -162,7 +162,10 @@ func (svc *WorkerService) subscribe() {
 				svc.Errorf("failed to get node client: %v", err)
 				return err
 			}
-			stream, err := nodeClient.Subscribe(context.Background(), &grpc.NodeServiceSubscribeRequest{
+			// Use client context for proper cancellation
+			ctx, cancel := client.GetGrpcClient().Context()
+			defer cancel()
+			stream, err := nodeClient.Subscribe(ctx, &grpc.NodeServiceSubscribeRequest{
 				NodeKey: svc.cfgSvc.GetNodeKey(),
 			})
 			if err != nil {

@@ -370,7 +370,7 @@ func (svr TaskServiceServer) GetSubscribeStream(taskId primitive.ObjectID) (stre
 }
 
 // cleanupStaleStreams periodically checks for and removes stale streams
-func (svr *TaskServiceServer) cleanupStaleStreams() {
+func (svr TaskServiceServer) cleanupStaleStreams() {
 	ticker := time.NewTicker(10 * time.Minute) // Check every 10 minutes
 	defer ticker.Stop()
 
@@ -386,7 +386,7 @@ func (svr *TaskServiceServer) cleanupStaleStreams() {
 }
 
 // performStreamCleanup checks each stream and removes those that are no longer active
-func (svr *TaskServiceServer) performStreamCleanup() {
+func (svr TaskServiceServer) performStreamCleanup() {
 	taskServiceMutex.Lock()
 	defer taskServiceMutex.Unlock()
 
@@ -462,7 +462,7 @@ func newTaskServiceServer() *TaskServiceServer {
 }
 
 // Stop gracefully shuts down the task service server
-func (svr *TaskServiceServer) Stop() error {
+func (svr TaskServiceServer) Stop() error {
 	svr.Infof("stopping task service server...")
 
 	// Cancel cleanup routine

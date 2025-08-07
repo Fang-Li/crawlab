@@ -123,6 +123,7 @@ type Runner struct {
 	cancel context.CancelFunc // function to cancel the context
 	done   chan struct{}      // channel to signal completion
 	wg     sync.WaitGroup     // wait group for goroutine synchronization
+
 	// connection management for robust task execution
 	connMutex         sync.RWMutex  // mutex for connection access
 	connHealthTicker  *time.Ticker  // ticker for connection health checks
@@ -533,7 +534,7 @@ func (r *Runner) initConnection() (err error) {
 		r.Errorf("failed to get task client: %v", err)
 		return err
 	}
-	r.conn, err = taskClient.Connect(context.Background())
+	r.conn, err = taskClient.Connect(r.ctx)
 	if err != nil {
 		r.Errorf("error connecting to task service: %v", err)
 		return err
@@ -657,7 +658,7 @@ func (r *Runner) reconnectWithRetry() error {
 			r.Warnf("reconnection attempt %d failed to get task client: %v", attempt+1, err)
 			continue
 		}
-		conn, err := taskClient.Connect(context.Background())
+		conn, err := taskClient.Connect(r.ctx)
 		if err != nil {
 			r.Warnf("reconnection attempt %d failed: %v", attempt+1, err)
 			continue
@@ -730,7 +731,9 @@ func (r *Runner) sendNotification() {
 		r.Errorf("failed to get task client: %v", err)
 		return
 	}
-	_, err = taskClient.SendNotification(context.Background(), req)
+	ctx, cancel := context.WithTimeout(r.ctx, 10*time.Second)
+	defer cancel()
+	_, err = taskClient.SendNotification(ctx, req)
 	if err != nil {
 		r.Errorf("error sending notification: %v", err)
 		return
