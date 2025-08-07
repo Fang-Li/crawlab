@@ -61,7 +61,10 @@ func (svc *Service) Start() {
 	svc.fetchTicker = time.NewTicker(svc.fetchInterval)
 	svc.reportTicker = time.NewTicker(svc.reportInterval)
 
-	// Initialize and start worker pool
+	// Get max workers from current node configuration
+	svc.maxWorkers = svc.getCurrentNodeMaxRunners()
+
+	// Initialize and start worker pool with dynamic max workers
 	svc.workerPool = NewTaskWorkerPool(svc.maxWorkers, svc)
 	svc.workerPool.Start()
 
@@ -77,7 +80,11 @@ func (svc *Service) Start() {
 	go svc.fetchAndRunTasks()
 
 	queueSize := cap(svc.workerPool.taskQueue)
-	svc.Infof("Task handler service started with %d workers and queue size %d", svc.maxWorkers, queueSize)
+	if svc.maxWorkers == -1 {
+		svc.Infof("Task handler service started with unlimited workers (from node config) and queue size %d", queueSize)
+	} else {
+		svc.Infof("Task handler service started with %d max workers (from node config) and queue size %d", svc.maxWorkers, queueSize)
+	}
 
 	// Start the stuck task cleanup routine (adds to WaitGroup internally)
 	svc.startStuckTaskCleanup()
@@ -277,6 +284,27 @@ func (svc *Service) GetNodeConfigService() (cfgSvc interfaces.NodeConfigService)
 	return svc.cfgSvc
 }
 
+func (svc *Service) getCurrentNodeMaxRunners() int {
+	n, err := svc.GetCurrentNode()
+	if err != nil {
+		svc.Errorf("failed to get current node for max runners: %v", err)
+		// Fallback to config default
+		return utils.GetNodeMaxRunners()
+	}
+
+	// If MaxRunners is 0, it means unlimited workers
+	if n.MaxRunners == 0 {
+		return -1 // Use -1 internally to represent unlimited
+	}
+
+	// If MaxRunners is negative (not set), use config default
+	if n.MaxRunners < 0 {
+		return utils.GetNodeMaxRunners()
+	}
+
+	return n.MaxRunners
+}
+
 func (svc *Service) GetCurrentNode() (n *models.Node, err error) {
 	// node key
 	nodeKey := svc.cfgSvc.GetNodeKey()
@@ -368,6 +396,29 @@ func (svc *Service) updateNodeStatus() (err error) {
 	n, err := svc.GetCurrentNode()
 	if err != nil {
 		return err
+	}
+
+	// Check if max runners configuration has changed and update worker pool
+	currentMaxWorkers := n.MaxRunners
+	// Handle unlimited workers (0 means unlimited)
+	if currentMaxWorkers == 0 {
+		currentMaxWorkers = -1 // Use -1 internally to represent unlimited
+	} else if currentMaxWorkers < 0 {
+		currentMaxWorkers = utils.GetNodeMaxRunners() // Use config default if not set (negative)
+	}
+
+	if currentMaxWorkers != svc.maxWorkers {
+		if currentMaxWorkers == -1 {
+			svc.Infof("Node max runners changed from %d to unlimited, updating worker pool", svc.maxWorkers)
+		} else if svc.maxWorkers == -1 {
+			svc.Infof("Node max runners changed from unlimited to %d, updating worker pool", currentMaxWorkers)
+		} else {
+			svc.Infof("Node max runners changed from %d to %d, updating worker pool", svc.maxWorkers, currentMaxWorkers)
+		}
+		svc.maxWorkers = currentMaxWorkers
+		if svc.workerPool != nil {
+			svc.workerPool.UpdateMaxWorkers(currentMaxWorkers)
+		}
 	}
 
 	// set available runners
@@ -501,7 +552,7 @@ func newTaskHandlerService() *Service {
 		fetchTimeout:   15 * time.Second,
 		reportInterval: 5 * time.Second,
 		cancelTimeout:  60 * time.Second,
-		maxWorkers:     utils.GetTaskWorkers(), // Use configurable worker count
+		maxWorkers:     utils.GetNodeMaxRunners(),
 		mu:             sync.RWMutex{},
 		runners:        sync.Map{},
 		Logger:         utils.NewLogger("TaskHandlerService"),

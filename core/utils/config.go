@@ -28,8 +28,8 @@ const (
 	DefaultApiAllowHeaders     = "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
 	DefaultApiPort             = 8080
 	DefaultApiPath             = "/api"
-	DefaultNodeMaxRunners      = 0  // 0 means no limit
-	DefaultTaskWorkers         = 30 // Default number of task workers
+	DefaultNodeMaxRunners      = 20  // Default max concurrent task runners per node
+	DefaultTaskQueueSize       = 100 // Default task queue size per node
 	DefaultInstallRoot         = "/app/install"
 	DefaultInstallEnvs         = ""
 	MetadataConfigDirName      = ".crawlab"
@@ -242,11 +242,11 @@ func GetNodeMaxRunners() int {
 	return DefaultNodeMaxRunners
 }
 
-func GetTaskWorkers() int {
-	if res := viper.GetInt("task.workers"); res != 0 {
+func GetTaskQueueSize() int {
+	if res := viper.GetInt("task.queue.size"); res != 0 {
 		return res
 	}
-	return DefaultTaskWorkers
+	return DefaultTaskQueueSize
 }
 
 func GetMetadataConfigPath() string {
