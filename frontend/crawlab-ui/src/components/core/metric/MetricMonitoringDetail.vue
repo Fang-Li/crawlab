@@ -304,8 +304,8 @@ defineOptions({ name: 'ClMetricMonitoringDetail' });
         </el-select>
       </div>
     </div>
-    <div class="metric-list">
-      <el-space v-if="metricsTimeSeriesData?.length" wrap>
+    <div class="metric-list-container">
+      <div v-if="metricsTimeSeriesData?.length" class="metric-list">
         <el-card v-for="name in metricGroups" shadow="hover">
           <cl-chart
             v-if="isAvailable(name)"
@@ -321,7 +321,7 @@ defineOptions({ name: 'ClMetricMonitoringDetail' });
             </div>
           </div>
         </el-card>
-      </el-space>
+      </div>
       <cl-empty v-else />
     </div>
   </div>
@@ -359,19 +359,36 @@ defineOptions({ name: 'ClMetricMonitoringDetail' });
     }
   }
 
-  .metric-list {
+  .metric-list-container {
     padding: 10px;
 
-    .unavailable-metric {
-      position: relative;
+    .metric-list {
+      display: grid;
+      grid-gap: 10px;
 
-      .label {
-        position: absolute;
-        top: 0;
-        left: 0;
-        font-size: 12px;
-        font-weight: 500;
-        color: #666666;
+      @media (min-width: 768px) {
+        grid-template-columns: repeat(1, minmax(300px, 1fr));
+      }
+
+      @media (min-width: 1024px) {
+        grid-template-columns: repeat(2, minmax(300px, 1fr));
+      }
+
+      @media (min-width: 1280px) {
+        grid-template-columns: repeat(3, minmax(300px, 1fr));
+      }
+
+      .unavailable-metric {
+        position: relative;
+
+        .label {
+          position: absolute;
+          top: 0;
+          left: 0;
+          font-size: 12px;
+          font-weight: 500;
+          color: #666666;
+        }
       }
     }
   }
