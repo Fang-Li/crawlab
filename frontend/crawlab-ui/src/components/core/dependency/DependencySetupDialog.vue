@@ -133,10 +133,10 @@ defineOptions({ name: 'ClDependencySetupDialog' });
     <cl-form ref="formRef" :model="form">
       <cl-form-item :span="4" :label="t('views.env.deps.config.form.name')">
         <cl-tag
-          :key="config?.name"
+          :key="lang"
           class="dep-name"
           type="primary"
-          :label="config?.name"
+          :label="lang"
         />
       </cl-form-item>
       <cl-form-item

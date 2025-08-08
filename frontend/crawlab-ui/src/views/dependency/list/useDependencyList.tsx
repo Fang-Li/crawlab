@@ -726,10 +726,11 @@ const useDependencyList = () => {
     tableColumns,
   } as UseListOptions<Task>;
 
-  setupListComponent(ns, store, ['node'], false);
+  setupListComponent(ns, store, false);
 
   setupAutoUpdate(getData, 10000);
   onBeforeMount(() => store.dispatch(`${ns}/getConfigSetupList`));
+  onBeforeMount(() => store.dispatch(`node/getAllNodes`));
 
   return {
     ...useList<Dependency>(ns, store, opts),
