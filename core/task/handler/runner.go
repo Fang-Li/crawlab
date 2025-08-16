@@ -595,18 +595,18 @@ func (r *Runner) isConnectionHealthy() bool {
 	default:
 	}
 
-	// Try to send a ping-like message to test connection with timeout
-	// Use a simple log message as ping since PING code doesn't exist
-	testMsg := &grpc.TaskServiceConnectRequest{
-		Code:   grpc.TaskServiceConnectCode_INSERT_LOGS,
+	// FIXED: Use proper PING mechanism instead of fake log messages
+	// This prevents health check messages from polluting the actual log stream
+	pingMsg := &grpc.TaskServiceConnectRequest{
+		Code:   grpc.TaskServiceConnectCode_PING,
 		TaskId: r.tid.Hex(),
-		Data:   []byte(`["[HEALTH CHECK] connection test"]`),
+		Data:   nil, // No data needed for ping
 	}
 
 	// Use a channel to make the Send operation timeout-aware
 	done := make(chan error, 1)
 	go func() {
-		done <- r.conn.Send(testMsg)
+		done <- r.conn.Send(pingMsg)
 	}()
 
 	// Wait for either completion or timeout
@@ -616,6 +616,7 @@ func (r *Runner) isConnectionHealthy() bool {
 			r.Debugf("connection health check failed: %v", err)
 			return false
 		}
+		r.Debugf("connection health check successful")
 		return true
 	case <-time.After(5 * time.Second):
 		r.Debugf("connection health check timed out")
@@ -731,12 +732,12 @@ func (r *Runner) sendNotification() {
 		r.Errorf("failed to get task client: %v", err)
 		return
 	}
-	
+
 	// Use independent context for async notification - prevents cancellation due to task lifecycle
 	// This ensures notifications are sent even if the task runner is being cleaned up
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	_, err = taskClient.SendNotification(ctx, req)
 	if err != nil {
 		if !errors.Is(ctx.Err(), context.DeadlineExceeded) {
