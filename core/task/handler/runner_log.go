@@ -53,6 +53,9 @@ func (r *Runner) writeLogLines(lines []string) {
 		}
 		return
 	}
+
+	// Update last successful connection time to help health check avoid unnecessary pings
+	r.lastConnCheck = time.Now()
 }
 
 // logInternally sends internal runner logs to the same logging system as the task
