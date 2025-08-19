@@ -2,7 +2,9 @@ version: '3.3'
 services:
   backend:
     build:
-      context: ./backend
+      #context: ./backend
+      context: .
+      dockerfile: ./backend/Dockerfile
     image: crawlabteam/crawlab-backend:${CRAWLAB_TAG:-develop}
     env_file:
       - .env.local
@@ -44,15 +46,15 @@ services:
     env_file:
       - .env.local
 
-  worker:
-    image: crawlabteam/crawlab:${CRAWLAB_TAG:-develop}
-    environment:
-      CRAWLAB_NODE_MASTER: "N"
-      CRAWLAB_MASTER_HOST: "master"
-    depends_on:
-      - master
-    env_file:
-      - .env.local
+  #worker:
+  #  image: crawlabteam/crawlab:${CRAWLAB_TAG:-develop}
+  #  environment:
+  #    CRAWLAB_NODE_MASTER: "N"
+  #    CRAWLAB_MASTER_HOST: "master"
+  #  depends_on:
+  #    - master
+  #  env_file:
+  #    - .env.local
 
   mongo:
     image: mongo:5
