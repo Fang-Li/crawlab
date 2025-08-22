@@ -1,11 +1,14 @@
 version: '3.3'
 services:
   master:
-    image: crawlabteam/crawlab
+    #image: crawlabteam/crawlab
+    image: crawlab:dev
     container_name: crawlab_master
     environment:
       CRAWLAB_NODE_MASTER: "Y"
       CRAWLAB_MONGO_HOST: "mongo"
+    volumes:
+      - "./.crawlab/master:/root/.crawlab"
     ports:
       - "8080:8080"
     depends_on:
