@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/apex/log"
 	"github.com/crawlab-team/crawlab/core/constants"
 	"github.com/crawlab-team/crawlab/core/entity"
@@ -16,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"time"
 )
 
 type NodeServerV2 struct {
@@ -83,7 +84,7 @@ func (svr NodeServerV2) Register(ctx context.Context, req *grpc.Request) (res *g
 		}
 		node.SetCreated(primitive.NilObjectID)
 		node.SetUpdated(primitive.NilObjectID)
-		_, err = service.NewModelServiceV2[models.NodeV2]().InsertOne(*nodeDb)
+		node.Id, err = service.NewModelServiceV2[models.NodeV2]().InsertOne(node)
 		if err != nil {
 			return HandleError(err)
 		}
