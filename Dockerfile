@@ -1,5 +1,3 @@
-FROM crawlabteam/crawlab-backend:latest AS backend-build
-
 FROM crawlabteam/crawlab-frontend:latest AS frontend-build
 
 FROM crawlabteam/crawlab-public-plugins:latest AS public-plugins-build
@@ -14,7 +12,7 @@ COPY ./bin /app/bin
 
 # copy backend files
 RUN mkdir -p /opt/bin
-COPY --from=backend-build /go/bin/crawlab /opt/bin
+COPY backend/crawlab /opt/bin
 RUN cp /opt/bin/crawlab /usr/local/bin/crawlab-server
 
 # copy frontend files
