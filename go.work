@@ -1,6 +1,7 @@
-go 1.22
+go 1.23.0
 
 use (
-	core
-	grpc
+	./backend
+	./core
+	./grpc
 )
