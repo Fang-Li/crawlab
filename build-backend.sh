@@ -19,4 +19,7 @@ cd backend;ls;
 go mod tidy -v;echo tidy finish;
 go build -x -gcflags="all=-N -l" .; echo success;
 '
+echo "backend编译完毕" 
+echo "开始做镜像"
+docker build -t crawlab:0.6.3-dev -f Dockerfile .
 
