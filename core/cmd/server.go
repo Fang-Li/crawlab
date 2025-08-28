@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/crawlab-team/crawlab/core/apps"
 	"github.com/crawlab-team/crawlab/core/utils"
 	"github.com/spf13/cobra"
@@ -20,7 +23,9 @@ var serverCmd = &cobra.Command{
 		if !utils.IsPro() {
 			utils.PrintLogoWithWelcomeInfo()
 		}
-
+		fmt.Println("暂停启动用来接入dlv调试")
+		time.Sleep(time.Minute)
+		fmt.Println("开始启动server啦")
 		// app
 		svr := apps.GetServer()
 
