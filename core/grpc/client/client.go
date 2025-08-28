@@ -130,7 +130,7 @@ func (c *GrpcClient) Start() {
 		// connect first, then start monitoring
 		err := c.connect()
 		if err != nil {
-			c.Errorf("failed initial connection, will retry: %v", err)
+			c.Errorf("failed initial connection %s, will retry: %v", c.address, err)
 			// Don't fatal here, let reconnection handle it
 		}
 
