@@ -3,7 +3,7 @@ FROM node:20-alpine AS build
 
 # Arguments and environment variables for building packages
 ARG VITE_APP_API_BASE_URL=/api
-ENV VITE_APP_API_BASE_URL ${VITE_APP_API_BASE_URL}
+ENV VITE_APP_API_BASE_URL=${VITE_APP_API_BASE_URL}
 
 # Set the working directory in the container
 WORKDIR /app
