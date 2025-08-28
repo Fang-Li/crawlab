@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 FROM golang:1.23 AS build
 
 # Context path is the root of the repository
@@ -16,8 +18,11 @@ COPY ./vcs ./vcs/
 ENV GO111MODULE=on
 
 # Build from the backend directory which contains the main.go
-RUN cd backend && go mod tidy -v
-RUN cd backend && go install -v -x -gcflags="all=-N -l" ./...
+RUN --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=cache,target=/root/.cache/go-build \
+  cd backend && go mod tidy -v && \
+  go install -v -x -gcflags="all=-N -l" ./...
+
 
 FROM alpine:3.14
 
