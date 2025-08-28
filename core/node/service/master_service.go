@@ -47,6 +47,11 @@ func (svc *MasterService) Start() {
 	// gRPC server is now started earlier in main.go to avoid race conditions
 	// No need to start it here anymore
 
+	// start grpc server 大兄弟还是need start啊
+	if err := svc.server.Start(); err != nil {
+		panic(err)
+	}
+
 	// register to db
 	if err := svc.Register(); err != nil {
 		panic(err)
