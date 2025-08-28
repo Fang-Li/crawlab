@@ -614,7 +614,7 @@ func (r *Runner) isConnectionHealthy() bool {
 	// For older connections, try a non-blocking ping only if no active log streaming
 	// This is a compromise to avoid blocking the critical log data flow
 	pingMsg := &grpc.TaskServiceConnectRequest{
-		Code:   grpc.TaskServiceConnectCode_PING,
+		Code:   grpc.TaskServiceConnectCode_TASK_PING,
 		TaskId: r.tid.Hex(),
 		Data:   nil,
 	}

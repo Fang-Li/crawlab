@@ -188,7 +188,7 @@ func (svr TaskServiceServer) Connect(stream grpc.TaskService_ConnectServer) (err
 		case grpc.TaskServiceConnectCode_INSERT_LOGS:
 			// handle task log insertion
 			err = svr.handleInsertLogs(taskId, msg)
-		case grpc.TaskServiceConnectCode_PING:
+		case grpc.TaskServiceConnectCode_TASK_PING:
 			// handle connection health check ping - no action needed, just acknowledge
 			svr.Debugf("received ping from task[%s]", taskId.Hex())
 			err = nil

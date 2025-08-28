@@ -55,9 +55,9 @@ func (svc *MasterService) Start() {
 	// start health service
 	go svc.healthSvc.Start(func() bool {
 		// Master-specific health check: verify gRPC server and core services are running
-		return svc.server != nil && 
-			svc.taskSchedulerSvc != nil && 
-			svc.taskHandlerSvc != nil && 
+		return svc.server != nil &&
+			svc.taskSchedulerSvc != nil &&
+			svc.taskHandlerSvc != nil &&
 			svc.scheduleSvc != nil
 	})
 
@@ -276,7 +276,7 @@ func (svc *MasterService) pingNodeClient(n *models.Node) (ok bool) {
 		return false
 	}
 	err := stream.Send(&grpc.NodeServiceSubscribeResponse{
-		Code: grpc.NodeServiceSubscribeCode_PING,
+		Code: grpc.NodeServiceSubscribeCode_CONNECT_PING,
 	})
 	if err != nil {
 		svc.Errorf("failed to ping worker node client[%s]: %v", n.Key, err)
