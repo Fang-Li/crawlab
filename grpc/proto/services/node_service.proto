@@ -20,7 +20,7 @@ message NodeServiceSubscribeRequest {
 }
 
 enum NodeServiceSubscribeCode {
-  PING = 0;
+  CONNECT_PING = 0;
 }
 
 message NodeServiceSubscribeResponse {
