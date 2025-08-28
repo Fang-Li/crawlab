@@ -44,8 +44,10 @@ type MasterService struct {
 }
 
 func (svc *MasterService) Start() {
-	// gRPC server is now started earlier in main.go to avoid race conditions
-	// No need to start it here anymore
+	// start grpc server
+	if err := svc.server.Start(); err != nil {
+		panic(err)
+	}
 
 	// register to db
 	if err := svc.Register(); err != nil {
@@ -55,9 +57,9 @@ func (svc *MasterService) Start() {
 	// start health service
 	go svc.healthSvc.Start(func() bool {
 		// Master-specific health check: verify gRPC server and core services are running
-		return svc.server != nil && 
-			svc.taskSchedulerSvc != nil && 
-			svc.taskHandlerSvc != nil && 
+		return svc.server != nil &&
+			svc.taskSchedulerSvc != nil &&
+			svc.taskHandlerSvc != nil &&
 			svc.scheduleSvc != nil
 	})
 
