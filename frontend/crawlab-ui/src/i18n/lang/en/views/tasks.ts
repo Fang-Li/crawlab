@@ -6,6 +6,8 @@ const tasks: LViewsTasks = {
       schedule: 'Schedule',
       priority: 'Priority',
       status: 'Status',
+      testResult: 'TestResult',
+      testDetail: 'TestDetail',
       cmd: 'Execute Command',
       stat: {
         create_ts: 'Created At',
