@@ -6,6 +6,8 @@ const tasks: LViewsTasks = {
       schedule: '定时任务',
       priority: '优先级',
       status: '状态',
+      testResult: '测试结果',
+      testDetail: '测试详情',
       cmd: '执行命令',
       stat: {
         create_ts: '创建时间',
