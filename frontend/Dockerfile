@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 # Build stage
 FROM node:20-alpine AS build
 
@@ -20,10 +22,10 @@ RUN ls -la /app/src/components/
 RUN ls -la /app/src/components/ui/ || echo "UI directory not found"
 
 # Install project dependencies
-RUN pnpm install
+RUN --mount=type=cache,target=/root/.pnpm-store,id=pnpmstore pnpm install
 
 # Build the application
-RUN pnpm run build
+RUN --mount=type=cache,target=/root/.vite-cache,id=vitecache pnpm run build
 
 # Production stage
 FROM alpine:3.14
