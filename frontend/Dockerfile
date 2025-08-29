@@ -12,6 +12,7 @@ WORKDIR /app
 
 # Install pnpm
 RUN npm install -g pnpm
+ENV PNPM_STORE_PATH=/root/.pnpm-store
 
 # Copy application code
 ADD ./crawlab-ui /app
