@@ -596,10 +596,9 @@ func PostSpiderRun(c *gin.Context, params *PostSpiderRunParams) (response *Respo
 }
 
 type GetSpiderResultsParams struct {
-	Id     string `path:"id" description:"Spider ID" format:"objectid" pattern:"^[0-9a-fA-F]{24}$"`
-	Page   int    `query:"page" description:"Page" default:"1" minimum:"1"`
-	Size   int    `query:"size" description:"Size" default:"10" minimum:"1"`
-	Filter string `query:"filter" description:"Filter query"`
+	Id   string `path:"id" description:"Spider ID" format:"objectid" pattern:"^[0-9a-fA-F]{24}$"`
+	Page int    `query:"page" description:"Page" default:"1" minimum:"1"`
+	Size int    `query:"size" description:"Size" default:"10" minimum:"1"`
 }
 
 func GetSpiderResults(c *gin.Context, params *GetSpiderResultsParams) (response *ListResponse[bson.M], err error) {
