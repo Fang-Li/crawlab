@@ -47,16 +47,16 @@ const layouts: LLayouts = {
         title: '项目详情',
         tabs: {
           overview: '概览',
-          spiders: '爬虫',
+          spiders: '中心任务',
         },
       },
     },
     spiders: {
       list: {
-        title: '爬虫列表',
+        title: '中心任务列表',
       },
       detail: {
-        title: '爬虫详情',
+        title: '中心任务详情',
         tabs: {
           overview: '概览',
           files: '文件',
@@ -182,7 +182,7 @@ const layouts: LLayouts = {
           files: '文件',
           changes: '变更',
           commits: '提交历史',
-          spiders: '爬虫',
+          spiders: '中心任务',
         },
       },
     },

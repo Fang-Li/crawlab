@@ -2,7 +2,7 @@ const schedules: LViewsSchedules = {
   table: {
     columns: {
       name: '名称',
-      spider: '爬虫',
+      spider: '中心任务',
       mode: '模式',
       cron: 'Cron 表达式',
       enabled: '是否启用',
@@ -25,7 +25,7 @@ const schedules: LViewsSchedules = {
     filter: {
       select: {
         spider: {
-          label: '爬虫',
+          label: '中心任务',
         },
         mode: {
           label: '模式',

@@ -11,7 +11,7 @@ const git: LComponentsGit = {
     error: '错误',
     autoPull: '自动拉取',
     urlInvalid: '无效 URL',
-    spider: '爬虫',
+    spider: '中心任务',
     cloneLogs: '克隆日志',
   },
   common: {
@@ -23,8 +23,8 @@ const git: LComponentsGit = {
         commit: '成功提交 {fileCount} 个文件',
         push: '成功推送代码',
         createSpider: {
-          title: '成功创建爬虫.',
-          action: '查看爬虫',
+          title: '成功创建中心任务.',
+          action: '查看中心任务',
         },
       },
     },
@@ -178,13 +178,13 @@ const git: LComponentsGit = {
     },
   },
   spiders: {
-    title: '爬虫操作',
+    title: '中心任务操作',
     actions: {
       label: {
-        create: '新建爬虫',
+        create: '新建中心任务',
       },
       tooltip: {
-        create: '创建一个新的爬虫',
+        create: '创建一个新的中心任务',
       },
     },
     gitRootPath: 'Git 仓库路径',

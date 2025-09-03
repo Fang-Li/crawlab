@@ -2,7 +2,7 @@ const home: LViewsHome = {
   metrics: {
     nodes: '在线节点',
     projects: '项目',
-    spiders: '爬虫',
+    spiders: '中心任务',
     schedules: '定时任务',
     tasks: '任务总数',
     error_tasks: '错误任务',
@@ -19,7 +19,7 @@ const home: LViewsHome = {
     title: '按节点任务统计',
   },
   tasksBySpiderConfig: {
-    title: '按爬虫任务统计',
+    title: '按中心任务任务统计',
   },
 };
 

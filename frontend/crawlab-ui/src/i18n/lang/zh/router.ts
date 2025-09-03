@@ -3,7 +3,7 @@ const router: LRouter = {
     home: '主页',
     nodes: '节点',
     projects: '项目',
-    spiders: '爬虫',
+    spiders: '中心任务',
     schedules: '定时任务',
     tasks: '任务',
     git: 'Git 仓库',

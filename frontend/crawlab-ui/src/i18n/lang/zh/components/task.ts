@@ -1,6 +1,6 @@
 const task: LComponentsTask = {
   form: {
-    spider: '爬虫',
+    spider: '中心任务',
     schedule: '定时任务',
     node: '节点',
     status: '状态',
@@ -12,7 +12,7 @@ const task: LComponentsTask = {
     selectedNodes: '指定节点',
     toRunNodes: '待运行节点',
     tooltip: {
-      goToSpider: '导航至爬虫',
+      goToSpider: '导航至中心任务',
       goToNode: '导航至节点',
       taskErrorMessage: '任务错误信息',
       cancelTask: '取消任务',

@@ -14,12 +14,12 @@ const spiders: LViewsSpiders = {
   },
   navActions: {
     new: {
-      label: '新建爬虫',
-      tooltip: '添加一个新爬虫',
+      label: '新建中心任务',
+      tooltip: '添加一个新中心任务',
     },
     filter: {
       search: {
-        placeholder: '搜索爬虫',
+        placeholder: '搜索中心任务',
       },
     },
   },

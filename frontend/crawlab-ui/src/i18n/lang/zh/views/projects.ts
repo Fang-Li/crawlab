@@ -2,7 +2,7 @@ const projects: LViewProjects = {
   table: {
     columns: {
       name: '名称',
-      spiders: '爬虫',
+      spiders: '中心任务',
       tags: '标签',
       description: '描述',
     },

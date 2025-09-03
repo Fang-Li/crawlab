@@ -3,11 +3,11 @@ const gits: LViewGits = {
     columns: {
       name: '名称',
       status: '状态',
-      spiders: '爬虫',
+      spiders: '中心任务',
     },
     actions: {
       tooltip: {
-        deleteNotAllowed: '无法删除带有爬虫的 Git 仓库',
+        deleteNotAllowed: '无法删除带有中心任务的 Git 仓库',
       },
     },
   },

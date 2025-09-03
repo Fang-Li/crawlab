@@ -17,7 +17,7 @@ const spider: LComponentsSpider = {
     gitRootPath: 'Git 仓库路径',
     template: '模板',
     templateParams: {
-      spiderName: '爬虫名称',
+      spiderName: '中心任务名称',
       startUrls: '起始 URL',
       domains: '域名',
     },
@@ -60,7 +60,7 @@ const spider: LComponentsSpider = {
   },
   dialog: {
     run: {
-      title: '运行爬虫',
+      title: '运行中心任务',
     },
   },
   message: {
@@ -73,7 +73,7 @@ const spider: LComponentsSpider = {
       changeDatabase: {
         title: '更改数据库',
         message:
-          '确定要更改数据库吗？此更改可能导致查看或保存爬虫数据时出现问题。',
+          '确定要更改数据库吗？此更改可能导致查看或保存中心任务数据时出现问题。',
       },
     },
   },

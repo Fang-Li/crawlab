@@ -41,7 +41,7 @@ const notification: LComponentsNotification = {
   variableCategories: {
     task: '任务',
     node: '节点',
-    spider: '爬虫',
+    spider: '中心任务',
     schedule: '定时任务',
     alert: '监控警报',
     metric: '监控指标',
@@ -136,7 +136,7 @@ const notification: LComponentsNotification = {
         name: '任务完成',
         description: '任务完成通知模板',
         title: '任务完成',
-        template_markdown: `- 爬虫名称: \${spider:name}
+        template_markdown: `- 中心任务名称: \${spider:name}
 - 定时任务名称: \${schedule:name}
 - 节点名称: \${node:name}
 - 任务 ID: \${task:id}
@@ -160,7 +160,7 @@ const notification: LComponentsNotification = {
         name: '任务错误',
         description: '任务错误通知模板',
         title: '任务错误',
-        template_markdown: `- 爬虫名称: \${spider:name}
+        template_markdown: `- 中心任务名称: \${spider:name}
 - 定时任务名称: \${schedule:name}
 - 节点名称: \${node:name}
 - 任务 ID: \${task:id}

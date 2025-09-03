@@ -2,7 +2,7 @@ const tasks: LViewsTasks = {
   table: {
     columns: {
       node: '节点',
-      spider: '爬虫',
+      spider: '中心任务',
       schedule: '定时任务',
       priority: '优先级',
       status: '状态',
@@ -38,7 +38,7 @@ const tasks: LViewsTasks = {
           label: '节点',
         },
         spider: {
-          label: '爬虫',
+          label: '中心任务',
         },
         schedule: {
           label: '定时任务',

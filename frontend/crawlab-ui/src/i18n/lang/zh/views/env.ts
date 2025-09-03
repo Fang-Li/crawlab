@@ -66,10 +66,10 @@ const env: LViewsEnv = {
         },
         java: {
           title: '不支持全局依赖',
-          content: 'Java（Maven）不支持全局依赖的安装/卸载。请在爬虫内管理。',
+          content: 'Java（Maven）不支持全局依赖的安装/卸载。请在中心任务内管理。',
           action: {
-            label: '在爬虫内管理',
-            tooltip: '在爬虫内的依赖选项卡中管理',
+            label: '在中心任务内管理',
+            tooltip: '在中心任务内的依赖选项卡中管理',
           },
         },
       },

@@ -1,7 +1,7 @@
 const schedule: LComponentsSchedule = {
   form: {
     name: '名称',
-    spider: '爬虫',
+    spider: '中心任务',
     cron: 'Cron 表达式',
     cronInfo: 'Cron 信息',
     command: '命令',

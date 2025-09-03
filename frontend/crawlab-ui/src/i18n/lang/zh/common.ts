@@ -26,7 +26,7 @@ const common: LCommon = {
     install: '安装',
     uninstall: '卸载',
     viewLogs: '查看日志',
-    viewSpiders: '查看爬虫',
+    viewSpiders: '查看中心任务',
     viewData: '查看数据',
     viewFiles: '查看文件',
     uploadFiles: '上传文件',
@@ -117,7 +117,7 @@ const common: LCommon = {
   },
   tabs: {
     overview: '概览',
-    spiders: '爬虫',
+    spiders: '中心任务',
     schedules: '定时任务',
     tasks: '任务',
     files: '文件',
