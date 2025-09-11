@@ -86,13 +86,13 @@ func (r *Runner) configureEnv() {
 	r.configureGoPath()
 
 	// Remove CRAWLAB_ prefixed environment variables
-	for i := 0; i < len(r.cmd.Env); i++ {
-		env := r.cmd.Env[i]
-		if strings.HasPrefix(env, "CRAWLAB_") {
-			r.cmd.Env = append(r.cmd.Env[:i], r.cmd.Env[i+1:]...)
-			i--
-		}
-	}
+	//for i := 0; i < len(r.cmd.Env); i++ {
+	//	env := r.cmd.Env[i]
+	//	if strings.HasPrefix(env, "CRAWLAB_") {
+	//		r.cmd.Env = append(r.cmd.Env[:i], r.cmd.Env[i+1:]...)
+	//		i--
+	//	}
+	//}
 
 	// Task-specific environment variables
 	r.cmd.Env = append(r.cmd.Env, "CRAWLAB_TASK_ID="+r.tid.Hex())
