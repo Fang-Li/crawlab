@@ -13,7 +13,7 @@ COPY ./grpc ./grpc/
 COPY ./trace ./trace/
 COPY ./vcs ./vcs/
 
-ENV GO111MODULE on
+ENV GO111MODULE=on
 
 # Build from the backend directory which contains the main.go
 RUN cd backend && go mod tidy -v
