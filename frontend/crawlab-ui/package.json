@@ -35,7 +35,7 @@
   "scripts": {
     "dev": "vite build --watch --mode development",
     "serve": "vite",
-    "serve:host": "vite --host",
+    "serve:host": "vite --host --debug",
     "serve:local": "vite serve --port=8081 --mode local",
     "serve:dist": "serve dist",
     "gen:index": "node ./scripts/gen-index.js",
